@@ -1,2 +1,2 @@
-# reading_comprehension_tf
+# Machine Reading Comprehension
 Machine Reading Comprehension model in Tensorflow
