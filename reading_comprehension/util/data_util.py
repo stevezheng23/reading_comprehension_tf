@@ -5,28 +5,30 @@ import os.path
 import numpy as np
 import tensorflow as tf
 
-__all__ = ["DataPipeline", "create_data_pipeline", "create_input_dataset", "create_output_dataset",
+from tqdm import tqdm
+
+__all__ = ["DataPipeline", "create_data_pipeline", "create_src_dataset", "create_trg_dataset",
            "generate_word_feat", "generate_subword_feat", "generate_char_feat",
            "create_embedding_file", "load_embedding_file", "convert_embedding",
            "create_vocab_file", "load_vocab_file", "process_vocab_table",
            "create_word_vocab", "create_subword_vocab", "create_char_vocab",
-           "load_input_data", "prepare_data"]
+           "load_input_data", "prepare_data", "prepare_mrc_data"]
 
 class DataPipeline(collections.namedtuple("DataPipeline",
-    ("initializer", "input_source_word", "input_source_subword", "input_source_char",
-     "input_target_word", "input_target_subword", "input_target_char", "output_label_word",
-     "input_source_word_mask", "input_source_subword_mask", "input_source_char_mask",
-     "input_target_word_mask", "input_target_subword_mask", "input_target_char_mask",
-     "output_label_word_mask", "input_data_placeholder", "batch_size_placeholder"))):
+    ("initializer", "input_question_word", "input_question_subword", "input_question_char",
+     "input_context_word", "input_context_subword", "input_context_char", "input_answer",
+     "input_question_word_mask", "input_question_subword_mask", "input_question_char_mask",
+     "input_context_word_mask", "input_context_subword_mask", "input_context_char_mask",
+     "input_answer_mask", "input_data_placeholder", "batch_size_placeholder"))):
     pass
 
-def create_data_pipeline(input_src_word_dataset,
-                         input_src_subword_dataset,
-                         input_src_char_dataset,
-                         input_trg_word_dataset,
-                         input_trg_subword_dataset,
-                         input_trg_char_dataset,
-                         output_label_word_dataset,
+def create_data_pipeline(input_question_word_dataset,
+                         input_question_subword_dataset,
+                         input_question_char_dataset,
+                         input_context_word_dataset,
+                         input_context_subword_dataset,
+                         input_context_char_dataset,
+                         input_answer_dataset,
                          word_vocab_index,
                          word_pad,
                          word_feat_enable,
@@ -48,26 +50,26 @@ def create_data_pipeline(input_src_word_dataset,
         word_pad_id = word_vocab_index.lookup(tf.constant(word_pad))
     else:
         word_pad_id = default_pad_id
-        input_src_word_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(dataset_size)
-        input_trg_word_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(dataset_size)
-        output_label_word_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(dataset_size)
+        input_question_word_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(dataset_size)
+        input_context_word_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(dataset_size)
+        input_answer_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(dataset_size)
     
     if subword_feat_enable == True:
         subword_pad_id = subword_vocab_index.lookup(tf.constant(subword_pad))
     else:
         subword_pad_id = default_pad_id
-        input_src_subword_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(dataset_size)
-        input_trg_subword_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(dataset_size)
+        input_question_subword_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(dataset_size)
+        input_context_subword_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(dataset_size)
     
     if char_feat_enable == True:
         char_pad_id = char_vocab_index.lookup(tf.constant(char_pad))
     else:
         char_pad_id = default_pad_id
-        input_src_char_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(dataset_size)
-        input_trg_char_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(dataset_size)
+        input_question_char_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(dataset_size)
+        input_context_char_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(dataset_size)
     
-    dataset = tf.data.Dataset.zip((input_src_word_dataset, input_src_subword_dataset, input_src_char_dataset,
-        input_trg_word_dataset, input_trg_subword_dataset, input_trg_char_dataset, output_label_word_dataset))
+    dataset = tf.data.Dataset.zip((input_question_word_dataset, input_question_subword_dataset, input_question_char_dataset,
+        input_context_word_dataset, input_context_subword_dataset, input_context_char_dataset, input_answer_dataset))
     
     if enable_shuffle == True:
         buffer_size = batch_size * 1000
@@ -95,38 +97,38 @@ def create_data_pipeline(input_src_word_dataset,
     iterator = dataset.make_initializable_iterator()
     batch_data = iterator.get_next()
     
-    input_src_word = batch_data[0] if word_feat_enable == True else None
-    input_src_subword = batch_data[1] if subword_feat_enable == True else None
-    input_src_char = batch_data[2] if char_feat_enable == True else None
-    input_trg_word = batch_data[3] if word_feat_enable == True else None
-    input_trg_subword = batch_data[4] if subword_feat_enable == True else None
-    input_trg_char = batch_data[5] if char_feat_enable == True else None
-    output_label_word = batch_data[6] if word_feat_enable == True else None
+    input_question_word = batch_data[0] if word_feat_enable == True else None
+    input_question_subword = batch_data[1] if subword_feat_enable == True else None
+    input_question_char = batch_data[2] if char_feat_enable == True else None
+    input_context_word = batch_data[3] if word_feat_enable == True else None
+    input_context_subword = batch_data[4] if subword_feat_enable == True else None
+    input_context_char = batch_data[5] if char_feat_enable == True else None
+    input_answer = batch_data[6]
     
-    return DataPipeline(initializer=iterator.initializer, input_source_word=input_src_word, input_source_subword=input_src_subword,
-        input_source_char=input_src_char, input_target_word=input_trg_word, input_target_subword=input_trg_subword,
-        input_target_char=input_trg_char, output_label_word=None, input_source_word_mask=None,
-        input_source_subword_mask=None, input_source_char_mask=None, input_target_word_mask=None,
-        input_target_subword_mask=None, input_target_char_mask=None, output_label_word_mask=None,
+    return DataPipeline(initializer=iterator.initializer,
+        input_question_word=input_question_word, input_question_subword=input_question_subword, input_question_char=input_question_char,
+        input_context_word=input_context_word, input_context_subword=input_context_subword, input_context_char=input_context_char,
+        input_answer=input_answer, input_question_word_mask=None, input_question_subword_mask=None, input_question_char_mask=None,
+        input_context_word_mask=None, input_context_subword_mask=None, input_context_char_mask=None, input_answer_mask=None,
         input_data_placeholder=None, batch_size_placeholder=None)
     
-def create_input_dataset(input_file,
-                         word_vocab_index,
-                         word_max_length,
-                         word_pad,
-                         word_sos,
-                         word_eos,
-                         word_feat_enable,
-                         subword_vocab_index,
-                         subword_max_length,
-                         subword_pad,
-                         subword_size,
-                         subword_feat_enable,
-                         char_vocab_index,
-                         char_max_length,
-                         char_pad,
-                         char_feat_enable):
-    """create word/subword/char-level dataset for input data"""
+def create_src_dataset(input_file,
+                       word_vocab_index,
+                       word_max_length,
+                       word_pad,
+                       word_sos,
+                       word_eos,
+                       word_feat_enable,
+                       subword_vocab_index,
+                       subword_max_length,
+                       subword_pad,
+                       subword_size,
+                       subword_feat_enable,
+                       char_vocab_index,
+                       char_max_length,
+                       char_pad,
+                       char_feat_enable):
+    """create word/subword/char-level dataset for input source data"""
     dataset = tf.data.TextLineDataset([input_file])
     
     word_dataset = None
@@ -148,21 +150,23 @@ def create_input_dataset(input_file,
     
     return word_dataset, subword_dataset, char_dataset
 
-def create_output_dataset(output_file,
-                          word_vocab_index,
-                          word_max_length,
-                          word_sos,
-                          word_eos,
-                          word_feat_enable):
-    """create word-level dataset for output data"""
-    dataset = tf.data.TextLineDataset([output_file])
+def create_trg_dataset(input_file,
+                       input_data_type,
+                       word_vocab_index,
+                       word_max_length,
+                       word_sos,
+                       word_eos):
+    """create dataset for input target data"""
+    dataset = tf.data.TextLineDataset([input_file])
     
-    word_dataset = None
-    if word_feat_enable == True:
-        word_dataset = dataset.map(lambda sent: generate_word_feat(sent, word_vocab_index,
+    if input_data_type == "extraction":
+        dataset = dataset.map(lambda span: tf.string_split([span], delimiter='|').values)
+        dataset = dataset.map(lambda span: tf.expand_dims(span, axis=-1))
+    elif input_data_type == "generation":
+        dataset = dataset.map(lambda sent: generate_word_feat(sent, word_vocab_index,
             word_max_length, word_sos, word_eos))
     
-    return word_dataset
+    return dataset
 
 def generate_word_feat(sentence,
                        word_vocab_index,
@@ -274,7 +278,7 @@ def load_embedding_file(embedding_file,
     if tf.gfile.Exists(embedding_file):
         with codecs.getreader("utf-8")(tf.gfile.GFile(embedding_file, "rb")) as file:
             embedding = {}
-            for line in file:
+            for line in tqdm(file):
                 items = line.strip().split(' ')
                 if len(items) != embedding_size + 1:
                     continue
@@ -321,7 +325,7 @@ def load_vocab_file(vocab_file):
     if tf.gfile.Exists(vocab_file):
         with codecs.getreader("utf-8")(tf.gfile.GFile(vocab_file, "rb")) as file:
             vocab = {}
-            for line in file:
+            for line in tqdm(file):
                 items = line.strip().split('\t')
                 
                 item_size = len(items)
@@ -434,7 +438,7 @@ def load_input_data(input_file):
     input_data = []
     if tf.gfile.Exists(input_file):
         with codecs.getreader("utf-8")(tf.gfile.GFile(input_file, "rb")) as file:
-            for line in file:
+            for line in tqdm(file):
                 input_data.append(line.strip())
             input_size = len(input_data)
             
@@ -443,7 +447,7 @@ def load_input_data(input_file):
         raise FileNotFoundError("input file not found")
 
 def prepare_data(logger,
-                 input_file,
+                 input_data,
                  word_vocab_file,
                  word_vocab_size,
                  word_embed_dim,
@@ -466,13 +470,7 @@ def prepare_data(logger,
                  char_unk,
                  char_pad,
                  char_feat_enable):
-    """prepare data for reading comprehension model"""
-    input_data = None
-    if tf.gfile.Exists(input_file):
-        logger.log_print("# loading input data from {0}".format(input_file))
-        input_data, input_size = load_input_data(input_file)
-        logger.log_print("# input data has {0} lines".format(input_size))
-    
+    """prepare mrc data from input data"""    
     word_embed_data = None
     if pretrain_word_embed == True:
         if tf.gfile.Exists(word_embed_file):
@@ -489,33 +487,26 @@ def prepare_data(logger,
         word_embed_size = len(word_embed_data) if word_embed_data is not None else 0
         logger.log_print("# word embedding table has {0} words".format(word_embed_size))
     
-    word_vocab = None
-    word_vocab_table = None
-    word_vocab_size = None
-    word_vocab_index = None
-    word_vocab_inverted_index = None
-    if word_feat_enable is True:
-        if tf.gfile.Exists(word_vocab_file):
-            logger.log_print("# loading word vocab table from {0}".format(word_vocab_file))
-            word_vocab = load_vocab_file(word_vocab_file)
-            (word_vocab_table, word_vocab_size, word_vocab_index,
-                word_vocab_inverted_index) = process_vocab_table(word_vocab,
-                word_vocab_size, word_embed_data, word_unk, word_pad, word_sos, word_eos)
-        elif input_data is not None:
-            logger.log_print("# creating word vocab table from {0}".format(input_file))
-            word_vocab = create_word_vocab(input_data)
-            (word_vocab_table, word_vocab_size, word_vocab_index,
-                word_vocab_inverted_index) = process_vocab_table(word_vocab,
-                word_vocab_size, word_embed_data, word_unk, word_pad, word_sos, word_eos)
-            logger.log_print("# creating word vocab file {0}".format(word_vocab_file))
-            create_vocab_file(word_vocab_file, word_vocab_table)
-        else:
-            raise ValueError("{0} or {1} must be provided".format(word_vocab_file, input_file))
-
-        logger.log_print("# word vocab table has {0} words".format(word_vocab_size))
+    if tf.gfile.Exists(word_vocab_file):
+        logger.log_print("# loading word vocab table from {0}".format(word_vocab_file))
+        word_vocab = load_vocab_file(word_vocab_file)
+        (word_vocab_table, word_vocab_size, word_vocab_index,
+            word_vocab_inverted_index) = process_vocab_table(word_vocab,
+            word_vocab_size, word_embed_data, word_unk, word_pad, word_sos, word_eos)
+    elif input_data is not None:
+        logger.log_print("# creating word vocab table from input data")
+        word_vocab = create_word_vocab(input_data)
+        (word_vocab_table, word_vocab_size, word_vocab_index,
+            word_vocab_inverted_index) = process_vocab_table(word_vocab,
+            word_vocab_size, word_embed_data, word_unk, word_pad, word_sos, word_eos)
+        logger.log_print("# creating word vocab file {0}".format(word_vocab_file))
+        create_vocab_file(word_vocab_file, word_vocab_table)
+    else:
+        raise ValueError("{0} or input data must be provided".format(word_vocab_file))
+    
+    logger.log_print("# word vocab table has {0} words".format(word_vocab_size))
     
     subword_vocab = None
-    subword_vocab_size = None
     subword_vocab_index = None
     subword_vocab_inverted_index = None
     if subword_feat_enable is True:
@@ -526,7 +517,7 @@ def prepare_data(logger,
                 subword_vocab_inverted_index) = process_vocab_table(subword_vocab,
                 subword_vocab_size, None, subword_unk, subword_pad, None, None)
         elif input_data is not None:
-            logger.log_print("# creating subword vocab table from {0}".format(input_file))
+            logger.log_print("# creating subword vocab table from input data")
             subword_vocab = create_subword_vocab(input_data, subword_size)
             (subword_vocab_table, subword_vocab_size, subword_vocab_index,
                 subword_vocab_inverted_index) = process_vocab_table(subword_vocab,
@@ -534,12 +525,11 @@ def prepare_data(logger,
             logger.log_print("# creating subword vocab file {0}".format(subword_vocab_file))
             create_vocab_file(subword_vocab_file, subword_vocab_table)
         else:
-            raise ValueError("{0} or {1} must be provided".format(subword_vocab_file, input_file))
+            raise ValueError("{0} or input data must be provided".format(subword_vocab_file))
 
         logger.log_print("# subword vocab table has {0} subwords".format(subword_vocab_size))
     
     char_vocab = None
-    char_vocab_size = None
     char_vocab_index = None
     char_vocab_inverted_index = None
     if char_feat_enable is True:
@@ -550,7 +540,7 @@ def prepare_data(logger,
                 char_vocab_inverted_index) = process_vocab_table(char_vocab,
                 char_vocab_size, None, char_unk, char_pad, None, None)
         elif input_data is not None:
-            logger.log_print("# creating char vocab table from {0}".format(input_file))
+            logger.log_print("# creating char vocab table from input data")
             char_vocab = create_char_vocab(input_data)
             (char_vocab_table, char_vocab_size, char_vocab_index,
                 char_vocab_inverted_index) = process_vocab_table(char_vocab,
@@ -558,7 +548,7 @@ def prepare_data(logger,
             logger.log_print("# creating char vocab file {0}".format(char_vocab_file))
             create_vocab_file(char_vocab_file, char_vocab_table)
         else:
-            raise ValueError("{0} or {1} must be provided".format(char_vocab_file, input_file))
+            raise ValueError("{0} or input data must be provided".format(char_vocab_file))
 
         logger.log_print("# char vocab table has {0} chars".format(char_vocab_size))
     
@@ -571,7 +561,68 @@ def prepare_data(logger,
         
         word_embed_data = convert_embedding(word_embed_data)
     
-    return (input_data, word_embed_data,
-        word_vocab_size, word_vocab_index, word_vocab_inverted_index,
+    return (word_embed_data, word_vocab_size, word_vocab_index, word_vocab_inverted_index,
+        subword_vocab_size, subword_vocab_index, subword_vocab_inverted_index,
+        char_vocab_size, char_vocab_index, char_vocab_inverted_index)
+
+def prepare_mrc_data(logger,
+                     input_question_file,
+                     input_context_file,
+                     input_answer_file,
+                     input_answer_type,
+                     word_vocab_file,
+                     word_vocab_size,
+                     word_embed_dim,
+                     word_embed_file,
+                     full_word_embed_file,
+                     word_unk,
+                     word_pad,
+                     word_sos,
+                     word_eos,
+                     word_feat_enable,
+                     pretrain_word_embed,
+                     subword_vocab_file,
+                     subword_vocab_size,
+                     subword_unk,
+                     subword_pad,
+                     subword_size,
+                     subword_feat_enable,
+                     char_vocab_file,
+                     char_vocab_size,
+                     char_unk,
+                     char_pad,
+                     char_feat_enable):
+    """prepare mrc data from question/context/answer files""" 
+    input_data = set()
+    if tf.gfile.Exists(input_question_file):
+        logger.log_print("# loading input question data from {0}".format(input_question_file))
+        input_question_data, input_question_size = load_input_data(input_question_file)
+        logger.log_print("# input question data has {0} lines".format(input_question_size))
+        input_data.update(input_question_data)
+    
+    if tf.gfile.Exists(input_context_file):
+        logger.log_print("# loading input context data from {0}".format(input_context_file))
+        input_context_data, input_context_size = load_input_data(input_context_file)
+        logger.log_print("# input context data has {0} lines".format(input_context_size))
+        input_data.update(input_context_data)
+    
+    if tf.gfile.Exists(input_answer_file):
+        logger.log_print("# loading input answer data from {0}".format(input_answer_file))
+        input_answer_data, input_answer_size = load_input_data(input_answer_file)
+        logger.log_print("# input answer data has {0} lines".format(input_answer_size))
+        if input_answer_type == "generation":
+            input_data.update(input_answer_data)
+    
+    input_data = list(input_data)
+    (word_embed_data, word_vocab_size, word_vocab_index, word_vocab_inverted_index,
+        subword_vocab_size, subword_vocab_index, subword_vocab_inverted_index,
+        char_vocab_size, char_vocab_index, char_vocab_inverted_index) = prepare_data(logger, input_data,
+            word_vocab_file, word_vocab_size, word_embed_dim, word_embed_file, full_word_embed_file,
+            word_unk, word_pad, word_sos, word_eos, word_feat_enable, pretrain_word_embed,
+            subword_vocab_file, subword_vocab_size, subword_unk, subword_pad, subword_size, subword_feat_enable,
+            char_vocab_file, char_vocab_size, char_unk, char_pad, char_feat_enable)
+    
+    return (input_question_data, input_context_data, input_answer_data,
+        word_embed_data, word_vocab_size, word_vocab_index, word_vocab_inverted_index,
         subword_vocab_size, subword_vocab_index, subword_vocab_inverted_index,
         char_vocab_size, char_vocab_index, char_vocab_inverted_index)
