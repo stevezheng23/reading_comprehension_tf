@@ -161,6 +161,7 @@ def create_trg_dataset(input_file,
     
     if input_data_type == "extraction":
         dataset = dataset.map(lambda span: tf.string_split([span], delimiter='|').values)
+        dataset = dataset.map(lambda span: tf.string_to_number(span, out_type=tf.int64))
         dataset = dataset.map(lambda span: tf.expand_dims(span, axis=-1))
     elif input_data_type == "generation":
         dataset = dataset.map(lambda sent: generate_word_feat(sent, word_vocab_index,
@@ -612,6 +613,9 @@ def prepare_mrc_data(logger,
         logger.log_print("# input answer data has {0} lines".format(input_answer_size))
         if input_answer_type == "generation":
             input_data.update(input_answer_data)
+    
+    if input_answer_size != input_question_size or input_answer_size != input_context_size:
+        raise ValueError("question, context & answer input data must have the same size")
     
     input_data = list(input_data)
     (word_embed_data, word_vocab_size, word_vocab_index, word_vocab_inverted_index,
