@@ -4,7 +4,7 @@ import os.path
 import numpy as np
 import tensorflow as tf
 
-__all__ = ["TrainResult", "EvaluateResult", "InferResult", "EncodeResult", "BiDAF"]
+__all__ = ["TrainResult", "EvaluateResult", "InferResult", "BiDAF"]
 
 class TrainResult(collections.namedtuple("TrainResult",
     ("loss", "learning_rate", "global_step", "batch_size", "summary"))):
@@ -38,7 +38,10 @@ class BiDAF(object):
             self.default_gpu_id = self.hyperparams.device_default_gpu_id
             self.logger.log_print("# {0} gpus are used with default gpu id set as {1}"
                 .format(self.num_gpus, self.default_gpu_id))
-                       
+            
+            self.global_step = tf.get_variable("global_step", shape=[], dtype=tf.int32,
+                initializer=tf.zeros_initializer, trainable=False)
+            
             """create checkpoint saver"""
             if not tf.gfile.Exists(self.hyperparams.train_ckpt_output_dir):
                 tf.gfile.MakeDirs(self.hyperparams.train_ckpt_output_dir)
@@ -49,12 +52,12 @@ class BiDAF(object):
     def save(self,
              sess,
              global_step):
-        """save checkpoint for seq2seq model"""
+        """save checkpoint for bi-directional attention flow model"""
         self.ckpt_saver.save(sess, self.ckpt_name, global_step=global_step)
     
     def restore(self,
                 sess):
-        """restore seq2seq model from checkpoint"""
+        """restore bi-directional attention flow model from checkpoint"""
         ckpt_file = tf.train.latest_checkpoint(self.ckpt_dir)
         if ckpt_file is not None:
             self.ckpt_saver.restore(sess, ckpt_file)
