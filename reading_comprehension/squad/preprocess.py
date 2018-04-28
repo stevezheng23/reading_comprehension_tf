@@ -57,20 +57,20 @@ def output_to_json(data_list, file_name):
 def output_to_plain(data_list, file_name):
     with open(file_name, "wb") as file:
         for data in data_list:
-            data_plain = "{0}\t{1}\t{2}\t{3}\t{4}|{5}\n".format(data["id"], data["question"], data["context"],
+            data_plain = "{0}\t{1}\t{2}\t{3}\t{4}|{5}\r\n".format(data["id"], data["question"], data["context"].replace("\n", " "),
                 data["answer_text"], data["answer_span"]["start"], data["answer_span"]["end"])
             file.write(data_plain.encode("utf-8"))
 
 def output_to_split(data_list, file_prefix):
     with open("{0}.question".format(file_prefix), "wb") as q_file, open("{0}.context".format(file_prefix), "wb") as c_file, open("{0}.answer_text".format(file_prefix), "wb") as at_file, open("{0}.answer_span".format(file_prefix), "wb") as as_file:
         for data in data_list:
-            q_data_plain = "{0}\n".format(data["question"])
+            q_data_plain = "{0}\r\n".format(data["question"])
             q_file.write(q_data_plain.encode("utf-8"))
-            c_data_plain = "{0}\n".format(data["context"])
+            c_data_plain = "{0}\r\n".format(data["context"].replace("\n", " "))
             c_file.write(c_data_plain.encode("utf-8"))
-            at_data_plain = "{0}\n".format(data["answer_text"])
+            at_data_plain = "{0}\r\n".format(data["answer_text"])
             at_file.write(at_data_plain.encode("utf-8"))
-            as_data_plain = "{0}|{1}\n".format(data["answer_span"]["start"], data["answer_span"]["end"])
+            as_data_plain = "{0}|{1}\r\n".format(data["answer_span"]["start"], data["answer_span"]["end"])
             as_file.write(as_data_plain.encode("utf-8"))
 
 def main(args):
