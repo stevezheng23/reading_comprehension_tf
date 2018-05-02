@@ -3,58 +3,62 @@ import tensorflow as tf
 
 from util.reading_comprehension_util import *
 
-__all__ = ["Pooling1D"]
+__all__ = ["MaxPooling", "AveragePooling", "Pooling"]
 
-class Pooling1D(object):
-    """pooling layer"""
+class MaxPooling(object):
+    """max pooling layer"""
     def __init__(self,
-                 window_size,
-                 stride_size,
-                 padding_type,
-                 pooling_type="max",
-                 input_type="1d",
-                 scope="conv1d"):
-        """initialize 1d convolution layer"""
-        with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
-            self.window_size = window_size
-            self.stride_size = stride_size
-            self.padding_type = padding_type
-            self.input_type = input_type
-            
-            if pooling_type == "max":
-                self.pooling1d_layer = tf.layers.MaxPooling1D(pool_size=self.window_size,
-                    strides=stride_size, padding=self.padding_type)
-            elif pooling_type == "avg":
-                self.pooling1d_layer = tf.layers.AveragePooling1D(pool_size=self.window_size,
-                    strides=stride_size, padding=self.padding_type)
-            else:
-                raise ValueError("unsupported pooling type {0}".format(pooling_type))
-
+                 scope="maxpool"):
+        """initialize max pooling layer"""
+        self.scope = scope
     
     def __call__(self,
-                 input_data):
-        """generate 1d pooling layer output"""
-        if self.input_type == "1d":
-            input_pooling1d = self.pooling1d_layer(input_data)
-        elif self.input_type == "2d":
-            (batch_size, dim1_length, dim2_length,
-                 input_embed_dim) = tf.shape(input_data)
-            input_data = tf.reshape(input_data,
-                shape=[batch_size * dim1_length, dim2_length, input_embed_dim])
-            input_pooling1d = self.pooling1d_layer(input_data)
-            _, dim2_length, input_embed_dim = tf.shape(input_pooling1d)
-            input_pooling1d = tf.reshape(input_pooling1d,
-                shape=[batch_size, dim1_length, dim2_length, input_embed_dim])
-        elif self.input_type == "3d":
-            (batch_size, dim1_length, dim2_length, dim3_length,
-                 input_embed_dim) = tf.shape(input_data)
-            input_data = tf.reshape(input_data,
-                shape=[batch_size * dim1_length * dim2_length, dim3_length, input_embed_dim])
-            input_pooling1d = self.pooling1d_layer(input_data)
-            _, dim3_length, input_embed_dim = tf.shape(input_pooling1d)
-            input_pooling1d = tf.reshape(input_pooling1d,
-                shape=[batch_size, dim1_length, dim2_length, dim3_length, input_embed_dim])
-        else:
-            raise ValueError("unsupported input type {0}".format(input_type))
+                 input_data,
+                 input_mask):
+        """call max pooling layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            input_pool = tf.reduce_max(input_data * input_mask, axis=-2)
+            
+            return input_pool
+
+class AveragePooling(object):
+    """average pooling layer"""
+    def __init__(self,
+                 scope="avgpool"):
+        """initialize average pooling layer"""
+        self.scope = scope
+    
+    def __call__(self,
+                 input_data,
+                 input_mask):
+        """call average pooling layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            input_sum = tf.reduce_sum(input_data * input_mask, axis=-2)
+            input_count = tf.count_nonzero(input_mask, axis=-2)
+            input_pool = 1.0 * input_sum / input_count
+            
+            return input_pool
+
+class Pooling(object):
+    """pooling layer"""
+    def __init__(self,
+                 pooling_type="max",
+                 scope="pool"):
+        """initialize pooling layer"""
+        self.pooling_type = pooling_type
+        self.scope = scope
         
-        return input_pooling1d
+        if self.pooling_type == "max":
+            self.pooling_layer = MaxPooling(self.scope)
+        elif self.pooling_type == "avg":
+            self.pooling_layer = AveragePooling(self.scope)
+        else:
+            raise ValueError("unsupported pooling type {0}".format(self.pooling_type))
+    
+    def __call__(self,
+                 input_data,
+                 input_mask):
+        """call pooling layer"""
+        input_pool = self.pooling_layer(input_data, input_mask)
+        
+        return input_pool
