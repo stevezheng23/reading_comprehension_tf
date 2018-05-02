@@ -36,15 +36,15 @@ def create_variable_initializer(initializer_type,
         initializer = tf.zeros_initializer
     elif initializer_type == "orthogonal":
         initializer = tf.orthogonal_initializer(seed=random_seed, dtype=data_type)
-    elif initializer_type = "random_uniform":
+    elif initializer_type == "random_uniform":
         initializer = tf.random_uniform_initializer(seed=random_seed, dtype=data_type)
-    elif initializer_type = "glorot_uniform":
+    elif initializer_type == "glorot_uniform":
         initializer = tf.glorot_uniform_initializer(seed=random_seed, dtype=data_type)
-    elif initializer_type = "random_normal":
+    elif initializer_type == "random_normal":
         initializer = tf.random_normal_initializer(seed=random_seed, dtype=data_type)
-    elif initializer_type = "truncated_normal":
+    elif initializer_type == "truncated_normal":
         initializer = tf.truncated_normal_initializer(seed=random_seed, dtype=data_type)
-    elif initializer_type = "glorot_normal":
+    elif initializer_type == "glorot_normal":
         initializer = tf.glorot_normal_initializer(seed=random_seed, dtype=data_type)
     else:
         initializer = None

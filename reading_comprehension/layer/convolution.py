@@ -3,7 +3,7 @@ import tensorflow as tf
 
 from util.reading_comprehension_util import *
 
-__all__ = ["Conv1D"]
+__all__ = ["Conv1D", "Conv2D"]
 
 class Conv(object):
     """convolution layer"""
@@ -20,7 +20,6 @@ class Conv(object):
             self.window_size = window_size
             self.stride_size = stride_size
             self.padding_type = padding_type
-            self.input_type = input_type
             self.trainable = trainable
             
             self.conv_layer = tf.layers.Conv1D(filters=self.num_filter,
@@ -43,7 +42,7 @@ class Conv1D(Conv):
                  trainable=True,
                  scope="conv1d"):
         """initialize 1d convolution layer"""
-        super(Conv, self).__init__(num_filter=num_filter, window_size=window_size,
+        super(Conv1D, self).__init__(num_filter=num_filter, window_size=window_size,
             stride_size=stride_size, padding_type=padding_type, trainable=trainable, scope=scope)
     
     def __call__(self,
@@ -63,7 +62,7 @@ class Conv2D(Conv):
                  trainable=True,
                  scope="conv2d"):
         """initialize 2d convolution layer"""
-        super(Conv, self).__init__(num_filter=num_filter, window_size=window_size,
+        super(Conv2D, self).__init__(num_filter=num_filter, window_size=window_size,
             stride_size=stride_size, padding_type=padding_type, trainable=trainable, scope=scope)
     
     def __call__(self,

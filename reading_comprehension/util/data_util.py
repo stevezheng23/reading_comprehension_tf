@@ -98,18 +98,27 @@ def create_data_pipeline(input_question_word_dataset,
     batch_data = iterator.get_next()
     
     input_question_word = batch_data[0] if word_feat_enable == True else None
+    input_question_word_mask = tf.not_equal(batch_data[0], word_pad_id) if word_feat_enable == True else None
     input_question_subword = batch_data[1] if subword_feat_enable == True else None
+    input_question_subword_mask = tf.not_equal(batch_data[1], subword_pad_id) if subword_feat_enable == True else None
     input_question_char = batch_data[2] if char_feat_enable == True else None
+    input_question_char_mask = tf.not_equal(batch_data[2], char_pad_id) if char_feat_enable == True else None
     input_context_word = batch_data[3] if word_feat_enable == True else None
+    input_context_word_mask = tf.not_equal(batch_data[3], word_pad_id) if word_feat_enable == True else None
     input_context_subword = batch_data[4] if subword_feat_enable == True else None
+    input_context_subword_mask = tf.not_equal(batch_data[4], subword_pad_id) if subword_feat_enable == True else None
     input_context_char = batch_data[5] if char_feat_enable == True else None
+    input_context_char_mask = tf.not_equal(batch_data[5], char_pad_id) if char_feat_enable == True else None
     input_answer = batch_data[6]
+    input_answer_mask = tf.not_equal(batch_data[6], word_pad_id)
     
     return DataPipeline(initializer=iterator.initializer,
-        input_question_word=input_question_word, input_question_subword=input_question_subword, input_question_char=input_question_char,
-        input_context_word=input_context_word, input_context_subword=input_context_subword, input_context_char=input_context_char,
-        input_answer=input_answer, input_question_word_mask=None, input_question_subword_mask=None, input_question_char_mask=None,
-        input_context_word_mask=None, input_context_subword_mask=None, input_context_char_mask=None, input_answer_mask=None,
+        input_question_word=input_question_word, input_question_subword=input_question_subword,
+        input_question_char=input_question_char, input_context_word=input_context_word, input_context_subword=input_context_subword,
+        input_context_char=input_context_char, input_answer=input_answer, input_question_word_mask=input_question_word_mask,
+        input_question_subword_mask=input_question_subword_mask, input_question_char_mask=input_question_char_mask,
+        input_context_word_mask=input_context_word_mask, input_context_subword_mask=input_context_subword_mask,
+        input_context_char_mask=input_context_char_mask, input_answer_mask=input_answer_mask,
         input_data_placeholder=None, batch_size_placeholder=None)
     
 def create_src_dataset(input_file,
