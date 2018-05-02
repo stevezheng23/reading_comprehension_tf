@@ -1,1 +1,1 @@
-__all__ = ["bidaf"]
+__all__ = ["base_model"]
