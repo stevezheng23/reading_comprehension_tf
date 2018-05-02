@@ -1,26 +1,55 @@
 import numpy as np
 import tensorflow as tf
 
-from util.default_util import *
-
-__all__ = ["create_embedding", "create_activation_function",
-           "create_rnn_cell", "create_rnn_single_cell"]
+__all__ = ["create_embedding", "create_pretrained_embedding",
+           "create_variable_initializer", "create_activation_function"]
 
 def create_embedding(vocab_size,
                      embedding_dim,
-                     pretrained=False):
-    """create embedding with pre-trained embedding or initializer"""
-    if pretrained is True:
-        embedding = tf.get_variable("embedding", shape=[vocab_size, embedding_dim], dtype=tf.float32,
-            initializer=tf.zeros_initializer, trainable=False)
-        embedding_placeholder = tf.placeholder(name="embedding_placeholder",
-                                               shape=[vocab_size, embedding_dim], dtype=tf.float32)
-        embedding = embedding.assign(embedding_placeholder)
-    else:
-        embedding = tf.get_variable("embedding", shape=[vocab_size, embedding_dim], dtype=tf.float32)
-        embedding_placeholder = None
+                     trainable=True,
+                     data_type=tf.float32):
+    """create embedding with initializer"""
+    initializer = create_variable_initializer("glorot_uniform")
+    embedding = tf.get_variable("embedding", shape=[vocab_size, embedding_dim],
+        initializer=initializer, trainable=trainable, dtype=data_type)
+    
+    return embedding
+
+def create_pretrained_embedding(vocab_size,
+                                embedding_dim,
+                                trainable=True,
+                                data_type=tf.float32):
+    """create embedding with pre-trained embedding"""
+    initializer = create_variable_initializer("zero")
+    embedding = tf.get_variable("pretrained_embedding", shape=[vocab_size, embedding_dim],
+        initializer=initializer, trainable=trainable, dtype=data_type)
+    embedding_placeholder = tf.placeholder(name="embedding_placeholder",
+        shape=[vocab_size, embedding_dim], dtype=data_type)
+    embedding = embedding.assign(embedding_placeholder)
     
     return embedding, embedding_placeholder
+
+def create_variable_initializer(initializer_type,
+                                random_seed=None,
+                                data_type=tf.float32):
+    if initializer_type == "zero":
+        initializer = tf.zeros_initializer
+    elif initializer_type == "orthogonal":
+        initializer = tf.orthogonal_initializer(seed=random_seed, dtype=data_type)
+    elif initializer_type = "random_uniform":
+        initializer = tf.random_uniform_initializer(seed=random_seed, dtype=data_type)
+    elif initializer_type = "glorot_uniform":
+        initializer = tf.glorot_uniform_initializer(seed=random_seed, dtype=data_type)
+    elif initializer_type = "random_normal":
+        initializer = tf.random_normal_initializer(seed=random_seed, dtype=data_type)
+    elif initializer_type = "truncated_normal":
+        initializer = tf.truncated_normal_initializer(seed=random_seed, dtype=data_type)
+    elif initializer_type = "glorot_normal":
+        initializer = tf.glorot_normal_initializer(seed=random_seed, dtype=data_type)
+    else:
+        initializer = None
+    
+    return initializer
 
 def create_activation_function(activation):
     """create activation function"""
@@ -36,63 +65,3 @@ def create_activation_function(activation):
         activation_function = None
     
     return activation_function
-
-def create_rnn_single_cell(unit_dim,
-                           unit_type,
-                           activation,
-                           forget_bias,
-                           residual_connect,
-                           drop_out,
-                           device_spec):
-    """create single rnn cell"""
-    activation_function = create_activation_function(activation)
-    
-    if unit_type == "lstm":
-        single_cell = tf.contrib.rnn.LSTMCell(num_units=unit_dim,
-            activation=activation_function, forget_bias=forget_bias)
-    elif unit_type == "peephole_lstm":
-        single_cell = tf.contrib.rnn.LSTMCell(num_units=unit_dim,
-            use_peepholes=True, activation=activation_function, forget_bias=forget_bias)
-    elif unit_type == "layer_norm_lstm":
-        single_cell = tf.contrib.rnn.LayerNormBasicLSTMCell(num_units=unit_dim,
-            layer_norm=True, activation=activation_function, forget_bias=forget_bias)
-    elif unit_type == "gru":
-        single_cell = tf.contrib.rnn.GRUCell(num_units=unit_dim, activation=activation_function)
-    else:
-        raise ValueError("unsupported unit type {0}".format(unit_type))
-    
-    if drop_out > 0.0:
-        single_cell = tf.contrib.rnn.DropoutWrapper(cell=single_cell, input_keep_prob=1.0-drop_out)
-        
-    if residual_connect == True:
-        single_cell = tf.contrib.rnn.ResidualWrapper(cell=single_cell)
-    
-    if device_spec is not None:
-        single_cell = tf.contrib.rnn.DeviceWrapper(cell=single_cell, device=device_spec)
-    
-    return single_cell
-
-def create_rnn_cell(num_layer,
-                    unit_dim,
-                    unit_type,
-                    activation,
-                    forget_bias,
-                    residual_connect,
-                    drop_out,
-                    num_gpus,
-                    default_gpu_id):
-    """create rnn cell"""
-    if num_layer > 1:
-        cell_list = []
-        for i in range(num_layer):
-            single_cell = create_rnn_single_cell(unit_dim=unit_dim, unit_type=unit_type, activation=activation,
-                forget_bias=forget_bias, residual_connect=residual_connect, drop_out=drop_out,
-                device_spec=get_device_spec(default_gpu_id+i, num_gpus))
-            cell_list.append(single_cell)
-        cell = tf.contrib.rnn.MultiRNNCell(cell_list)
-    else:
-        cell = create_rnn_single_cell(unit_dim=unit_dim, unit_type=unit_type, activation=activation,
-            forget_bias=forget_bias, residual_connect=residual_connect, drop_out=drop_out,
-            device_spec=get_device_spec(default_gpu_id, num_gpus))
-    
-    return cell
