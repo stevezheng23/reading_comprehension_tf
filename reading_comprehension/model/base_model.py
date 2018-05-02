@@ -82,7 +82,8 @@ class BaseModel(object):
             return input_word_feat, word_embedding_placeholder
     
     def _build_char_feat(self,
-                         input_char):
+                         input_char,
+                         input_char_mask):
         """build char-level featurization layer for reading comprehension base model"""
         char_vocab_size = self.hyperparams.data_char_vocab_size
         char_embed_dim = self.hyperparams.model_representation_char_embed_dim
@@ -97,13 +98,12 @@ class BaseModel(object):
                 embed_dim=char_embed_dim, trainable=char_embed_trainable, pretrained=False)
             input_char_embedding, _ = char_embedding_layer(input_char)
             
-            char_conv1d_layer = Conv1D(num_filter=char_embed_dim, window_size=char_window_size,
-                 stride_size=1, padding_type="SAME", trainable=True, input_type="2d")
-            input_char_conv1d = char_conv1d_layer(input_char_embedding)
+            char_conv_layer = Conv2D(num_filter=char_embed_dim, window_size=char_window_size,
+                 stride_size=1, padding_type="SAME", trainable=True)
+            input_char_conv = char_conv_layer(input_char_embedding)
             
-            char_pooling1d_layer = Pooling1D(window_size=char_max_length,
-                 stride_size=1, padding_type="VALID", pooling_type=char_pooling_type, input_type="2d")
-            input_char_pooling1d = char_pooling1d_layer(input_char_conv1d)
+            char_pooling_layer = Pooling(pooling_type=char_pooling_type)
+            input_char_pooling = char_pooling_layer(input_char_conv, input_char_mask)
             
             input_char_feat = input_char_pooling1d
         
