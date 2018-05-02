@@ -47,6 +47,15 @@ class BaseModel(object):
             self.global_step = tf.get_variable("global_step", shape=[], dtype=tf.int32,
                 initializer=tf.zeros_initializer, trainable=False)
             
+            input_question_word = self.data_pipeline.input_question_word
+            input_question_char = self.data_pipeline.input_question_char
+            input_question_char_mask = self.data_pipeline.input_question_char_mask
+            (input_question_word_feat,
+                input_question_char_feat, _) = self._build_input_feat(input_question_word,
+                    input_question_char, input_question_char_mask)
+            self.input_question_word_feat = input_question_word_feat
+            self.input_question_char_feat = input_question_char_feat
+            
             """create checkpoint saver"""
             if not tf.gfile.Exists(self.hyperparams.train_ckpt_output_dir):
                 tf.gfile.MakeDirs(self.hyperparams.train_ckpt_output_dir)
@@ -56,12 +65,13 @@ class BaseModel(object):
     
     def _build_input_feat(self,
                           input_word,
-                          input_char):
+                          input_char,
+                          input_char_mask):
         """build input featurization layer for reading comprehension base model"""
-        input_word_embedding, word_embedding_placeholder = self._build_word_embedding(input_word)
-        input_char_embedding = self._build_char_embedding(input_char)
+        input_word_feat, word_embedding_placeholder = self._build_word_feat(input_word)
+        input_char_feat = self._build_char_feat(input_char, input_char_mask)
         
-        return input_embedding, input_word_embedding, input_char_embedding, word_embedding_placeholder
+        return input_word_feat, input_char_feat, word_embedding_placeholder
     
     def _build_word_feat(self,
                          input_word):
@@ -105,7 +115,7 @@ class BaseModel(object):
             char_pooling_layer = Pooling(pooling_type=char_pooling_type)
             input_char_pooling = char_pooling_layer(input_char_conv, input_char_mask)
             
-            input_char_feat = input_char_pooling1d
+            input_char_feat = input_char_pooling
         
         return input_char_feat
     
