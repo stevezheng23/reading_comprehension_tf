@@ -77,7 +77,7 @@ class BaseModel(object):
                           input_char_mask):
         """build input featurization layer for reading comprehension base model"""
         input_word_feat, word_embedding_placeholder = self._build_word_feat(input_word)
-        input_subword_feat = None
+        input_subword_feat = self._build_subword_feat(input_subword, input_subword_mask)
         input_char_feat = self._build_char_feat(input_char, input_char_mask)
         
         return input_word_feat, input_subword_feat, input_char_feat, word_embedding_placeholder
@@ -99,6 +99,35 @@ class BaseModel(object):
             input_word_feat = input_word_embedding
             
             return input_word_feat, word_embedding_placeholder
+    
+    def _build_subword_feat(self,
+                            input_subword,
+                            input_subword_mask):
+        """build subword-level featurization layer for reading comprehension base model"""
+        subword_vocab_size = self.hyperparams.data_subword_vocab_size
+        subword_embed_dim = self.hyperparams.model_representation_subword_embed_dim
+        subword_embed_trainable = self.hyperparams.model_representation_subword_embed_trainable
+        subword_max_length = self.hyperparams.data_max_subword_length
+        subword_window_size = self.hyperparams.model_representation_subword_window_size
+        subword_pooling_type = self.hyperparams.model_representation_subword_pooling_type
+        
+        with tf.variable_scope("featurization/subword", reuse=tf.AUTO_REUSE):
+            self.logger.log_print("# create subword-level featurization for reading comprehension base model")
+            subword_embedding_layer = Embedding(vocab_size=subword_vocab_size,
+                embed_dim=subword_embed_dim, trainable=subword_embed_trainable, pretrained=False)
+            input_subword_embedding, _ = subword_embedding_layer(input_subword)
+            
+            subword_conv_layer = Conv2D(num_channel=subword_embed_dim, num_filter=subword_embed_dim,
+                 window_size=subword_window_size, stride_size=1, padding_type="SAME", trainable=True)
+            self.input_subword_embedding_shape = tf.shape(input_subword_embedding)
+            input_subword_conv = subword_conv_layer(input_subword_embedding)
+            
+            subword_pooling_layer = Pooling(pooling_type=subword_pooling_type)
+            input_subword_pooling = subword_pooling_layer(input_subword_conv, input_subword_mask)
+            
+            input_subword_feat = input_subword_pooling
+        
+        return input_subword_feat
     
     def _build_char_feat(self,
                          input_char,
