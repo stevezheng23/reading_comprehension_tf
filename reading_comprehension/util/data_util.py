@@ -97,18 +97,48 @@ def create_data_pipeline(input_question_word_dataset,
     iterator = dataset.make_initializable_iterator()
     batch_data = iterator.get_next()
     
-    input_question_word = batch_data[0] if word_feat_enable == True else None
-    input_question_word_mask = tf.not_equal(batch_data[0], word_pad_id) if word_feat_enable == True else None
-    input_question_subword = batch_data[1] if subword_feat_enable == True else None
-    input_question_subword_mask = tf.not_equal(batch_data[1], subword_pad_id) if subword_feat_enable == True else None
-    input_question_char = batch_data[2] if char_feat_enable == True else None
-    input_question_char_mask = tf.not_equal(batch_data[2], char_pad_id) if char_feat_enable == True else None
-    input_context_word = batch_data[3] if word_feat_enable == True else None
-    input_context_word_mask = tf.not_equal(batch_data[3], word_pad_id) if word_feat_enable == True else None
-    input_context_subword = batch_data[4] if subword_feat_enable == True else None
-    input_context_subword_mask = tf.not_equal(batch_data[4], subword_pad_id) if subword_feat_enable == True else None
-    input_context_char = batch_data[5] if char_feat_enable == True else None
-    input_context_char_mask = tf.not_equal(batch_data[5], char_pad_id) if char_feat_enable == True else None
+    if word_feat_enable == True:
+        input_question_word = batch_data[0]
+        input_question_word_mask = tf.cast(tf.not_equal(batch_data[0], word_pad_id), dtype=tf.float32)
+    else:
+        input_question_word = None
+        input_question_word_mask = None
+    
+    if subword_feat_enable == True:
+        input_question_subword = batch_data[1]
+        input_question_subword_mask = tf.cast(tf.not_equal(batch_data[1], subword_pad_id), dtype=tf.float32)
+    else:
+        input_question_subword = None
+        input_question_subword_mask = None
+    
+    if char_feat_enable == True:
+        input_question_char = batch_data[2]
+        input_question_char_mask = tf.cast(tf.not_equal(batch_data[2], char_pad_id), dtype=tf.float32)
+    else:
+        input_question_char = None
+        input_question_char_mask = None
+    
+    if word_feat_enable == True:
+        input_context_word = batch_data[3]
+        input_context_word_mask = tf.cast(tf.not_equal(batch_data[3], word_pad_id), dtype=tf.float32)
+    else:
+        input_context_word = None
+        input_context_word_mask = None
+    
+    if subword_feat_enable == True:
+        input_context_subword = batch_data[4]
+        input_context_subword_mask = tf.cast(tf.not_equal(batch_data[4], subword_pad_id), dtype=tf.float32)
+    else:
+        input_context_subword = None
+        input_context_subword_mask = None
+    
+    if char_feat_enable == True:
+        input_context_char = batch_data[5]
+        input_context_char_mask = tf.cast(tf.not_equal(batch_data[5], char_pad_id), dtype=tf.float32)
+    else:
+        input_context_char = None
+        input_context_char_mask = None
+    
     input_answer = batch_data[6]
     input_answer_mask = tf.not_equal(batch_data[6], word_pad_id)
     

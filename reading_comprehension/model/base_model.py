@@ -48,12 +48,17 @@ class BaseModel(object):
                 initializer=tf.zeros_initializer, trainable=False)
             
             input_question_word = self.data_pipeline.input_question_word
+            input_question_subword = self.data_pipeline.input_question_subword
             input_question_char = self.data_pipeline.input_question_char
+            input_question_word_mask = self.data_pipeline.input_question_word_mask
+            input_question_subword_mask = self.data_pipeline.input_question_subword_mask
             input_question_char_mask = self.data_pipeline.input_question_char_mask
-            (input_question_word_feat,
+            (input_question_word_feat, input_question_subword_feat,
                 input_question_char_feat, _) = self._build_input_feat(input_question_word,
-                    input_question_char, input_question_char_mask)
+                    input_question_subword, input_question_char, input_question_word_mask,
+                    input_question_subword_mask, input_question_char_mask)
             self.input_question_word_feat = input_question_word_feat
+            self.input_question_subword_feat = input_question_subword_feat
             self.input_question_char_feat = input_question_char_feat
             
             """create checkpoint saver"""
@@ -65,13 +70,17 @@ class BaseModel(object):
     
     def _build_input_feat(self,
                           input_word,
+                          input_subword,
                           input_char,
+                          input_word_mask,
+                          input_subword_mask,
                           input_char_mask):
         """build input featurization layer for reading comprehension base model"""
         input_word_feat, word_embedding_placeholder = self._build_word_feat(input_word)
+        input_subword_feat = None
         input_char_feat = self._build_char_feat(input_char, input_char_mask)
         
-        return input_word_feat, input_char_feat, word_embedding_placeholder
+        return input_word_feat, input_subword_feat, input_char_feat, word_embedding_placeholder
     
     def _build_word_feat(self,
                          input_word):
@@ -108,8 +117,9 @@ class BaseModel(object):
                 embed_dim=char_embed_dim, trainable=char_embed_trainable, pretrained=False)
             input_char_embedding, _ = char_embedding_layer(input_char)
             
-            char_conv_layer = Conv2D(num_filter=char_embed_dim, window_size=char_window_size,
-                 stride_size=1, padding_type="SAME", trainable=True)
+            char_conv_layer = Conv2D(num_channel=char_embed_dim, num_filter=char_embed_dim,
+                 window_size=char_window_size, stride_size=1, padding_type="SAME", trainable=True)
+            self.input_char_embedding_shape = tf.shape(input_char_embedding)
             input_char_conv = char_conv_layer(input_char_embedding)
             
             char_pooling_layer = Pooling(pooling_type=char_pooling_type)

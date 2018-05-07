@@ -96,13 +96,14 @@ def test(logger,
     
     (input_question_word, input_question_char, input_question_word_feat,
          input_question_char_feat) = train_sess.run([train_model.data_pipeline.input_question_word,
-             train_model.data_pipeline.input_question_char, train_model.input_question_word_feat,
-             train_model.input_question_char_feat])
-    
+             train_model.data_pipeline.input_question_char, train_model.model.input_question_word_feat,
+             train_model.model.input_question_char_feat])
+    #input_char_embedding_shape = train_sess.run([train_model.model.input_char_embedding_shape])
     print(input_question_word)
     print(input_question_char)
     print(input_question_word_feat)
     print(input_question_char_feat)
+    #print(input_char_embedding_shape)
 
 def main(args):
     hyperparams = load_hyperparams(args.config)
