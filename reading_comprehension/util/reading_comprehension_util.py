@@ -1,33 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-__all__ = ["create_embedding", "create_pretrained_embedding",
-           "create_variable_initializer", "create_activation_function"]
-
-def create_embedding(vocab_size,
-                     embedding_dim,
-                     trainable=True,
-                     data_type=tf.float32):
-    """create embedding with initializer"""
-    initializer = create_variable_initializer("glorot_uniform")
-    embedding = tf.get_variable("embedding", shape=[vocab_size, embedding_dim],
-        initializer=initializer, trainable=trainable, dtype=data_type)
-    
-    return embedding
-
-def create_pretrained_embedding(vocab_size,
-                                embedding_dim,
-                                trainable=True,
-                                data_type=tf.float32):
-    """create embedding with pre-trained embedding"""
-    initializer = create_variable_initializer("zero")
-    embedding = tf.get_variable("pretrained_embedding", shape=[vocab_size, embedding_dim],
-        initializer=initializer, trainable=trainable, dtype=data_type)
-    embedding_placeholder = tf.placeholder(name="embedding_placeholder",
-        shape=[vocab_size, embedding_dim], dtype=data_type)
-    embedding = embedding.assign(embedding_placeholder)
-    
-    return embedding, embedding_placeholder
+__all__ = ["create_variable_initializer", "create_activation_function"]
 
 def create_variable_initializer(initializer_type,
                                 random_seed=None,
