@@ -1,11 +1,12 @@
 import numpy as np
 import tensorflow as tf
 
-__all__ = ["create_variable_initializer", "create_activation_function"]
+__all__ = ["create_variable_initializer", "create_weight_regularizer", "create_activation_function"]
 
 def create_variable_initializer(initializer_type,
                                 random_seed=None,
                                 data_type=tf.float32):
+    """create variable initializer"""
     if initializer_type == "zero":
         initializer = tf.zeros_initializer
     elif initializer_type == "orthogonal":
@@ -24,6 +25,18 @@ def create_variable_initializer(initializer_type,
         initializer = None
     
     return initializer
+
+def create_weight_regularizer(regularizer_type,
+                              scale):
+    """create weight regularizer"""
+    if regularizer_type == "l1":
+        regularizer = tf.contrib.layers.l1_regularizer(scale)
+    elif regularizer_type == "l2":
+        regularizer = tf.contrib.layers.l2_regularizer(scale)
+    else:
+        regularizer = None
+    
+    return regularizer
 
 def create_activation_function(activation):
     """create activation function"""
