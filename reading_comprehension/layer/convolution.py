@@ -10,7 +10,7 @@ class Conv(object):
     def __init__(self,
                  num_channel,
                  num_filter,
-                 wind,ow_size,
+                 window_size,
                  stride_size,
                  padding_type,
                  trainable=True,
