@@ -60,6 +60,7 @@ class BaseModel(object):
                     input_question_subword_mask, self.subword_feat_enable, input_question_char,
                     input_question_char_mask, self.char_feat_enable)
             self.input_question_feat = input_question_feat
+            print(self.input_question_feat)
             self.feat_embed_dim = feat_embed_dim
             self.word_embedding_placeholder = word_embedding_placeholder
             

@@ -20,7 +20,7 @@ class Embedding(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             initializer = create_variable_initializer("glorot_uniform")
-            self.embedding = tf.get_variable("embedding", shape=[self.vocab_size, self.embedding_dim],
+            self.embedding = tf.get_variable("embedding", shape=[self.vocab_size, self.embed_dim],
                 initializer=initializer, trainable=self.trainable, dtype=tf.float32)
             self.embedding_placeholder = None
     
@@ -47,10 +47,10 @@ class PretrainedEmbedding(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             initializer = create_variable_initializer("zero")
-            embedding = tf.get_variable("pretrained_embedding", shape=[self.vocab_size, self.embedding_dim],
+            embedding = tf.get_variable("pretrained_embedding", shape=[self.vocab_size, self.embed_dim],
                 initializer=initializer, trainable=self.trainable, dtype=tf.float32)
             self.embedding_placeholder = tf.placeholder(name="embedding_placeholder",
-                shape=[self.vocab_size, self.embedding_dim], dtype=tf.float32)
+                shape=[self.vocab_size, self.embed_dim], dtype=tf.float32)
             self.embedding = embedding.assign(embedding_placeholder)
     
     def __call__(self,

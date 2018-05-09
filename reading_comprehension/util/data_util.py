@@ -173,7 +173,7 @@ def create_src_dataset(input_file,
     word_dataset = None
     if word_feat_enable == True:
         word_dataset = dataset.map(lambda sent: generate_word_feat(sent, word_vocab_index,
-            word_max_length, word_sos, word_eos))
+            word_max_length, word_sos, word_eos, word_pad))
 
     subword_dataset = None
     if subword_feat_enable == True:
@@ -212,10 +212,14 @@ def generate_word_feat(sentence,
                        word_vocab_index,
                        word_max_length,
                        word_sos,
-                       word_eos):
+                       word_eos,
+                       word_pad):
     """process words for sentence"""
     words = tf.string_split([sentence], delimiter=' ').values
-    words = tf.concat([[word_sos], words[:word_max_length], [word_eos]], 0)
+    words = tf.concat([[word_sos], words[:word_max_length], [word_eos],
+        tf.constant(word_pad, shape=[word_max_length])], axis=0)
+    max_length = word_max_length + 2
+    words = words[:max_length]
     words = word_vocab_index.lookup(words)
     words = tf.expand_dims(words, axis=-1)
     
