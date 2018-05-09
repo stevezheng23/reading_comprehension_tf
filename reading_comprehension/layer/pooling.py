@@ -3,7 +3,7 @@ import tensorflow as tf
 
 from util.reading_comprehension_util import *
 
-__all__ = ["MaxPooling", "AveragePooling", "Pooling"]
+__all__ = ["MaxPooling", "AveragePooling"]
 
 class MaxPooling(object):
     """max pooling layer"""
@@ -40,27 +40,3 @@ class AveragePooling(object):
             input_pool = 1.0 * input_sum / input_count
             
             return input_pool
-
-class Pooling(object):
-    """pooling layer"""
-    def __init__(self,
-                 pooling_type="max",
-                 scope="pool"):
-        """initialize pooling layer"""
-        self.pooling_type = pooling_type
-        self.scope = scope
-        
-        if self.pooling_type == "max":
-            self.pooling_layer = MaxPooling(self.scope)
-        elif self.pooling_type == "avg":
-            self.pooling_layer = AveragePooling(self.scope)
-        else:
-            raise ValueError("unsupported pooling type {0}".format(self.pooling_type))
-    
-    def __call__(self,
-                 input_data,
-                 input_mask):
-        """call pooling layer"""
-        input_pool = self.pooling_layer(input_data, input_mask)
-        
-        return input_pool

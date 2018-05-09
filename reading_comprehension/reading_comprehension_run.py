@@ -94,11 +94,10 @@ def test(logger,
     
     train_sess.run(train_model.data_pipeline.initializer)
     
-    (input_question_word, input_question_subword, input_question_char, input_question_word_feat,
-         input_question_subword_feat, input_question_char_feat) = train_sess.run([train_model.data_pipeline.input_question_word,
+    (input_question_word, input_question_subword, input_question_char,
+         input_question_feat) = train_sess.run([train_model.data_pipeline.input_question_word,
              train_model.data_pipeline.input_question_subword, train_model.data_pipeline.input_question_char,
-             train_model.model.input_question_word_feat, train_model.model.input_question_subword_feat,
-             train_model.model.input_question_char_feat])
+             train_model.model.input_question_feat])
     print(input_question_word)
     print(input_question_subword)
     print(input_question_char)
