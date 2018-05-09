@@ -33,29 +33,29 @@ def create_train_model(logger,
              hyperparams.data_word_vocab_size, hyperparams.model_representation_word_embed_dim,
              hyperparams.data_embedding_file, hyperparams.data_full_embedding_file, hyperparams.data_word_unk,
              hyperparams.data_word_pad, hyperparams.data_word_sos, hyperparams.data_word_eos,
-             hyperparams.data_word_feat_enable, hyperparams.model_representation_word_embed_pretrained,
+             hyperparams.model_representation_word_feat_enable, hyperparams.model_representation_word_embed_pretrained,
              hyperparams.data_subword_vocab_file, hyperparams.data_subword_vocab_size, hyperparams.data_subword_unk,
-             hyperparams.data_subword_pad, hyperparams.data_subword_size, hyperparams.data_subword_feat_enable, 
+             hyperparams.data_subword_pad, hyperparams.data_subword_size, hyperparams.model_representation_subword_feat_enable, 
              hyperparams.data_char_vocab_file, hyperparams.data_char_vocab_size, hyperparams.data_char_unk,
-             hyperparams.data_char_pad, hyperparams.data_char_feat_enable)
+             hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
         logger.log_print("# create question dataset")
         (input_question_word_dataset, input_question_subword_dataset,
              input_question_char_dataset) = create_src_dataset(hyperparams.data_train_question_file,
              word_vocab_index, hyperparams.data_max_question_length, hyperparams.data_word_pad,
-             hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.data_word_feat_enable,
+             hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.model_representation_word_feat_enable,
              subword_vocab_index, hyperparams.data_max_subword_length, hyperparams.data_subword_pad,
-             hyperparams.data_subword_size, hyperparams.data_subword_feat_enable, char_vocab_index,
-             hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.data_char_feat_enable)
+             hyperparams.data_subword_size, hyperparams.model_representation_subword_feat_enable, char_vocab_index,
+             hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
         logger.log_print("# create context dataset")
         (input_context_word_dataset, input_context_subword_dataset,
              input_context_char_dataset) = create_src_dataset(hyperparams.data_train_context_file,
              word_vocab_index, hyperparams.data_max_context_length, hyperparams.data_word_pad,
-             hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.data_word_feat_enable,
+             hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.model_representation_word_feat_enable,
              subword_vocab_index, hyperparams.data_max_subword_length, hyperparams.data_subword_pad,
-             hyperparams.data_subword_size, hyperparams.data_subword_feat_enable, char_vocab_index,
-             hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.data_char_feat_enable)
+             hyperparams.data_subword_size, hyperparams.model_representation_subword_feat_enable, char_vocab_index,
+             hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
         logger.log_print("# create answer dataset")
         input_answer_dataset = create_trg_dataset(hyperparams.data_train_answer_file,
@@ -66,9 +66,9 @@ def create_train_model(logger,
         data_pipeline = create_data_pipeline(input_question_word_dataset,
             input_question_subword_dataset, input_question_char_dataset, input_context_word_dataset,
             input_context_subword_dataset, input_context_char_dataset, input_answer_dataset,
-            word_vocab_index, hyperparams.data_word_pad, hyperparams.data_word_feat_enable,
-            subword_vocab_index, hyperparams.data_subword_pad, hyperparams.data_subword_feat_enable,
-            char_vocab_index, hyperparams.data_char_pad, hyperparams.data_char_feat_enable, len(input_answer_data),
+            word_vocab_index, hyperparams.data_word_pad, hyperparams.model_representation_word_feat_enable,
+            subword_vocab_index, hyperparams.data_subword_pad, hyperparams.model_representation_subword_feat_enable,
+            char_vocab_index, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable, len(input_answer_data),
             hyperparams.train_batch_size, hyperparams.train_random_seed, hyperparams.train_enable_shuffle)
         
         model_creator = get_model_creator(hyperparams.model_type)
