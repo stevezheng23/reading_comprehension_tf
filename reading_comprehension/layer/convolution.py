@@ -8,15 +8,14 @@ __all__ = ["Conv1D", "Conv2D"]
 class Conv(object):
     """convolution layer"""
     def __init__(self,
-                 num_channel,
                  num_filter,
                  window_size,
                  stride_size,
                  padding_type,
+                 activation,
                  trainable=True,
                  scope="conv"):
         """initialize convolution layer"""
-        self.num_channel = num_channel
         self.num_filter = num_filter
         self.window_size = window_size
         self.stride_size = stride_size
@@ -24,23 +23,27 @@ class Conv(object):
         self.trainable = trainable
         
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
-            self.conv_layer = tf.layers.Conv1D(filters=self.num_filter,
-                kernel_size=window_size, strides=stride_size, padding=self.padding_type, trainable=trainable)
+            weight_initializer = create_variable_initializer("glorot_uniform")
+            bias_initializer = create_variable_initializer("glorot_uniform")
+            conv_activation = create_activation_function(activation)
+            self.conv_layer = tf.layers.Conv1D(filters=self.num_filter, kernel_size=window_size,
+                strides=stride_size, padding=self.padding_type, activation=conv_activation, use_bias=True,
+                kernel_initializer=weight_initializer, bias_initializer=bias_initializer, trainable=trainable)
 
 class Conv1D(Conv):
     """1d convolution layer"""
     def __init__(self,
-                 num_channel,
                  num_filter,
                  window_size,
                  stride_size,
                  padding_type,
+                 activation,
                  trainable=True,
                  scope="conv1d"):
         """initialize 1d convolution layer"""
         self.scope = scope
-        super(Conv1D, self).__init__(num_channel=num_channel, num_filter=num_filter, window_size=window_size,
-            stride_size=stride_size, padding_type=padding_type, trainable=trainable, scope=self.scope)
+        super(Conv1D, self).__init__(num_filter=num_filter, window_size=window_size, stride_size=stride_size,
+            padding_type=padding_type, activation=activation, trainable=trainable, scope=self.scope)
     
     def __call__(self,
                  input_data):
@@ -58,12 +61,14 @@ class Conv2D(Conv):
                  window_size,
                  stride_size,
                  padding_type,
+                 activation,
                  trainable=True,
                  scope="conv2d"):
         """initialize 2d convolution layer"""
+        self.num_channel = num_channel
         self.scope = scope
-        super(Conv2D, self).__init__(num_channel=num_channel, num_filter=num_filter, window_size=window_size,
-            stride_size=stride_size, padding_type=padding_type, trainable=trainable, scope=self.scope)
+        super(Conv2D, self).__init__(num_filter=num_filter, window_size=window_size, stride_size=stride_size,
+            padding_type=padding_type, activation=activation, trainable=trainable, scope=self.scope)
     
     def __call__(self,
                  input_data):
