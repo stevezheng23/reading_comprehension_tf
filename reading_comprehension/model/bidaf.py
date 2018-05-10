@@ -28,25 +28,28 @@ class BiDAF(BaseModel):
                 initializer=tf.zeros_initializer, trainable=False)
             
             """get batch inputs from data pipeline"""
-            input_question_word = self.data_pipeline.input_question_word
-            input_question_subword = self.data_pipeline.input_question_subword
-            input_question_char = self.data_pipeline.input_question_char
-            input_question_word_mask = self.data_pipeline.input_question_word_mask
-            input_question_subword_mask = self.data_pipeline.input_question_subword_mask
-            input_question_char_mask = self.data_pipeline.input_question_char_mask
+            question_word = self.data_pipeline.input_question_word
+            question_subword = self.data_pipeline.input_question_subword
+            question_char = self.data_pipeline.input_question_char
+            question_word_mask = self.data_pipeline.input_question_word_mask
+            question_subword_mask = self.data_pipeline.input_question_subword_mask
+            question_char_mask = self.data_pipeline.input_question_char_mask
             
             """build graph for mrc base model"""
             """build representation layer for mrc base model"""
-            (input_question_feat, input_question_feat_mask, question_feat_embed_dim,
-                word_embedding_placeholder) = self._build_input_feat(input_question_word,
-                    input_question_word_mask, input_question_subword, input_question_subword_mask,
-                    input_question_char, input_question_char_mask)
-            self.input_question_feat = input_question_feat
-            self.input_question_feat_mask = input_question_feat_mask
+            (question_feat, question_feat_mask, question_feat_embed_dim,
+                word_embedding_placeholder) = self._build_representation_layer(question_word, question_word_mask,
+                    question_subword, question_subword_mask, question_char, question_char_mask)
+            self.question_feat = question_feat
+            self.question_feat_mask = question_feat_mask
             self.question_feat_embed_dim = question_feat_embed_dim
             self.word_embedding_placeholder = word_embedding_placeholder
             
             """build understanding layer for mrc base model"""
+            (question_understanding_output,
+                question_understanding_final_state) = self._build_understanding_layer(self.question_feat, self.question_feat_mask)
+            self.question_understanding_output = question_understanding_output
+            self.question_understanding_final_state = question_understanding_final_state
             
             """create checkpoint saver"""
             if not tf.gfile.Exists(self.hyperparams.train_ckpt_output_dir):
@@ -56,14 +59,14 @@ class BiDAF(BaseModel):
             self.ckpt_name = os.path.join(self.ckpt_dir, "model_ckpt")
             self.ckpt_saver = tf.train.Saver()
     
-    def _build_input_feat(self,
-                          input_word,
-                          input_word_mask,
-                          input_subword,
-                          input_subword_mask,
-                          input_char,
-                          input_char_mask):
-        """build input featurization layer for mrc base model"""
+    def _build_representation_layer(self,
+                                    input_word,
+                                    input_word_mask,
+                                    input_subword,
+                                    input_subword_mask,
+                                    input_char,
+                                    input_char_mask):
+        """build representation layer for mrc base model"""
         word_feat_enable = self.hyperparams.model_representation_word_feat_enable
         subword_feat_enable = self.hyperparams.model_representation_subword_feat_enable
         char_feat_enable = self.hyperparams.model_representation_char_feat_enable
@@ -138,7 +141,7 @@ class BiDAF(BaseModel):
             input_word_embedding, word_embedding_placeholder = word_embedding_layer(input_word)
             
             input_word_feat = tf.squeeze(input_word_embedding, axis=-2)
-            input_word_feat_mask = tf.squeeze(input_word_mask, axis=-1)
+            input_word_feat_mask = input_word_mask
             
             return input_word_feat, input_word_feat_mask, word_embed_dim, word_embedding_placeholder
     
@@ -195,7 +198,29 @@ class BiDAF(BaseModel):
             input_char_feat, input_char_feat_mask = char_pooling_layer(input_char_conv, input_char_mask)
         
         return input_char_feat, input_char_feat_mask, char_embed_dim
-
+    
+    def _build_understanding_layer(self,
+                                   question_feat,
+                                   question_feat_mask):
+        """build understanding layer for mrc base model"""
+        question_understanding_num_layer = self.hyperparams.model_question_understanding_num_layer
+        question_understanding_unit_dim = self.hyperparams.model_question_understanding_unit_dim
+        question_understanding_cell_type = self.hyperparams.model_question_understanding_cell_type
+        question_understanding_hidden_activation = self.hyperparams.model_question_understanding_hidden_activation
+        question_understanding_dropout = self.hyperparams.model_question_understanding_dropout
+        question_understanding_forget_bias = self.hyperparams.model_question_understanding_forget_bias
+        question_understanding_residual_connect = self.hyperparams.model_question_understanding_residual_connect
+        question_understanding_trainable = self.hyperparams.model_question_understanding_trainable
+        
+        question_understanding_layer = create_recurrent_layer("bi_directional", question_understanding_num_layer,
+            question_understanding_unit_dim, question_understanding_cell_type, question_understanding_hidden_activation,
+            question_understanding_dropout, question_understanding_forget_bias, question_understanding_residual_connect,
+            self.num_gpus, self.default_gpu_id, question_understanding_trainable)
+        
+        question_output, question_final_state = question_understanding_layer(question_feat, question_feat_mask)
+        
+        return question_output, question_final_state
+    
     def save(self,
              sess,
              global_step):
