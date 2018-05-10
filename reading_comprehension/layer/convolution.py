@@ -20,12 +20,13 @@ class Conv(object):
         self.window_size = window_size
         self.stride_size = stride_size
         self.padding_type = padding_type
+        self.activation = activation
         self.trainable = trainable
         
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
             weight_initializer = create_variable_initializer("glorot_uniform")
             bias_initializer = create_variable_initializer("glorot_uniform")
-            conv_activation = create_activation_function(activation)
+            conv_activation = create_activation_function(self.activation)
             self.conv_layer = tf.layers.Conv1D(filters=self.num_filter, kernel_size=window_size,
                 strides=stride_size, padding=self.padding_type, activation=conv_activation, use_bias=True,
                 kernel_initializer=weight_initializer, bias_initializer=bias_initializer, trainable=trainable)
@@ -42,6 +43,7 @@ class Conv1D(Conv):
                  scope="conv1d"):
         """initialize 1d convolution layer"""
         self.scope = scope
+        
         super(Conv1D, self).__init__(num_filter=num_filter, window_size=window_size, stride_size=stride_size,
             padding_type=padding_type, activation=activation, trainable=trainable, scope=self.scope)
     
@@ -49,9 +51,9 @@ class Conv1D(Conv):
                  input_data):
         """generate 1d convolution layer output"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            input_conv = super(Conv, self).__call__(input_data)
+            output_conv = self.conv_layer(input_data)
             
-            return input_conv
+            return output_conv
 
 class Conv2D(Conv):
     """2d convolution layer"""
@@ -67,6 +69,7 @@ class Conv2D(Conv):
         """initialize 2d convolution layer"""
         self.num_channel = num_channel
         self.scope = scope
+        
         super(Conv2D, self).__init__(num_filter=num_filter, window_size=window_size, stride_size=stride_size,
             padding_type=padding_type, activation=activation, trainable=trainable, scope=self.scope)
     
@@ -83,7 +86,7 @@ class Conv2D(Conv):
             input_conv = self.conv_layer(input_data)
             input_conv_shape = tf.shape(input_conv)
             dim2_length = input_conv_shape[1]
-            input_conv = tf.reshape(input_conv,
+            output_conv = tf.reshape(input_conv,
                 shape=[batch_size, dim1_length, dim2_length, self.num_filter])
             
-            return input_conv
+            return output_conv

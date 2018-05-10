@@ -51,15 +51,19 @@ class BaseModel(object):
             input_question_word_mask = self.data_pipeline.input_question_word_mask
             input_question_subword_mask = self.data_pipeline.input_question_subword_mask
             input_question_char_mask = self.data_pipeline.input_question_char_mask
-            input_question_feat, word_embedding_placeholder = self._build_input_feat(input_question_word,
-                input_question_word_mask, input_question_subword, input_question_subword_mask,
-                input_question_char, input_question_char_mask)
+            (input_question_feat, input_question_feat_mask, question_feat_embed_dim,
+                word_embedding_placeholder) = self._build_input_feat(input_question_word,
+                    input_question_word_mask, input_question_subword, input_question_subword_mask,
+                    input_question_char, input_question_char_mask)
             self.input_question_feat = input_question_feat
+            self.input_question_feat_mask = input_question_feat_mask
+            self.question_feat_embed_dim = question_feat_embed_dim
             self.word_embedding_placeholder = word_embedding_placeholder
             
             """create checkpoint saver"""
             if not tf.gfile.Exists(self.hyperparams.train_ckpt_output_dir):
                 tf.gfile.MakeDirs(self.hyperparams.train_ckpt_output_dir)
+            
             self.ckpt_dir = self.hyperparams.train_ckpt_output_dir
             self.ckpt_name = os.path.join(self.ckpt_dir, "model_ckpt")
             self.ckpt_saver = tf.train.Saver()
@@ -82,29 +86,40 @@ class BaseModel(object):
         fusion_hidden_activation = self.hyperparams.model_representation_fusion_hidden_activation
         
         input_feat_list = []
+        input_feat_mask_list = []
         if word_feat_enable == True:
-            input_word_feat, word_embed_dim, word_embedding_placeholder = self._build_word_feat(input_word, input_word_mask)
+            (input_word_feat, input_word_feat_mask, word_embed_dim,
+                word_embedding_placeholder) = self._build_word_feat(input_word, input_word_mask)
             input_feat_list.append(input_word_feat)
+            input_feat_mask_list.append(input_word_feat_mask)
         else:
             input_word_feat = None
+            input_word_mask = None
             word_embed_dim = 0
             word_embedding_placeholder = None
         
         if subword_feat_enable == True:
-            input_subword_feat, subword_embed_dim = self._build_subword_feat(input_subword, input_subword_mask)
+            (input_subword_feat, input_subword_feat_mask,
+                subword_embed_dim) = self._build_subword_feat(input_subword, input_subword_mask)
             input_feat_list.append(input_subword_feat)
+            input_feat_mask_list.append(input_subword_feat_mask)
         else:
             input_subword_feat = None
+            input_subword_mask = None
             subword_embed_dim = 0
         
         if char_feat_enable == True:
-            input_char_feat, char_embed_dim = self._build_char_feat(input_char, input_char_mask)
+            (input_char_feat, input_char_feat_mask,
+                char_embed_dim) = self._build_char_feat(input_char, input_char_mask)
             input_feat_list.append(input_char_feat)
+            input_feat_mask_list.append(input_char_feat_mask)
         else:
             input_char_feat = None
+            input_char_mask = None
             char_embed_dim = 0
         
         input_feat = tf.concat(input_feat_list, axis=-1)
+        input_feat_mask = tf.reduce_max(tf.concat(input_feat_mask_list, axis=-1), axis=-1)
         feat_embed_dim = word_embed_dim + subword_embed_dim + char_embed_dim
         
         if feat_embed_dim != fusion_unit_dim:
@@ -117,7 +132,7 @@ class BaseModel(object):
                 fusion_unit_dim, fusion_hidden_activation, fusion_trainable)
             input_feat = highway_layer(input_feat)
         
-        return input_feat, word_embedding_placeholder
+        return input_feat, input_feat_mask, feat_embed_dim, word_embedding_placeholder
     
     def _build_word_feat(self,
                          input_word,
@@ -135,8 +150,9 @@ class BaseModel(object):
             input_word_embedding, word_embedding_placeholder = word_embedding_layer(input_word)
             
             input_word_feat = tf.squeeze(input_word_embedding, axis=-2)
+            input_word_feat_mask = tf.squeeze(input_word_mask, axis=-1)
             
-            return input_word_feat, word_embed_dim, word_embedding_placeholder
+            return input_word_feat, input_word_feat_mask, word_embed_dim, word_embedding_placeholder
     
     def _build_subword_feat(self,
                             input_subword,
@@ -161,11 +177,9 @@ class BaseModel(object):
             input_subword_conv = subword_conv_layer(input_subword_embedding)
             
             subword_pooling_layer = create_pooling_layer(subword_pooling_type)
-            input_subword_pooling = subword_pooling_layer(input_subword_conv, input_subword_mask)
-            
-            input_subword_feat = input_subword_pooling
+            input_subword_feat, input_subword_feat_mask = subword_pooling_layer(input_subword_conv, input_subword_mask)
         
-        return input_subword_feat, subword_embed_dim
+        return input_subword_feat, input_subword_feat_mask, subword_embed_dim
     
     def _build_char_feat(self,
                          input_char,
@@ -190,11 +204,9 @@ class BaseModel(object):
             input_char_conv = char_conv_layer(input_char_embedding)
             
             char_pooling_layer = create_pooling_layer(char_pooling_type)
-            input_char_pooling = char_pooling_layer(input_char_conv, input_char_mask)
-            
-            input_char_feat = input_char_pooling
+            input_char_feat, input_char_feat_mask = char_pooling_layer(input_char_conv, input_char_mask)
         
-        return input_char_feat, char_embed_dim
+        return input_char_feat, input_char_feat_mask, char_embed_dim
     
     def save(self,
              sess,

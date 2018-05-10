@@ -34,9 +34,9 @@ class Highway(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             transform = self.transform_layer(input_data)
             gate = self.gate_layer(input_data)
-            input_highway = transform * gate + input_data * (1 - gate)
+            output_highway = transform * gate + input_data * (1 - gate)
             
-            return input_highway
+            return output_highway
 
 class StackedHighway(object):
     """stacked highway network layer"""
@@ -69,4 +69,6 @@ class StackedHighway(object):
             for highway_layer in self.highway_layer_list:
                 input_highway = highway_layer(input_highway)
             
-            return input_highway
+            output_highway = input_highway
+            
+            return output_highway
