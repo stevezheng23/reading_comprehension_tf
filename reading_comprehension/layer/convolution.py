@@ -22,6 +22,7 @@ class Conv(object):
         self.padding_type = padding_type
         self.activation = activation
         self.trainable = trainable
+        self.scope=scope
         
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
             weight_initializer = create_variable_initializer("glorot_uniform")
@@ -42,10 +43,8 @@ class Conv1D(Conv):
                  trainable=True,
                  scope="conv1d"):
         """initialize 1d convolution layer"""
-        self.scope = scope
-        
         super(Conv1D, self).__init__(num_filter=num_filter, window_size=window_size, stride_size=stride_size,
-            padding_type=padding_type, activation=activation, trainable=trainable, scope=self.scope)
+            padding_type=padding_type, activation=activation, trainable=trainable, scope=scope)
     
     def __call__(self,
                  input_data):
@@ -68,10 +67,9 @@ class Conv2D(Conv):
                  scope="conv2d"):
         """initialize 2d convolution layer"""
         self.num_channel = num_channel
-        self.scope = scope
         
         super(Conv2D, self).__init__(num_filter=num_filter, window_size=window_size, stride_size=stride_size,
-            padding_type=padding_type, activation=activation, trainable=trainable, scope=self.scope)
+            padding_type=padding_type, activation=activation, trainable=trainable, scope=scope)
     
     def __call__(self,
                  input_data):

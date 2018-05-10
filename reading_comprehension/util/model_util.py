@@ -3,7 +3,7 @@ import collections
 import numpy as np
 import tensorflow as tf
 
-from model.base_model import *
+from model.bidaf import *
 from util.data_util import *
 
 __all__ = ["TrainModel", "EvalModel", "InferModel",
@@ -95,7 +95,7 @@ def create_infer_model(logger,
 
 def get_model_creator(model_type):
     if model_type == "bidaf":
-        model_creator = BaseModel
+        model_creator = BiDAF
     else:
         raise ValueError("can not create model with unsupported model type {0}".format(model_type))
     
