@@ -35,21 +35,43 @@ class BiDAF(BaseModel):
             question_subword_mask = self.data_pipeline.input_question_subword_mask
             question_char_mask = self.data_pipeline.input_question_char_mask
             
+            context_word = self.data_pipeline.input_context_word
+            context_subword = self.data_pipeline.input_context_subword
+            context_char = self.data_pipeline.input_context_char
+            context_word_mask = self.data_pipeline.input_context_word_mask
+            context_subword_mask = self.data_pipeline.input_context_subword_mask
+            context_char_mask = self.data_pipeline.input_context_char_mask
+            
             """build graph for mrc base model"""
             """build representation layer for mrc base model"""
             (question_feat, question_feat_mask, question_feat_embed_dim,
-                word_embedding_placeholder) = self._build_representation_layer(question_word, question_word_mask,
+                question_word_embedding_placeholder) = self._build_representation_layer(question_word, question_word_mask,
                     question_subword, question_subword_mask, question_char, question_char_mask)
             self.question_feat = question_feat
             self.question_feat_mask = question_feat_mask
             self.question_feat_embed_dim = question_feat_embed_dim
-            self.word_embedding_placeholder = word_embedding_placeholder
+            self.question_word_embedding_placeholder = question_word_embedding_placeholder
+            
+            (context_feat, context_feat_mask, context_feat_embed_dim,
+                context_word_embedding_placeholder) = self._build_representation_layer(context_word, context_word_mask,
+                    context_subword, context_subword_mask, context_char, context_char_mask)
+            self.context_feat = context_feat
+            self.context_feat_mask = context_feat_mask
+            self.context_feat_embed_dim = context_feat_embed_dim
+            self.context_word_embedding_placeholder = context_word_embedding_placeholder
             
             """build understanding layer for mrc base model"""
             (question_understanding_output,
-                question_understanding_final_state) = self._build_understanding_layer(self.question_feat, self.question_feat_mask)
+                question_understanding_final_state) = self._build_question_understanding_layer(self.question_feat,
+                                                                                               self.question_feat_mask)
             self.question_understanding_output = question_understanding_output
             self.question_understanding_final_state = question_understanding_final_state
+            
+            (context_understanding_output,
+                context_understanding_final_state) = self._build_context_understanding_layer(self.context_feat,
+                                                                                             self.context_feat_mask)
+            self.context_understanding_output = context_understanding_output
+            self.context_understanding_final_state = context_understanding_final_state
             
             """create checkpoint saver"""
             if not tf.gfile.Exists(self.hyperparams.train_ckpt_output_dir):
@@ -199,10 +221,10 @@ class BiDAF(BaseModel):
         
         return input_char_feat, input_char_feat_mask, char_embed_dim
     
-    def _build_understanding_layer(self,
-                                   question_feat,
-                                   question_feat_mask):
-        """build understanding layer for mrc base model"""
+    def _build_question_understanding_layer(self,
+                                            question_feat,
+                                            question_feat_mask):
+        """build question understanding layer for mrc base model"""
         question_understanding_num_layer = self.hyperparams.model_question_understanding_num_layer
         question_understanding_unit_dim = self.hyperparams.model_question_understanding_unit_dim
         question_understanding_cell_type = self.hyperparams.model_question_understanding_cell_type
@@ -220,6 +242,28 @@ class BiDAF(BaseModel):
         question_output, question_final_state = question_understanding_layer(question_feat, question_feat_mask)
         
         return question_output, question_final_state
+    
+    def _build_context_understanding_layer(self,
+                                           context_feat,
+                                           context_feat_mask):
+        """build context understanding layer for mrc base model"""
+        context_understanding_num_layer = self.hyperparams.model_context_understanding_num_layer
+        context_understanding_unit_dim = self.hyperparams.model_context_understanding_unit_dim
+        context_understanding_cell_type = self.hyperparams.model_context_understanding_cell_type
+        context_understanding_hidden_activation = self.hyperparams.model_context_understanding_hidden_activation
+        context_understanding_dropout = self.hyperparams.model_context_understanding_dropout
+        context_understanding_forget_bias = self.hyperparams.model_context_understanding_forget_bias
+        context_understanding_residual_connect = self.hyperparams.model_context_understanding_residual_connect
+        context_understanding_trainable = self.hyperparams.model_context_understanding_trainable
+        
+        context_understanding_layer = create_recurrent_layer("bi_directional", context_understanding_num_layer,
+            context_understanding_unit_dim, context_understanding_cell_type, context_understanding_hidden_activation,
+            context_understanding_dropout, context_understanding_forget_bias, context_understanding_residual_connect,
+            self.num_gpus, self.default_gpu_id, context_understanding_trainable)
+        
+        context_output, context_final_state = context_understanding_layer(context_feat, context_feat_mask)
+        
+        return context_output, context_final_state
     
     def save(self,
              sess,
