@@ -24,7 +24,7 @@ class Conv(object):
         self.trainable = trainable
         self.scope=scope
         
-        with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             weight_initializer = create_variable_initializer("glorot_uniform")
             bias_initializer = create_variable_initializer("glorot_uniform")
             conv_activation = create_activation_function(self.activation)
@@ -48,7 +48,7 @@ class Conv1D(Conv):
     
     def __call__(self,
                  input_data):
-        """generate 1d convolution layer output"""
+        """call 1d convolution layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             output_conv = self.conv_layer(input_data)
             
@@ -73,7 +73,7 @@ class Conv2D(Conv):
     
     def __call__(self,
                  input_data):
-        """generate 2d convolution layer output"""
+        """call 2d convolution layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             input_data_shape = tf.shape(input_data)
             batch_size = input_data_shape[0]
