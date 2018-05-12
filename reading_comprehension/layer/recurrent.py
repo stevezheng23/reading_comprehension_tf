@@ -96,7 +96,7 @@ class RNN(object):
         self.trainable = trainable
         self.scope = scope
         
-        with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.cell = _creat_recurrent_cell(self.num_layer,
                 self.unit_dim, self.cell_type, self.activation, self.drop_out,
                 self.forget_bias, self.residual_connect, self.num_gpus, self.default_gpu_id)
@@ -104,7 +104,7 @@ class RNN(object):
     def __call__(self,
                  input_data,
                  input_mask):
-        """generate uni-directional recurrent layer output"""
+        """call uni-directional recurrent layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             input_length = tf.cast(tf.reduce_sum(input_mask, axis=-1), dtype=tf.int32)
             output_recurrent, final_state_recurrent = tf.nn.dynamic_rnn(cell=self.cell,
@@ -139,7 +139,7 @@ class BiRNN(object):
         self.trainable = trainable
         self.scope = scope
         
-        with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.fwd_cell = _creat_recurrent_cell(self.num_layer,
                 self.unit_dim, self.cell_type, self.activation, self.drop_out,
                 self.forget_bias, self.residual_connect, self.num_gpus, self.default_gpu_id)
@@ -150,7 +150,7 @@ class BiRNN(object):
     def __call__(self,
                  input_data,
                  input_mask):
-        """generate bi-directional recurrent layer output"""
+        """call bi-directional recurrent layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             input_length = tf.cast(tf.reduce_sum(input_mask, axis=-1), dtype=tf.int32)
             output_recurrent, final_state_recurrent = tf.nn.bidirectional_dynamic_rnn(cell_fw=self.fwd_cell,
