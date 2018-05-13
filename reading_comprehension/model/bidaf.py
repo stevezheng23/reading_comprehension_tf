@@ -143,7 +143,7 @@ class BiDAF(BaseModel):
             input_feat = convert_layer(input_feat)
         
         if fusion_type == "highway":
-            highway_layer = create_highway_layer("full_connected", fusion_num_layer,
+            highway_layer = create_highway_layer("fc", fusion_num_layer,
                 fusion_unit_dim, fusion_hidden_activation, fusion_trainable)
             input_feat = highway_layer(input_feat)
         
@@ -236,7 +236,7 @@ class BiDAF(BaseModel):
         question_understanding_residual_connect = self.hyperparams.model_question_understanding_residual_connect
         question_understanding_trainable = self.hyperparams.model_question_understanding_trainable
         
-        question_understanding_layer = create_recurrent_layer("bi_directional", question_understanding_num_layer,
+        question_understanding_layer = create_recurrent_layer("bi", question_understanding_num_layer,
             question_understanding_unit_dim, question_understanding_cell_type, question_understanding_hidden_activation,
             question_understanding_dropout, question_understanding_forget_bias, question_understanding_residual_connect,
             self.num_gpus, self.default_gpu_id, question_understanding_trainable)
@@ -258,7 +258,7 @@ class BiDAF(BaseModel):
         context_understanding_residual_connect = self.hyperparams.model_context_understanding_residual_connect
         context_understanding_trainable = self.hyperparams.model_context_understanding_trainable
         
-        context_understanding_layer = create_recurrent_layer("bi_directional", context_understanding_num_layer,
+        context_understanding_layer = create_recurrent_layer("bi", context_understanding_num_layer,
             context_understanding_unit_dim, context_understanding_cell_type, context_understanding_hidden_activation,
             context_understanding_dropout, context_understanding_forget_bias, context_understanding_residual_connect,
             self.num_gpus, self.default_gpu_id, context_understanding_trainable)
@@ -266,6 +266,12 @@ class BiDAF(BaseModel):
         context_output, context_final_state = context_understanding_layer(context_feat, context_feat_mask)
         
         return context_output, context_final_state
+    
+    def _build_context2question_interaction_layer(self,
+                                                  question_understanding,
+                                                  context_understanding):
+        """build context-to-question interaction layer for bidaf model"""
+        pass
     
     def save(self,
              sess,
