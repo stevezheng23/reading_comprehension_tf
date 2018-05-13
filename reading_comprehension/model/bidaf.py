@@ -12,14 +12,14 @@ from model.base_model import *
 __all__ = ["BiDAF"]
 
 class BiDAF(BaseModel):
-    """reading comprehension base model"""
+    """bi-directional attention flow model"""
     def __init__(self,
                  logger,
                  hyperparams,
                  data_pipeline,
                  mode="train",
                  scope="bidaf"):
-        """initialize mrc base model"""        
+        """initialize bidaf model"""        
         super(BiDAF, self).__init__(logger=logger, hyperparams=hyperparams,
             data_pipeline=data_pipeline, mode=mode, scope=scope)
         
@@ -27,7 +27,7 @@ class BiDAF(BaseModel):
             self.global_step = tf.get_variable("global_step", shape=[], dtype=tf.int32,
                 initializer=tf.zeros_initializer, trainable=False)
             
-            """get batch inputs from data pipeline"""
+            """get batch input from data pipeline"""
             question_word = self.data_pipeline.input_question_word
             question_subword = self.data_pipeline.input_question_subword
             question_char = self.data_pipeline.input_question_char
@@ -42,8 +42,8 @@ class BiDAF(BaseModel):
             context_subword_mask = self.data_pipeline.input_context_subword_mask
             context_char_mask = self.data_pipeline.input_context_char_mask
             
-            """build graph for mrc base model"""
-            """build representation layer for mrc base model"""
+            """build graph for bidaf model"""
+            """build representation layer for bidaf model"""
             (question_feat, question_feat_mask, question_feat_embed_dim,
                 question_word_embedding_placeholder) = self._build_representation_layer(question_word, question_word_mask,
                     question_subword, question_subword_mask, question_char, question_char_mask)
@@ -60,18 +60,20 @@ class BiDAF(BaseModel):
             self.context_feat_embed_dim = context_feat_embed_dim
             self.context_word_embedding_placeholder = context_word_embedding_placeholder
             
-            """build understanding layer for mrc base model"""
+            """build understanding layer for bidaf model"""
             (question_understanding_output,
                 question_understanding_final_state) = self._build_question_understanding_layer(self.question_feat,
-                                                                                               self.question_feat_mask)
+                    self.question_feat_mask)
             self.question_understanding_output = question_understanding_output
             self.question_understanding_final_state = question_understanding_final_state
             
             (context_understanding_output,
                 context_understanding_final_state) = self._build_context_understanding_layer(self.context_feat,
-                                                                                             self.context_feat_mask)
+                    self.context_feat_mask)
             self.context_understanding_output = context_understanding_output
             self.context_understanding_final_state = context_understanding_final_state
+            
+            """build interaction layer for bidaf model"""
             
             """create checkpoint saver"""
             if not tf.gfile.Exists(self.hyperparams.train_ckpt_output_dir):
@@ -88,7 +90,7 @@ class BiDAF(BaseModel):
                                     input_subword_mask,
                                     input_char,
                                     input_char_mask):
-        """build representation layer for mrc base model"""
+        """build representation layer for bidaf model"""
         word_feat_enable = self.hyperparams.model_representation_word_feat_enable
         subword_feat_enable = self.hyperparams.model_representation_subword_feat_enable
         char_feat_enable = self.hyperparams.model_representation_char_feat_enable
@@ -141,7 +143,7 @@ class BiDAF(BaseModel):
             input_feat = convert_layer(input_feat)
         
         if fusion_type == "highway":
-            highway_layer = create_highway_layer("full_connected", fusion_num_layer,
+            highway_layer = create_highway_layer("fc", fusion_num_layer,
                 fusion_unit_dim, fusion_hidden_activation, fusion_trainable)
             input_feat = highway_layer(input_feat)
         
@@ -150,14 +152,14 @@ class BiDAF(BaseModel):
     def _build_word_feat(self,
                          input_word,
                          input_word_mask):
-        """build word-level featurization layer for mrc base model"""
+        """build word-level featurization layer for bidaf model"""
         word_vocab_size = self.hyperparams.data_word_vocab_size
         word_embed_dim = self.hyperparams.model_representation_word_embed_dim
         word_embed_pretrained = self.hyperparams.model_representation_word_embed_pretrained
         word_feat_trainable = self.hyperparams.model_representation_word_feat_trainable
         
         with tf.variable_scope("featurization/word", reuse=tf.AUTO_REUSE):
-            self.logger.log_print("# create word-level featurization for mrc base model")
+            self.logger.log_print("# create word-level featurization for bidaf model")
             word_embedding_layer = create_embedding_layer(word_vocab_size,
                 word_embed_dim, word_embed_pretrained, word_feat_trainable)
             input_word_embedding, word_embedding_placeholder = word_embedding_layer(input_word)
@@ -170,7 +172,7 @@ class BiDAF(BaseModel):
     def _build_subword_feat(self,
                             input_subword,
                             input_subword_mask):
-        """build subword-level featurization layer for mrc base model"""
+        """build subword-level featurization layer for bidaf model"""
         subword_vocab_size = self.hyperparams.data_subword_vocab_size
         subword_embed_dim = self.hyperparams.model_representation_subword_embed_dim
         subword_feat_trainable = self.hyperparams.model_representation_subword_feat_trainable
@@ -180,7 +182,7 @@ class BiDAF(BaseModel):
         subword_pooling_type = self.hyperparams.model_representation_subword_pooling_type
         
         with tf.variable_scope("featurization/subword", reuse=tf.AUTO_REUSE):
-            self.logger.log_print("# create subword-level featurization for mrc base model")
+            self.logger.log_print("# create subword-level featurization for bidaf model")
             subword_embedding_layer = create_embedding_layer(subword_vocab_size,
                 subword_embed_dim, False, subword_feat_trainable)
             input_subword_embedding, _ = subword_embedding_layer(input_subword)
@@ -197,7 +199,7 @@ class BiDAF(BaseModel):
     def _build_char_feat(self,
                          input_char,
                          input_char_mask):
-        """build char-level featurization layer for mrc base model"""
+        """build char-level featurization layer for bidaf model"""
         char_vocab_size = self.hyperparams.data_char_vocab_size
         char_embed_dim = self.hyperparams.model_representation_char_embed_dim
         char_feat_trainable = self.hyperparams.model_representation_char_feat_trainable
@@ -207,7 +209,7 @@ class BiDAF(BaseModel):
         char_pooling_type = self.hyperparams.model_representation_char_pooling_type
         
         with tf.variable_scope("featurization/char", reuse=tf.AUTO_REUSE):
-            self.logger.log_print("# create char-level featurization for mrc base model")
+            self.logger.log_print("# create char-level featurization for bidaf model")
             char_embedding_layer = create_embedding_layer(char_vocab_size,
                 char_embed_dim, False, char_feat_trainable)
             input_char_embedding, _ = char_embedding_layer(input_char)
@@ -224,7 +226,7 @@ class BiDAF(BaseModel):
     def _build_question_understanding_layer(self,
                                             question_feat,
                                             question_feat_mask):
-        """build question understanding layer for mrc base model"""
+        """build question understanding layer for bidaf model"""
         question_understanding_num_layer = self.hyperparams.model_question_understanding_num_layer
         question_understanding_unit_dim = self.hyperparams.model_question_understanding_unit_dim
         question_understanding_cell_type = self.hyperparams.model_question_understanding_cell_type
@@ -234,7 +236,7 @@ class BiDAF(BaseModel):
         question_understanding_residual_connect = self.hyperparams.model_question_understanding_residual_connect
         question_understanding_trainable = self.hyperparams.model_question_understanding_trainable
         
-        question_understanding_layer = create_recurrent_layer("bi_directional", question_understanding_num_layer,
+        question_understanding_layer = create_recurrent_layer("bi", question_understanding_num_layer,
             question_understanding_unit_dim, question_understanding_cell_type, question_understanding_hidden_activation,
             question_understanding_dropout, question_understanding_forget_bias, question_understanding_residual_connect,
             self.num_gpus, self.default_gpu_id, question_understanding_trainable)
@@ -256,7 +258,7 @@ class BiDAF(BaseModel):
         context_understanding_residual_connect = self.hyperparams.model_context_understanding_residual_connect
         context_understanding_trainable = self.hyperparams.model_context_understanding_trainable
         
-        context_understanding_layer = create_recurrent_layer("bi_directional", context_understanding_num_layer,
+        context_understanding_layer = create_recurrent_layer("bi", context_understanding_num_layer,
             context_understanding_unit_dim, context_understanding_cell_type, context_understanding_hidden_activation,
             context_understanding_dropout, context_understanding_forget_bias, context_understanding_residual_connect,
             self.num_gpus, self.default_gpu_id, context_understanding_trainable)
@@ -265,15 +267,21 @@ class BiDAF(BaseModel):
         
         return context_output, context_final_state
     
+    def _build_context2question_interaction_layer(self,
+                                                  question_understanding,
+                                                  context_understanding):
+        """build context-to-question interaction layer for bidaf model"""
+        pass
+    
     def save(self,
              sess,
              global_step):
-        """save checkpoint for mrc base model"""
+        """save checkpoint for bidaf model"""
         self.ckpt_saver.save(sess, self.ckpt_name, global_step=global_step)
     
     def restore(self,
                 sess):
-        """restore mrc base model from checkpoint"""
+        """restore bidaf model from checkpoint"""
         ckpt_file = tf.train.latest_checkpoint(self.ckpt_dir)
         if ckpt_file is not None:
             self.ckpt_saver.restore(sess, ckpt_file)

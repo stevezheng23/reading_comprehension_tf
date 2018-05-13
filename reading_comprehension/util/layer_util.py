@@ -8,7 +8,7 @@ from layer.highway import *
 from layer.recurrent import *
 
 __all__ = ["create_embedding_layer", "create_convolution_layer", "create_pooling_layer",
-           "create_highway_layer", "create_recurrent_layer"]
+           "create_highway_layer", "create_recurrent_layer", "create_attention_layer"]
 
 def create_embedding_layer(vocab_size,
                            embed_dim,
@@ -76,7 +76,7 @@ def create_single_highway_layer(highway_type,
                                 trainable):
     """create single highway layer"""
     scope = "highway/{0}".format(highway_type)
-    if highway_type == "full_connected":
+    if highway_type == "fc":
         highway_layer = Highway(unit_dim=unit_dim,
             activation=activation, trainable=trainable, scope=scope)
     else:
@@ -91,7 +91,7 @@ def create_stacked_highway_layer(highway_type,
                                  trainable):
     """create stacked highway layer"""
     scope = "stacked_highway/{0}".format(highway_type)
-    if highway_type == "full_connected":
+    if highway_type == "fc":
         highway_layer = StackedHighway(num_layer=num_layer, unit_dim=unit_dim,
             activation=activation, trainable=trainable, scope=scope)
     else:
@@ -112,11 +112,11 @@ def create_recurrent_layer(recurrent_type,
                            trainable):
     """create recurrent layer"""
     scope = "recurrent/{0}".format(recurrent_type)
-    if recurrent_type == "uni_directional":
+    if recurrent_type == "uni":
         recurrent_layer = RNN(num_layer=num_layer, unit_dim=unit_dim, cell_type=cell_type,
             activation=activation, drop_out=drop_out, forget_bias=forget_bias, residual_connect=residual_connect,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
-    elif recurrent_type == "bi_directional":
+    elif recurrent_type == "bi":
         recurrent_layer = BiRNN(num_layer=num_layer, unit_dim=unit_dim, cell_type=cell_type,
             activation=activation, drop_out=drop_out, forget_bias=forget_bias, residual_connect=residual_connect,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
@@ -124,3 +124,50 @@ def create_recurrent_layer(recurrent_type,
         raise ValueError("unsupported recurrent type {0}".format(recurrent_type))
     
     return recurrent_layer
+
+def create_attention_layer(attention_type,
+                           num_layer,
+                           input_dim,
+                           unit_dim,
+                           score_type,
+                           trainable):
+    """create attention layer"""
+    if num_layer > 1:
+        attention_layer = create_stacked_attention_layer(attention_type, num_layer,
+            input_dim, unit_dim, score_type, trainable)
+    else:
+        attention_layer = create_single_attention_layer(attention_type,
+            input_dim, unit_dim, score_type, trainable)
+    
+    return attention_layer
+
+def create_single_attention_layer(attention_type,
+                                  input_dim,
+                                  unit_dim,
+                                  score_type,
+                                  trainable):
+    """create attention layer"""
+    scope = "attention/{0}".format(attention_type)
+    if attention_type == "ext":
+        attention_layer = Attention(input_dim=input_dim, unit_dim=unit_dim,
+            score_type=score_type, trainable=trainable, scope=scope)
+    else:
+        raise ValueError("unsupported attention type {0}".format(attention_type))
+    
+    return attention_layer
+
+def create_stacked_attention_layer(attention_type,
+                                   num_layer,
+                                   input_dim,
+                                   unit_dim,
+                                   score_type,
+                                   trainable):
+    """create stacked attention layer"""
+    scope = "stacked_attention/{0}".format(attention_type)
+    if attention_type == "ext":
+        attention_layer = None
+    else:
+        raise ValueError("unsupported attention type {0}".format(attention_type))
+    
+    return attention_layer
+
