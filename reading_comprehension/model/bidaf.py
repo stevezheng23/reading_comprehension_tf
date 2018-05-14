@@ -284,6 +284,27 @@ class BiDAF(BaseModel):
         
         return context_output, context_final_state
     
+    def _build_question2context_interaction_layer(self,
+                                                  question_understanding,
+                                                  context_understanding,
+                                                  question_understanding_mask,
+                                                  context_understanding_mask):
+        """build question-to-context interaction layer for bidaf model"""
+        question_understanding_unit_dim = self.hyperparams.model_understanding_question_unit_dim * 2
+        context_understanding_unit_dim = self.hyperparams.model_understanding_context_unit_dim * 2
+        quesiton2context_interaction_unit_dim = self.hyperparams.model_interaction_quesiton2context_unit_dim
+        quesiton2context_interaction_score_type = self.hyperparams.model_interaction_quesiton2context_score_type
+        quesiton2context_interaction_trainable = self.hyperparams.model_interaction_quesiton2context_trainable
+        
+        quesiton2context_attention_layer = create_attention_layer("default", question_understanding_unit_dim,
+            context_understanding_unit_dim, quesiton2context_interaction_unit_dim,
+            quesiton2context_interaction_score_type, quesiton2context_interaction_trainable)
+        
+        quesiton2context_output = quesiton2context_attention_layer(question_understanding,
+            context_understanding, question_understanding_mask, context_understanding_mask)
+        
+        return quesiton2context_output
+    
     def _build_context2question_interaction_layer(self,
                                                   question_understanding,
                                                   context_understanding,
@@ -304,6 +325,24 @@ class BiDAF(BaseModel):
             question_understanding, context_understanding_mask, question_understanding_mask)
         
         return context2quesiton_output
+    
+    def _build_context2context_interaction_layer(self,
+                                                 context_understanding,
+                                                 context_understanding_mask):
+        """build context-to-context interaction layer for bidaf model"""
+        context_understanding_unit_dim = self.hyperparams.model_understanding_context_unit_dim * 2
+        context2context_interaction_unit_dim = self.hyperparams.model_interaction_context2context_unit_dim
+        context2context_interaction_score_type = self.hyperparams.model_interaction_context2context_score_type
+        context2context_interaction_trainable = self.hyperparams.model_interaction_context2context_trainable
+        
+        context2context_attention_layer = create_attention_layer("default", context_understanding_unit_dim,
+            context_understanding_unit_dim, context2context_interaction_unit_dim,
+            context2context_interaction_score_type, context2context_interaction_trainable)
+        
+        context2context_output = context2quesiton_attention_layer(context_understanding,
+            context_understanding, context_understanding_mask, context_understanding_mask)
+        
+        return context2context_output
     
     def save(self,
              sess,
