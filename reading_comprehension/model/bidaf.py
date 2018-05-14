@@ -76,8 +76,8 @@ class BiDAF(BaseModel):
             self.context_understanding_mask = self.context_feat_mask
             
             """build interaction layer for bidaf model"""
-            context2question_interaction_output = _build_context2question_interaction_layer(self.context_understanding_output,
-                self.question_understanding_output, self.context_understanding_mask, self.question_understanding_mask)
+            context2question_interaction_output = self._build_context2question_interaction_layer(self.question_understanding_output,
+                self.context_understanding_output, self.question_understanding_mask, self.context_understanding_mask)
             self.context2question_interaction_output = context2question_interaction_output
             
             """create checkpoint saver"""
@@ -290,8 +290,8 @@ class BiDAF(BaseModel):
                                                   question_understanding_mask,
                                                   context_understanding_mask):
         """build context-to-question interaction layer for bidaf model"""
-        question_understanding_unit_dim = self.hyperparams.model_question_understanding_unit_dim
-        context_understanding_unit_dim = self.hyperparams.model_context_understanding_unit_dim
+        question_understanding_unit_dim = self.hyperparams.model_understanding_question_unit_dim * 2
+        context_understanding_unit_dim = self.hyperparams.model_understanding_context_unit_dim * 2
         context2quesiton_interaction_unit_dim = self.hyperparams.model_interaction_context2quesiton_unit_dim
         context2quesiton_interaction_score_type = self.hyperparams.model_interaction_context2quesiton_score_type
         context2quesiton_interaction_trainable = self.hyperparams.model_interaction_context2quesiton_trainable
