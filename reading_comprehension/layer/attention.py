@@ -5,17 +5,18 @@ from util.reading_comprehension_util import *
 
 __all__ = ["Attention"]
 
-def _create_attention_matrix(input_unit_dim,
+def _create_attention_matrix(src_unit_dim,
+                             trg_unit_dim,
                              attention_unit_dim,
                              attention_score_type):
     """create attetnion matrix"""
     variable_name = "{0}_attention_matrix".format(attention_score_type)
     if attention_score_type == "multiplicative":
         attention_matrix = tf.get_variable(variable_name,
-            shape=[input_unit_dim, input_unit_dim], dtype=tf.float32)
+            shape=[src_unit_dim, trg_unit_dim], dtype=tf.float32)
     elif attention_score_type == "additive":
         attention_matrix = tf.get_variable(variable_name,
-            shape=[attention_unit_dim, input_unit_dim * 2], dtype=tf.float32)
+            shape=[attention_unit_dim, src_unit_dim + trg_unit_dim], dtype=tf.float32)
     else:
         raise ValueError("unsupported attention score type {0}".format(attention_score_type))
     
@@ -72,24 +73,29 @@ def _generate_additive_attention_score(input_src_data,
 class Attention(object):
     """attention layer"""
     def __init__(self,
-                 input_dim,
+                 src_dim,
+                 trg_dim,
                  unit_dim,
                  score_type,
                  trainable=True,
                  scope="attention"):
         """initialize attention layer"""
-        self.input_dim = input_dim
+        self.src_dim = src_dim
+        self.trg_dim = trg_dim
         self.unit_dim = unit_dim
         self.score_type = score_type
         self.trainable = trainable
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            self.attention_matrix = _create_attention_matrix(input_dim, unit_dim, score_type)
+            self.attention_matrix = _create_attention_matrix(self.src_dim,
+                self.trg_dim, self.unit_dim, self.score_type)
     
     def __call__(self,
                  input_src_data,
-                 input_trg_data):
+                 input_trg_data,
+                 input_src_mask,
+                 input_trg_mask):
         """call attention layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             input_attention_score = _generate_attention_score(input_src_data,

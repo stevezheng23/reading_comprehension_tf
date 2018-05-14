@@ -126,48 +126,17 @@ def create_recurrent_layer(recurrent_type,
     return recurrent_layer
 
 def create_attention_layer(attention_type,
-                           num_layer,
-                           input_dim,
+                           src_dim,
+                           trg_dim,
                            unit_dim,
                            score_type,
                            trainable):
     """create attention layer"""
-    if num_layer > 1:
-        attention_layer = create_stacked_attention_layer(attention_type, num_layer,
-            input_dim, unit_dim, score_type, trainable)
-    else:
-        attention_layer = create_single_attention_layer(attention_type,
-            input_dim, unit_dim, score_type, trainable)
-    
-    return attention_layer
-
-def create_single_attention_layer(attention_type,
-                                  input_dim,
-                                  unit_dim,
-                                  score_type,
-                                  trainable):
-    """create attention layer"""
     scope = "attention/{0}".format(attention_type)
-    if attention_type == "ext":
-        attention_layer = Attention(input_dim=input_dim, unit_dim=unit_dim,
+    if attention_type == "default":
+        attention_layer = Attention(src_dim=src_dim, trg_dim=trg_dim, unit_dim=unit_dim,
             score_type=score_type, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported attention type {0}".format(attention_type))
     
     return attention_layer
-
-def create_stacked_attention_layer(attention_type,
-                                   num_layer,
-                                   input_dim,
-                                   unit_dim,
-                                   score_type,
-                                   trainable):
-    """create stacked attention layer"""
-    scope = "stacked_attention/{0}".format(attention_type)
-    if attention_type == "ext":
-        attention_layer = None
-    else:
-        raise ValueError("unsupported attention type {0}".format(attention_type))
-    
-    return attention_layer
-
