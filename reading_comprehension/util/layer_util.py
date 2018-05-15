@@ -137,6 +137,9 @@ def create_attention_layer(attention_type,
     if attention_type == "default":
         attention_layer = Attention(src_dim=src_dim, trg_dim=trg_dim, unit_dim=unit_dim,
             score_type=score_type, trainable=trainable, scope=scope)
+    elif attention_type == "max_att":
+        attention_layer = MaxAttention(src_dim=src_dim, trg_dim=trg_dim, unit_dim=unit_dim,
+            score_type=score_type, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported attention type {0}".format(attention_type))
     

@@ -80,6 +80,10 @@ class BiDAF(BaseModel):
                 self.context_understanding_output, self.question_understanding_mask, self.context_understanding_mask)
             self.context2question_interaction_output = context2question_interaction_output
             
+            question2context_interaction_output = self._build_question2context_interaction_layer(self.question_understanding_output,
+                self.context_understanding_output, self.question_understanding_mask, self.context_understanding_mask)
+            self.question2context_interaction_output = question2context_interaction_output
+            
             """create checkpoint saver"""
             if not tf.gfile.Exists(self.hyperparams.train_ckpt_output_dir):
                 tf.gfile.MakeDirs(self.hyperparams.train_ckpt_output_dir)
@@ -296,12 +300,12 @@ class BiDAF(BaseModel):
         quesiton2context_interaction_score_type = self.hyperparams.model_interaction_quesiton2context_score_type
         quesiton2context_interaction_trainable = self.hyperparams.model_interaction_quesiton2context_trainable
         
-        quesiton2context_attention_layer = create_attention_layer("default", question_understanding_unit_dim,
-            context_understanding_unit_dim, quesiton2context_interaction_unit_dim,
+        quesiton2context_attention_layer = create_attention_layer("max_att", context_understanding_unit_dim,
+            question_understanding_unit_dim, quesiton2context_interaction_unit_dim,
             quesiton2context_interaction_score_type, quesiton2context_interaction_trainable)
         
-        quesiton2context_output = quesiton2context_attention_layer(question_understanding,
-            context_understanding, question_understanding_mask, context_understanding_mask)
+        quesiton2context_output = quesiton2context_attention_layer(context_understanding,
+            question_understanding, context_understanding_mask, question_understanding_mask)
         
         return quesiton2context_output
     
