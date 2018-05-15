@@ -8,7 +8,7 @@ __all__ = ["MaxPooling", "AveragePooling"]
 class MaxPooling(object):
     """max pooling layer"""
     def __init__(self,
-                 scope="maxpool"):
+                 scope="max_pool"):
         """initialize max pooling layer"""
         self.scope = scope
     
@@ -26,7 +26,7 @@ class MaxPooling(object):
 class AveragePooling(object):
     """average pooling layer"""
     def __init__(self,
-                 scope="avgpool"):
+                 scope="avg_pool"):
         """initialize average pooling layer"""
         self.scope = scope
     

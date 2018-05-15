@@ -3,7 +3,7 @@ import tensorflow as tf
 
 from util.reading_comprehension_util import *
 
-__all__ = ["Attention"]
+__all__ = ["Attention", "MaxAttention"]
 
 def _create_attention_matrix(src_unit_dim,
                              trg_unit_dim,
@@ -132,5 +132,36 @@ class Attention(object):
                 input_trg_data, self.attention_matrix, self.score_type)
             input_attention_weight = tf.nn.softmax(input_attention_score, dim=-1)
             output_attention = tf.matmul(input_attention_weight, input_trg_data)
+            
+            return output_attention
+
+class MaxAttention(Attention):
+    """maximum attention layer"""
+    def __init__(self,
+                 src_dim,
+                 trg_dim,
+                 unit_dim,
+                 score_type,
+                 trainable=True,
+                 scope="max_att"):
+        """initialize maximum attention layer"""       
+        super(MaxAttention, self).__init__(src_dim=src_dim, trg_dim=trg_dim, unit_dim=unit_dim,
+            score_type=score_type, trainable=trainable, scope=scope)
+    
+    def __call__(self,
+                 input_src_data,
+                 input_trg_data,
+                 input_src_mask,
+                 input_trg_mask):
+        """call maximum attention layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            input_attention_score = _generate_attention_score(input_src_data,
+                input_trg_data, self.attention_matrix, self.score_type)
+            input_attention_score = tf.reduce_max(input_attention_score, axis=-1)
+            input_attention_weight = tf.nn.softmax(input_attention_score, dim=-1)
+            input_attention_weight = tf.expand_dims(input_attention_weight, axis=-2)
+            output_attention = tf.matmul(input_attention_weight, input_src_data)
+            src_max_length = tf.shape(input_src_data)[1]
+            output_attention = tf.tile(output_attention, multiples=[1, src_max_length, 1])
             
             return output_attention
