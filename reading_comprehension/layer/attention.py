@@ -130,10 +130,13 @@ class Attention(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             input_attention_score = _generate_attention_score(input_src_data,
                 input_trg_data, self.attention_matrix, self.score_type)
-            input_attention_weight = tf.nn.softmax(input_attention_score, dim=-1)
+            input_attention_weight = tf.nn.softmax(input_attention_score, dim=1)
             output_attention = tf.matmul(input_attention_weight, input_trg_data)
             
             return output_attention
+    
+    def get_attention_matrix():
+        return self.attention_matrix
 
 class MaxAttention(Attention):
     """maximum attention layer"""
