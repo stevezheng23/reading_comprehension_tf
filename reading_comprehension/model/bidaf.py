@@ -75,6 +75,7 @@ class BiDAF(BaseModel):
             self.answer_interaction_mask = answer_interaction_mask
             
             """build modeling layer for bidaf model"""
+            self.logger.log_print("# build answer modeling layer for bidaf model")
             answer_modeling, answer_modeling_mask = self._build_modeling_layer(self.answer_interaction, self.answer_interaction_mask)
             self.answer_modeling = answer_interaction
             self.answer_modeling_mask = answer_interaction_mask
@@ -98,17 +99,13 @@ class BiDAF(BaseModel):
                              fusion_trainable):
         """build fusion layer for bidaf model"""
         input_data = tf.concat(input_data_list, axis=-1)
-        
-        if len(input_mask_list) > 1:
-            output_fusion_mask = tf.reduce_max(tf.concat(input_mask_list, axis=-1), axis=-1)
-        else:
-            output_fusion_mask = tf.concat(input_mask_list, axis=-1)
+        output_fusion_mask = tf.reduce_max(tf.concat(input_mask_list, axis=-1), axis=-1, keep_dims=True)
         
         if input_unit_dim != output_unit_dim:
             convert_layer = tf.layers.Dense(units=output_unit_dim, activation=None, trainable=fusion_trainable)
             input_data = convert_layer(input_data)
         
-        if fusion_type == "linear":
+        if fusion_type == "dense":
             activation = create_activation_function(fusion_hidden_activation)
             fusion_layer = tf.layers.Dense(units=output_unit_dim,
                 activation=activation, trainable=fusion_trainable)
@@ -136,7 +133,7 @@ class BiDAF(BaseModel):
             input_word_embedding, word_embedding_placeholder = word_embedding_layer(input_word)
             
             input_word_feat = tf.squeeze(input_word_embedding, axis=-2)
-            input_word_feat_mask = input_word_mask
+            input_word_feat_mask = tf.squeeze(input_word_mask, axis=-1)
             
             return input_word_feat, input_word_feat_mask, word_embedding_placeholder
     
@@ -383,8 +380,27 @@ class BiDAF(BaseModel):
                               answer_interaction,
                               answer_interaction_mask):
         """build modeling layer for bidaf model"""
-        answer_modeling = answer_interaction
+        interaction_unit_dim = self.hyperparams.model_interaction_fusion_unit_dim
+        answer_modeling_num_layer = self.hyperparams.model_modeling_answer_num_layer
+        answer_modeling_unit_dim = self.hyperparams.model_modeling_answer_unit_dim
+        answer_modeling_cell_type = self.hyperparams.model_modeling_answer_cell_type
+        answer_modeling_hidden_activation = self.hyperparams.model_modeling_answer_hidden_activation
+        answer_modeling_dropout = self.hyperparams.model_modeling_answer_dropout
+        answer_modeling_forget_bias = self.hyperparams.model_modeling_answer_forget_bias
+        answer_modeling_residual_connect = self.hyperparams.model_modeling_answer_residual_connect
+        answer_modeling_trainable = self.hyperparams.model_modeling_answer_trainable
+        
+        answer_modeling, answer_modeling_mask = self._build_fusion_result([answer_interaction], [answer_interaction_mask],
+            interaction_unit_dim, answer_modeling_unit_dim, "pass", 0, None, answer_modeling_trainable)
+        
+        answer_modeling_layer = create_recurrent_layer("bi", answer_modeling_num_layer,
+            answer_modeling_unit_dim, answer_modeling_cell_type, answer_modeling_hidden_activation,
+            answer_modeling_dropout, answer_modeling_forget_bias, answer_modeling_residual_connect,
+            self.num_gpus, self.default_gpu_id, answer_modeling_trainable)
+        
+        answer_modeling, _ = answer_modeling_layer(answer_interaction, answer_interaction_mask)
         answer_modeling_mask = answer_interaction_mask
+        
         return answer_modeling, answer_modeling_mask
     
     def save(self,

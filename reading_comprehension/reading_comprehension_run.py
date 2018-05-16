@@ -96,14 +96,13 @@ def test(logger,
     
     (input_question_word, input_context_word, input_question_char, input_context_char,
         question_feat, context_feat, question_feat_mask, context_feat_mask,
-        question_understanding, context_understanding, context2quesiton_interaction, quesiton2context_interaction,
-        answer_interaction) = train_sess.run([train_model.data_pipeline.input_question_word, 
+        question_understanding, context_understanding, answer_interaction,
+        answer_modeling) = train_sess.run([train_model.data_pipeline.input_question_word, 
             train_model.data_pipeline.input_context_word, train_model.data_pipeline.input_question_char,
             train_model.data_pipeline.input_context_char, train_model.model.question_feat, train_model.model.context_feat,
             train_model.model.question_feat_mask, train_model.model.context_feat_mask,
             train_model.model.question_understanding, train_model.model.context_understanding,
-            train_model.model.context2quesiton_interaction, train_model.model.quesiton2context_interaction,
-            train_model.model.answer_interaction])
+            train_model.model.answer_interaction, train_model.model.answer_modeling])
     print(input_question_word)
     print(input_context_word)
     print(input_question_char)
@@ -114,9 +113,8 @@ def test(logger,
     print(context_feat_mask)
     print(question_understanding)
     print(context_understanding)
-    print(context2quesiton_interaction)
-    print(quesiton2context_interaction)
     print(answer_interaction)
+    print(answer_modeling)
 
 def main(args):
     hyperparams = load_hyperparams(args.config)
