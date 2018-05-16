@@ -64,9 +64,9 @@ class BiDAF(BaseModel):
                 context_understanding_mask) = self._build_understanding_layer(self.question_feat,
                     self.context_feat, self.question_feat_mask, self.context_feat_mask)
             self.question_understanding = question_understanding
-            self.question_understanding_mask = self.question_understanding_mask
+            self.question_understanding_mask = question_understanding_mask
             self.context_understanding = context_understanding
-            self.context_understanding_mask = self.context_understanding_mask
+            self.context_understanding_mask = context_understanding_mask
             
             """build interaction layer for bidaf model"""
             answer_interaction, answer_interaction_mask = self._build_interaction_layer(self.question_understanding,
@@ -85,8 +85,8 @@ class BiDAF(BaseModel):
     def _build_fusion_result(self,
                              input_data_list,
                              input_mask_list,
-                             input_embed_dim,
-                             output_embed_dim,
+                             input_unit_dim,
+                             output_unit_dim,
                              fusion_type,
                              fusion_num_layer,
                              fusion_hidden_activation,
@@ -94,22 +94,26 @@ class BiDAF(BaseModel):
         """build fusion layer for bidaf model"""
         input_data = tf.concat(input_data_list, axis=-1)
         
-        if input_embed_dim != output_embed_dim:
-            convert_layer = tf.layers.Dense(units=output_embed_dim, activation=None, trainable=trainable)
+        if len(input_mask_list) > 1:
+            output_fusion_mask = tf.reduce_max(tf.concat(input_mask_list, axis=-1), axis=-1)
+        else:
+            output_fusion_mask = tf.concat(input_mask_list, axis=-1)
+        
+        if input_unit_dim != output_unit_dim:
+            convert_layer = tf.layers.Dense(units=output_unit_dim, activation=None, trainable=fusion_trainable)
             input_data = convert_layer(input_data)
         
         if fusion_type == "linear":
-            fusion_layer = tf.layers.Dense(units=output_embed_dim,
-                activation=fusion_hidden_activation, trainable=fusion_trainable)
+            activation = create_activation_function(fusion_hidden_activation)
+            fusion_layer = tf.layers.Dense(units=output_unit_dim,
+                activation=activation, trainable=fusion_trainable)
             output_fusion = fusion_layer(input_data)
         elif fusion_type == "highway":
             fusion_layer = create_highway_layer("fc", fusion_num_layer,
-                output_embed_dim, fusion_hidden_activation, fusion_trainable)
+                output_unit_dim, fusion_hidden_activation, fusion_trainable)
             output_fusion = fusion_layer(input_data)
         else:
             output_fusion = input_data
-        
-        output_fusion_mask = tf.reduce_max(tf.concat(input_mask_list, axis=-1), axis=-1)
         
         return output_fusion, output_fusion_mask
     
@@ -220,10 +224,6 @@ class BiDAF(BaseModel):
         fusion_hidden_activation = self.hyperparams.model_representation_fusion_hidden_activation
         fusion_trainable = self.hyperparams.model_representation_fusion_trainable
         
-        word_embed_dim = 0
-        subword_embed_dim = 0
-        char_embed_dim = 0
-        word_embedding_placeholder = None
         input_feat_list = []
         input_feat_mask_list = []
         if word_feat_enable == True:
@@ -232,6 +232,9 @@ class BiDAF(BaseModel):
                     word_vocab_size, word_embed_dim, word_embed_pretrained, word_feat_trainable)
             input_feat_list.append(input_word_feat)
             input_feat_mask_list.append(input_word_feat_mask)
+        else:
+            word_embed_dim = 0
+            word_embedding_placeholder = None
         
         if subword_feat_enable == True:
             input_subword_feat, input_subword_feat_mask = self._build_subword_feat(input_subword, input_subword_mask,
@@ -239,6 +242,8 @@ class BiDAF(BaseModel):
                 subword_window_size, subword_hidden_activation, subword_pooling_type)
             input_feat_list.append(input_subword_feat)
             input_feat_mask_list.append(input_subword_feat_mask)
+        else:
+            subword_embed_dim = 0
         
         if char_feat_enable == True:
             input_char_feat, input_char_feat_mask = self._build_char_feat(input_char, input_char_mask,
@@ -246,6 +251,8 @@ class BiDAF(BaseModel):
                 char_window_size, char_hidden_activation, char_pooling_type)
             input_feat_list.append(input_char_feat)
             input_feat_mask_list.append(input_char_feat_mask)
+        else:
+            char_embed_dim = 0
         
         feat_embed_dim = word_embed_dim + subword_embed_dim + char_embed_dim
         
@@ -281,7 +288,7 @@ class BiDAF(BaseModel):
         
         self.logger.log_print("# build question understanding layer for bidaf model")
         question_feat, question_feat_mask = self._build_fusion_result([question_feat], [question_feat_mask],
-            "pass", 0, None, feat_unit_dim, question_understanding_unit_dim, question_understanding_trainable)
+            feat_unit_dim, question_understanding_unit_dim, "pass", 0, None, question_understanding_trainable)
         
         question_understanding_layer = create_recurrent_layer("bi", question_understanding_num_layer,
             question_understanding_unit_dim, question_understanding_cell_type, question_understanding_hidden_activation,
@@ -293,7 +300,7 @@ class BiDAF(BaseModel):
         
         self.logger.log_print("# build context understanding layer for bidaf model")
         context_feat, context_feat_mask = self._build_fusion_result([context_feat], [context_feat_mask],
-            "pass", 0, None, feat_unit_dim, context_understanding_unit_dim, context_understanding_trainable)
+            feat_unit_dim, context_understanding_unit_dim, "pass", 0, None, context_understanding_trainable)
         
         context_understanding_layer = create_recurrent_layer("bi", context_understanding_num_layer,
             context_understanding_unit_dim, context_understanding_cell_type, context_understanding_hidden_activation,
@@ -327,8 +334,6 @@ class BiDAF(BaseModel):
         fusion_hidden_activation = self.hyperparams.model_interaction_fusion_hidden_activation
         fusion_trainable = self.hyperparams.model_representation_fusion_trainable
         
-        context2quesiton_interaction_unit_dim = 0
-        quesiton2context_interaction_unit_dim = 0
         answer_interaction_list = [context_understanding]
         answer_interaction_mask_list = [context_understanding_mask]
         if context2quesiton_interaction_enable == True:
@@ -340,9 +345,11 @@ class BiDAF(BaseModel):
             context2quesiton_interaction = context2quesiton_attention_layer(context_understanding,
                 question_understanding, context_understanding_mask, question_understanding_mask)
             context2quesiton_interaction_mask = context_understanding_mask
-            
+            self.context2quesiton_interaction = context2quesiton_interaction
             answer_interaction_list.append(context2quesiton_interaction)
             answer_interaction_mask_list.append(context2quesiton_interaction_mask)
+        else:
+            context2quesiton_interaction_unit_dim = 0
         
         if quesiton2context_interaction_enable == True:
             self.logger.log_print("# build question2context interaction layer for bidaf model")
@@ -353,9 +360,11 @@ class BiDAF(BaseModel):
             quesiton2context_interaction = quesiton2context_attention_layer(context_understanding,
                 question_understanding, context_understanding_mask, question_understanding_mask)
             quesiton2context_interaction_mask = context_understanding_mask
-            
+            self.quesiton2context_interaction = quesiton2context_interaction
             answer_interaction_list.append(quesiton2context_interaction)
             answer_interaction_mask_list.append(quesiton2context_interaction_mask)
+        else:
+            quesiton2context_interaction_unit_dim = 0
         
         answer_interaction_unit_dim = context2quesiton_interaction_unit_dim + quesiton2context_interaction_unit_dim
         
