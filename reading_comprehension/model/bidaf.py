@@ -74,6 +74,11 @@ class BiDAF(BaseModel):
             self.answer_interaction = answer_interaction
             self.answer_interaction_mask = answer_interaction_mask
             
+            """build modeling layer for bidaf model"""
+            answer_modeling, answer_modeling_mask = self._build_modeling_layer(self.answer_interaction, self.answer_interaction_mask)
+            self.answer_modeling = answer_interaction
+            self.answer_modeling_mask = answer_interaction_mask
+            
             """create checkpoint saver"""
             if not tf.gfile.Exists(self.hyperparams.train_ckpt_output_dir):
                 tf.gfile.MakeDirs(self.hyperparams.train_ckpt_output_dir)
@@ -373,6 +378,14 @@ class BiDAF(BaseModel):
             fusion_num_layer, fusion_hidden_activation, fusion_trainable)
         
         return answer_interaction, answer_interaction_mask
+    
+    def _build_modeling_layer(self,
+                              answer_interaction,
+                              answer_interaction_mask):
+        """build modeling layer for bidaf model"""
+        answer_modeling = answer_interaction
+        answer_modeling_mask = answer_interaction_mask
+        return answer_modeling, answer_modeling_mask
     
     def save(self,
              sess,
