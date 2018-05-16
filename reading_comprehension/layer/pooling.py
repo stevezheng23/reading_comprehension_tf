@@ -17,7 +17,7 @@ class MaxPooling(object):
                  input_mask):
         """call max pooling layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            output_mask = input_mask
+            output_mask = tf.squeeze(tf.reduce_max(input_mask, axis=-1, keep_dims=True), axis=-1)
             input_mask = tf.expand_dims(input_mask, axis=-1)
             output_pool = tf.reduce_max(input_data * input_mask, axis=-2)
             
@@ -35,7 +35,7 @@ class AveragePooling(object):
                  input_mask):
         """call average pooling layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            output_mask = input_mask
+            output_mask = tf.squeeze(tf.reduce_max(input_mask, axis=-1, keep_dims=True), axis=-1)
             input_mask = tf.expand_dims(input_mask, axis=-1)
             input_sum = tf.reduce_sum(input_data * input_mask, axis=-2)
             input_count = tf.count_nonzero(input_mask, axis=-2)
