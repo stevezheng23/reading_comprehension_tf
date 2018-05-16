@@ -10,9 +10,9 @@ def _create_attention_matrix(src_unit_dim,
                              attention_unit_dim,
                              attention_score_type):
     """create attetnion matrix"""
-    if attention_score_type == "multiplicative":
+    if attention_score_type == "mul":
         attention_matrix = _create_multiplicative_attention_matrix(src_unit_dim, trg_unit_dim)
-    elif attention_score_type == "additive":
+    elif attention_score_type == "add":
         attention_matrix = _create_additive_attention_matrix(src_unit_dim, trg_unit_dim, attention_unit_dim)
     else:
         raise ValueError("unsupported attention score type {0}".format(attention_score_type))
@@ -45,10 +45,10 @@ def _generate_attention_score(input_src_data,
                               attention_matrix,
                               attention_score_type):
     """generate attention score"""
-    if attention_score_type == "multiplicative":
+    if attention_score_type == "mul":
         input_attention_score = _generate_multiplicative_attention_score(input_src_data,
             input_trg_data, attention_matrix)
-    elif attention_score_type == "additive":
+    elif attention_score_type == "add":
         input_attention_score = _generate_additive_attention_score(input_src_data,
             input_trg_data, attention_matrix)
     else:
