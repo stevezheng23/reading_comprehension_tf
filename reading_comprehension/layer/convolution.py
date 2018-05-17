@@ -51,8 +51,8 @@ class Conv1D(Conv):
         """call 1d convolution layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             output_conv = self.conv_layer(input_data)
-            
-            return output_conv
+        
+        return output_conv
 
 class Conv2D(Conv):
     """2d convolution layer"""
@@ -86,5 +86,5 @@ class Conv2D(Conv):
             dim2_length = input_conv_shape[1]
             output_conv = tf.reshape(input_conv,
                 shape=[batch_size, dim1_length, dim2_length, self.num_filter])
-            
-            return output_conv
+        
+        return output_conv

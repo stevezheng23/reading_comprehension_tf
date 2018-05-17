@@ -35,8 +35,8 @@ class Highway(object):
             transform = self.transform_layer(input_data)
             gate = self.gate_layer(input_data)
             output_highway = transform * gate + input_data * (1 - gate)
-            
-            return output_highway
+        
+        return output_highway
 
 class StackedHighway(object):
     """stacked highway network layer"""
@@ -70,5 +70,5 @@ class StackedHighway(object):
                 input_highway = highway_layer(input_highway)
             
             output_highway = input_highway
-            
-            return output_highway
+        
+        return output_highway

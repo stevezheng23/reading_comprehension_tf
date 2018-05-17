@@ -128,14 +128,14 @@ class Attention(object):
                  input_trg_mask):
         """call attention layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            input_src_data = input_src_data * tf.expand_dims(input_src_mask, axis=-1)
-            input_trg_data = input_trg_data * tf.expand_dims(input_trg_mask, axis=-1)
+            input_src_data = input_src_data * input_src_mask
+            input_trg_data = input_trg_data * input_trg_mask
             input_attention_score = _generate_attention_score(input_src_data,
                 input_trg_data, self.attention_matrix, self.score_type)
             input_attention_weight = tf.nn.softmax(input_attention_score, dim=1)
             output_attention = tf.matmul(input_attention_weight, input_trg_data)
-            
-            return output_attention
+        
+        return output_attention
     
     def get_attention_matrix():
         return self.attention_matrix
@@ -160,8 +160,8 @@ class MaxAttention(Attention):
                  input_trg_mask):
         """call maximum attention layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            input_src_data = input_src_data * tf.expand_dims(input_src_mask, axis=-1)
-            input_trg_data = input_trg_data * tf.expand_dims(input_trg_mask, axis=-1)
+            input_src_data = input_src_data * input_src_mask
+            input_trg_data = input_trg_data * input_trg_mask
             input_attention_score = _generate_attention_score(input_src_data,
                 input_trg_data, self.attention_matrix, self.score_type)
             input_attention_score = tf.reduce_max(input_attention_score, axis=-1)
@@ -170,5 +170,5 @@ class MaxAttention(Attention):
             output_attention = tf.matmul(input_attention_weight, input_src_data)
             src_max_length = tf.shape(input_src_data)[1]
             output_attention = tf.tile(output_attention, multiples=[1, src_max_length, 1])
-            
-            return output_attention
+        
+        return output_attention

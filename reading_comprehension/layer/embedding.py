@@ -29,8 +29,8 @@ class Embedding(object):
         """call embedding layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             output_embedding = tf.nn.embedding_lookup(self.embedding, input_data)
-            
-            return output_embedding, self.embedding_placeholder
+        
+        return output_embedding, self.embedding_placeholder
 
 class PretrainedEmbedding(object):
     """Pretrained Embedding layer"""
@@ -58,5 +58,5 @@ class PretrainedEmbedding(object):
         """call pretrained embedding layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             output_embedding = tf.nn.embedding_lookup(self.embedding, input_data)
-            
-            return output_embedding, self.embedding_placeholder
+        
+        return output_embedding, self.embedding_placeholder
