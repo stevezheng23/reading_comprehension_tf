@@ -42,7 +42,7 @@ class BiDAF(BaseModel):
             context_char_mask = self.data_pipeline.input_context_char_mask
             answer_result = self.data_pipeline.input_answer
             answer_reuslt_mask = self.data_pipeline.input_answer_mask
-            
+
             """build graph for bidaf model"""
             self.logger.log_print("# build graph for bidaf model")
             """build representation layer for bidaf model"""
@@ -91,10 +91,12 @@ class BiDAF(BaseModel):
             self.answer_start_output_mask = answer_start_output_mask
             self.answer_end_output_mask = answer_end_output_mask
             
-            if self.mode == "_train" or self.mode == "eval":
+            if self.mode == "train" or self.mode == "eval":
                 """compute optimization loss"""
                 self.logger.log_print("# setup loss computation mechanism")
-                loss = self._compute_loss(self.answer_output, answer_result)
+                start_loss = self._compute_loss(self.answer_start_output, answer_result[:,0,:])
+                end_loss = self._compute_loss(self.answer_end_output, answer_result[:,1,:])
+                loss = start_loss + end_loss
                 self.train_loss = loss
                 self.eval_loss = loss
                 
