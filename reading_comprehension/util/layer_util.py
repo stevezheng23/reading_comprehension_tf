@@ -7,6 +7,7 @@ from layer.pooling import *
 from layer.highway import *
 from layer.recurrent import *
 from layer.attention import *
+from layer.pointer import *
 
 __all__ = ["create_embedding_layer", "create_convolution_layer", "create_pooling_layer",
            "create_highway_layer", "create_recurrent_layer", "create_attention_layer", "create_pointer_layer"]

@@ -68,6 +68,8 @@ def create_data_pipeline(input_question_word_dataset,
         input_question_char_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(dataset_size)
         input_context_char_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(dataset_size)
     
+    index_pad_id = tf.constant(0, shape=[], dtype=tf.int64)
+    
     dataset = tf.data.Dataset.zip((input_question_word_dataset, input_question_subword_dataset, input_question_char_dataset,
         input_context_word_dataset, input_context_subword_dataset, input_context_char_dataset, input_answer_dataset))
     
@@ -92,7 +94,7 @@ def create_data_pipeline(input_question_word_dataset,
             subword_pad_id,
             char_pad_id,
             char_pad_id,
-            word_pad_id))
+            index_pad_id))
     
     iterator = dataset.make_initializable_iterator()
     batch_data = iterator.get_next()
@@ -140,7 +142,7 @@ def create_data_pipeline(input_question_word_dataset,
         input_context_char_mask = None
     
     input_answer = batch_data[6]
-    input_answer_mask = tf.not_equal(batch_data[6], word_pad_id)
+    input_answer_mask = tf.cast(tf.greater_equal(batch_data[6], 0), dtype=tf.float32)
     
     return DataPipeline(initializer=iterator.initializer,
         input_question_word=input_question_word, input_question_subword=input_question_subword,
