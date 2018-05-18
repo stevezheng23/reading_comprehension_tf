@@ -94,25 +94,29 @@ def test(logger,
     
     train_sess.run(train_model.data_pipeline.initializer)
     
-    (input_question_word, input_context_word, input_question_char, input_context_char,
-        input_question_word_mask, input_context_word_mask, input_question_char_mask, input_context_char_mask,
+    (input_question_word, input_context_word, input_question_word_mask, input_context_word_mask,
+        input_question_char, input_context_char, input_question_char_mask, input_context_char_mask,
         input_answer, input_answer_mask, question_feat, context_feat, question_feat_mask, context_feat_mask,
-        question_understanding, context_understanding, answer_interaction, answer_modeling,
-        answer_output) = train_sess.run([train_model.data_pipeline.input_question_word, 
-            train_model.data_pipeline.input_context_word, train_model.data_pipeline.input_question_char,
-            train_model.data_pipeline.input_context_char, train_model.data_pipeline.input_question_word_mask, 
-            train_model.data_pipeline.input_context_word_mask, train_model.data_pipeline.input_question_char_mask,
+        question_understanding, context_understanding, question_understanding_mask, context_understanding_mask,
+        answer_interaction, answer_interaction_mask, answer_modeling, answer_modeling_mask,
+        answer_output, answer_output_mask) = train_sess.run([train_model.data_pipeline.input_question_word, 
+            train_model.data_pipeline.input_context_word, train_model.data_pipeline.input_question_word_mask, 
+            train_model.data_pipeline.input_context_word_mask, train_model.data_pipeline.input_question_char,
+            train_model.data_pipeline.input_context_char, train_model.data_pipeline.input_question_char_mask,
             train_model.data_pipeline.input_context_char_mask, train_model.data_pipeline.input_answer,
             train_model.data_pipeline.input_answer_mask, train_model.model.question_feat, train_model.model.context_feat,
             train_model.model.question_feat_mask, train_model.model.context_feat_mask,
             train_model.model.question_understanding, train_model.model.context_understanding,
-            train_model.model.answer_interaction, train_model.model.answer_modeling, train_model.model.answer_output])
+            train_model.model.question_understanding_mask, train_model.model.context_understanding_mask,
+            train_model.model.answer_interaction, train_model.model.answer_interaction_mask,
+            train_model.model.answer_modeling, train_model.model.answer_modeling_mask,
+            train_model.model.answer_output, train_model.model.answer_output_mask])
     print(input_question_word)
     print(input_context_word)
-    print(input_question_char)
-    print(input_context_char)
     print(input_question_word_mask)
     print(input_context_word_mask)
+    print(input_question_char)
+    print(input_context_char)
     print(input_question_char_mask)
     print(input_context_char_mask)
     print(input_answer)
@@ -123,9 +127,14 @@ def test(logger,
     print(context_feat_mask)
     print(question_understanding)
     print(context_understanding)
+    print(question_understanding_mask)
+    print(context_understanding_mask)
     print(answer_interaction)
+    print(answer_interaction_mask)
     print(answer_modeling)
+    print(answer_modeling_mask)
     print(answer_output)
+    print(answer_output_mask)
 
 def main(args):
     hyperparams = load_hyperparams(args.config)

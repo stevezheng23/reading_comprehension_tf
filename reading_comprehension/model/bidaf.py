@@ -40,6 +40,8 @@ class BiDAF(BaseModel):
             context_word_mask = self.data_pipeline.input_context_word_mask
             context_subword_mask = self.data_pipeline.input_context_subword_mask
             context_char_mask = self.data_pipeline.input_context_char_mask
+            answer_result = self.data_pipeline.input_answer
+            answer_reuslt_mask = self.data_pipeline.input_answer_mask
             
             """build graph for bidaf model"""
             self.logger.log_print("# build graph for bidaf model")
@@ -79,6 +81,12 @@ class BiDAF(BaseModel):
             answer_modeling, answer_modeling_mask = self._build_modeling_layer(self.answer_interaction, self.answer_interaction_mask)
             self.answer_modeling = answer_interaction
             self.answer_modeling_mask = answer_interaction_mask
+            
+            """build output layer for bidaf model"""
+            self.logger.log_print("# build answer output layer for bidaf model")
+            answer_output, answer_output_mask = self._build_output_layer(self.answer_modeling, self.answer_modeling_mask)
+            self.answer_output = answer_output
+            self.answer_output_mask = answer_output_mask
             
             """create checkpoint saver"""
             if not tf.gfile.Exists(self.hyperparams.train_ckpt_output_dir):
@@ -292,7 +300,7 @@ class BiDAF(BaseModel):
         
         with tf.variable_scope("understanding/question", reuse=tf.AUTO_REUSE):
             self.logger.log_print("# build question understanding layer for bidaf model")
-            question_feat, question_feat_mask = self._build_fusion_result([question_feat], [question_feat_mask],
+            question_understanding, question_understanding_mask = self._build_fusion_result([question_feat], [question_feat_mask],
                 feat_unit_dim, question_understanding_unit_dim, "pass", 0, None, question_understanding_trainable)
             
             question_understanding_layer = create_recurrent_layer("bi", question_understanding_num_layer,
@@ -300,12 +308,11 @@ class BiDAF(BaseModel):
                 question_understanding_dropout, question_understanding_forget_bias, question_understanding_residual_connect,
                 self.num_gpus, self.default_gpu_id, question_understanding_trainable)
             
-            question_understanding, _ = question_understanding_layer(question_feat, question_feat_mask)
-            question_understanding_mask = question_feat_mask
+            question_understanding, _ = question_understanding_layer(question_understanding, question_understanding_mask)
         
         with tf.variable_scope("understanding/context", reuse=tf.AUTO_REUSE):
             self.logger.log_print("# build context understanding layer for bidaf model")
-            context_feat, context_feat_mask = self._build_fusion_result([context_feat], [context_feat_mask],
+            context_understanding, context_understanding_mask = self._build_fusion_result([context_feat], [context_feat_mask],
                 feat_unit_dim, context_understanding_unit_dim, "pass", 0, None, context_understanding_trainable)
             
             context_understanding_layer = create_recurrent_layer("bi", context_understanding_num_layer,
@@ -313,8 +320,7 @@ class BiDAF(BaseModel):
                 context_understanding_dropout, context_understanding_forget_bias, context_understanding_residual_connect,
                 self.num_gpus, self.default_gpu_id, context_understanding_trainable)
             
-            context_understanding, _ = context_understanding_layer(context_feat, context_feat_mask)
-            context_understanding_mask = context_feat_mask
+            context_understanding, _ = context_understanding_layer(context_understanding, context_understanding_mask)
         
         return question_understanding, context_understanding, question_understanding_mask, context_understanding_mask
     
@@ -388,7 +394,7 @@ class BiDAF(BaseModel):
                               answer_interaction,
                               answer_interaction_mask):
         """build modeling layer for bidaf model"""
-        interaction_unit_dim = self.hyperparams.model_interaction_fusion_unit_dim
+        answer_interaction_unit_dim = self.hyperparams.model_interaction_fusion_unit_dim
         answer_modeling_num_layer = self.hyperparams.model_modeling_answer_num_layer
         answer_modeling_unit_dim = self.hyperparams.model_modeling_answer_unit_dim
         answer_modeling_cell_type = self.hyperparams.model_modeling_answer_cell_type
@@ -400,17 +406,77 @@ class BiDAF(BaseModel):
         
         with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE):
             answer_modeling, answer_modeling_mask = self._build_fusion_result([answer_interaction], [answer_interaction_mask],
-                interaction_unit_dim, answer_modeling_unit_dim, "pass", 0, None, answer_modeling_trainable)
+                answer_interaction_unit_dim, answer_modeling_unit_dim, "pass", 0, None, answer_modeling_trainable)
             
             answer_modeling_layer = create_recurrent_layer("bi", answer_modeling_num_layer,
                 answer_modeling_unit_dim, answer_modeling_cell_type, answer_modeling_hidden_activation,
                 answer_modeling_dropout, answer_modeling_forget_bias, answer_modeling_residual_connect,
                 self.num_gpus, self.default_gpu_id, answer_modeling_trainable)
             
-            answer_modeling, _ = answer_modeling_layer(answer_interaction, answer_interaction_mask)
-            answer_modeling_mask = answer_interaction_mask
+            answer_modeling, _ = answer_modeling_layer(answer_modeling, answer_modeling_mask)
         
         return answer_modeling, answer_modeling_mask
+    
+    def _build_output_layer(self,
+                            answer_modeling,
+                            answer_modeling_mask):
+        """build output layer for bidaf model"""
+        answer_modeling_unit_dim = self.hyperparams.model_modeling_answer_unit_dim
+        answer_output_num_layer = self.hyperparams.model_output_answer_num_layer
+        answer_output_unit_dim = self.hyperparams.model_output_answer_unit_dim
+        answer_output_cell_type = self.hyperparams.model_output_answer_cell_type
+        answer_output_hidden_activation = self.hyperparams.model_output_answer_hidden_activation
+        answer_output_dropout = self.hyperparams.model_output_answer_dropout
+        answer_output_forget_bias = self.hyperparams.model_output_answer_forget_bias
+        answer_output_residual_connect = self.hyperparams.model_output_answer_residual_connect
+        answer_output_trainable = self.hyperparams.model_output_answer_trainable
+        
+        with tf.variable_scope("output", reuse=tf.AUTO_REUSE):
+            answer_intermediate_list = [answer_modeling]
+            answer_intermediate_mask_list = [answer_modeling_mask]
+            answer_output_list = []
+            answer_output_mask_list = []
+            
+            with tf.variable_scope("start", reuse=tf.AUTO_REUSE):
+                answer_start_unit_dim = answer_modeling_unit_dim
+                answer_start, answer_start_mask = self._build_fusion_result(answer_intermediate_list, answer_intermediate_mask_list,
+                    answer_start_unit_dim, answer_output_unit_dim, "pass", 0, None, answer_output_trainable)
+                
+                answer_start_layer = create_recurrent_layer("bi", answer_output_num_layer,
+                    answer_output_unit_dim, answer_output_cell_type, answer_output_hidden_activation,
+                    answer_output_dropout, answer_output_forget_bias, answer_output_residual_connect,
+                    self.num_gpus, self.default_gpu_id, answer_output_trainable)
+                
+                answer_start, _ = answer_start_layer(answer_start, answer_start_mask)
+                answer_intermediate_list.append(answer_start)
+                answer_intermediate_mask_list.append(answer_start_mask)
+                
+                answer_start_index_layer = create_pointer_layer("default", answer_output_trainable)
+                answer_start_index, answer_start_index_mask = answer_start_index_layer(answer_start, answer_start_mask)
+                answer_output_list.append(answer_start_index)
+                answer_output_mask_list.append(answer_start_index_mask)
+            
+            with tf.variable_scope("end", reuse=tf.AUTO_REUSE):
+                answer_end_unit_dim = answer_modeling_unit_dim + answer_output_unit_dim * 2
+                answer_end, answer_end_mask = self._build_fusion_result(answer_intermediate_list, answer_intermediate_mask_list,
+                    answer_end_unit_dim, answer_output_unit_dim, "pass", 0, None, answer_output_trainable)
+                
+                answer_end_layer = create_recurrent_layer("bi", answer_output_num_layer,
+                    answer_output_unit_dim, answer_output_cell_type, answer_output_hidden_activation,
+                    answer_output_dropout, answer_output_forget_bias, answer_output_residual_connect,
+                    self.num_gpus, self.default_gpu_id, answer_output_trainable)
+                
+                answer_end, _ = answer_end_layer(answer_end, answer_end_mask)
+                
+                answer_end_index_layer = create_pointer_layer("default", answer_output_trainable)
+                answer_end_index, answer_end_index_mask = answer_end_index_layer(answer_end, answer_end_mask)
+                answer_output_list.append(answer_end_index)
+                answer_output_mask_list.append(answer_end_index_mask)
+            
+            answer_output = tf.concat(answer_output_list, axis=-2)
+            answer_output_mask = tf.concat(answer_output_mask_list, axis=-2)
+        
+        return answer_output, answer_output_mask
     
     def save(self,
              sess,
