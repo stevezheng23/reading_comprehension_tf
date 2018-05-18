@@ -84,9 +84,35 @@ class BiDAF(BaseModel):
             
             """build output layer for bidaf model"""
             self.logger.log_print("# build answer output layer for bidaf model")
-            answer_output, answer_output_mask = self._build_output_layer(self.answer_modeling, self.answer_modeling_mask)
-            self.answer_output = answer_output
-            self.answer_output_mask = answer_output_mask
+            (answer_start_output, answer_end_output, answer_start_output_mask,
+                answer_end_output_mask) = self._build_output_layer(self.answer_modeling, self.answer_modeling_mask)
+            self.answer_start_output = answer_start_output
+            self.answer_end_output = answer_end_output
+            self.answer_start_output_mask = answer_start_output_mask
+            self.answer_end_output_mask = answer_end_output_mask
+            
+            if self.mode == "_train" or self.mode == "eval":
+                """compute optimization loss"""
+                self.logger.log_print("# setup loss computation mechanism")
+                loss = self._compute_loss(self.answer_output, answer_result)
+                self.train_loss = loss
+                self.eval_loss = loss
+                
+                """apply learning rate decay"""
+                self.logger.log_print("# setup learning rate decay mechanism")
+                self.learning_rate = tf.constant(self.hyperparams.train_optimizer_learning_rate)
+                self.decayed_learning_rate = self._apply_learning_rate_decay(self.learning_rate)
+                
+                """initialize optimizer"""
+                self.logger.log_print("# initialize optimizer")
+                self.optimizer = self._initialize_optimizer(self.decayed_learning_rate)
+                
+                """minimize optimization loss"""
+                self.logger.log_print("# setup loss minimization mechanism")
+                self.update_model, self.clipped_gradients, self.gradient_norm = self._minimize_loss(self.train_loss)
+                
+                """create summary"""
+                self.train_summary = self._get_train_summary()
             
             """create checkpoint saver"""
             if not tf.gfile.Exists(self.hyperparams.train_ckpt_output_dir):
@@ -114,12 +140,7 @@ class BiDAF(BaseModel):
                 convert_layer = tf.layers.Dense(units=output_unit_dim, activation=None, trainable=fusion_trainable)
                 input_data = convert_layer(input_data)
             
-            if fusion_type == "dense":
-                activation = create_activation_function(fusion_hidden_activation)
-                fusion_layer = tf.layers.Dense(units=output_unit_dim,
-                    activation=activation, trainable=fusion_trainable)
-                output_fusion = fusion_layer(input_data)
-            elif fusion_type == "highway":
+            if fusion_type == "highway":
                 fusion_layer = create_highway_layer("fc", fusion_num_layer,
                     output_unit_dim, fusion_hidden_activation, fusion_trainable)
                 output_fusion = fusion_layer(input_data)
@@ -382,7 +403,7 @@ class BiDAF(BaseModel):
                 else:
                     context_understanding_unit_dim = 0
             
-            answer_interaction_unit_dim = question_understanding_unit_dim + context_understanding_unit_dim
+            answer_interaction_unit_dim = question_understanding_unit_dim + context_understanding_unit_dim * 2
             
             answer_interaction, answer_interaction_mask = self._build_fusion_result(answer_interaction_list,
                 answer_interaction_mask_list, answer_interaction_unit_dim, fusion_unit_dim, fusion_type,
@@ -422,61 +443,61 @@ class BiDAF(BaseModel):
                             answer_modeling_mask):
         """build output layer for bidaf model"""
         answer_modeling_unit_dim = self.hyperparams.model_modeling_answer_unit_dim
-        answer_output_num_layer = self.hyperparams.model_output_answer_num_layer
-        answer_output_unit_dim = self.hyperparams.model_output_answer_unit_dim
-        answer_output_cell_type = self.hyperparams.model_output_answer_cell_type
-        answer_output_hidden_activation = self.hyperparams.model_output_answer_hidden_activation
-        answer_output_dropout = self.hyperparams.model_output_answer_dropout
-        answer_output_forget_bias = self.hyperparams.model_output_answer_forget_bias
-        answer_output_residual_connect = self.hyperparams.model_output_answer_residual_connect
-        answer_output_trainable = self.hyperparams.model_output_answer_trainable
+        answer_start_num_layer = self.hyperparams.model_output_answer_start_num_layer
+        answer_start_unit_dim = self.hyperparams.model_output_answer_start_unit_dim
+        answer_start_cell_type = self.hyperparams.model_output_answer_start_cell_type
+        answer_start_hidden_activation = self.hyperparams.model_output_answer_start_hidden_activation
+        answer_start_dropout = self.hyperparams.model_output_answer_start_dropout
+        answer_start_forget_bias = self.hyperparams.model_output_answer_start_forget_bias
+        answer_start_residual_connect = self.hyperparams.model_output_answer_start_residual_connect
+        answer_start_trainable = self.hyperparams.model_output_answer_start_trainable
+        answer_end_num_layer = self.hyperparams.model_output_answer_end_num_layer
+        answer_end_unit_dim = self.hyperparams.model_output_answer_end_unit_dim
+        answer_end_cell_type = self.hyperparams.model_output_answer_end_cell_type
+        answer_end_hidden_activation = self.hyperparams.model_output_answer_end_hidden_activation
+        answer_end_dropout = self.hyperparams.model_output_answer_end_dropout
+        answer_end_forget_bias = self.hyperparams.model_output_answer_end_forget_bias
+        answer_end_residual_connect = self.hyperparams.model_output_answer_end_residual_connect
+        answer_end_trainable = self.hyperparams.model_output_answer_end_trainable
         
         with tf.variable_scope("output", reuse=tf.AUTO_REUSE):
             answer_intermediate_list = [answer_modeling]
             answer_intermediate_mask_list = [answer_modeling_mask]
-            answer_output_list = []
-            answer_output_mask_list = []
+            answer_intermediate_unit_dim = answer_modeling_unit_dim
             
             with tf.variable_scope("start", reuse=tf.AUTO_REUSE):
-                answer_start_unit_dim = answer_modeling_unit_dim
                 answer_start, answer_start_mask = self._build_fusion_result(answer_intermediate_list, answer_intermediate_mask_list,
-                    answer_start_unit_dim, answer_output_unit_dim, "pass", 0, None, answer_output_trainable)
+                    answer_intermediate_unit_dim, answer_start_unit_dim, "pass", 0, None, answer_start_trainable)
                 
-                answer_start_layer = create_recurrent_layer("bi", answer_output_num_layer,
-                    answer_output_unit_dim, answer_output_cell_type, answer_output_hidden_activation,
-                    answer_output_dropout, answer_output_forget_bias, answer_output_residual_connect,
-                    self.num_gpus, self.default_gpu_id, answer_output_trainable)
-                
+                answer_start_layer = create_recurrent_layer("bi", answer_start_num_layer,
+                    answer_start_unit_dim, answer_start_cell_type, answer_start_hidden_activation,
+                    answer_start_dropout, answer_start_forget_bias, answer_start_residual_connect,
+                    self.num_gpus, self.default_gpu_id, answer_start_trainable)
                 answer_start, _ = answer_start_layer(answer_start, answer_start_mask)
-                answer_intermediate_list.append(answer_start)
-                answer_intermediate_mask_list.append(answer_start_mask)
                 
-                answer_start_index_layer = create_pointer_layer("default", answer_output_trainable)
-                answer_start_index, answer_start_index_mask = answer_start_index_layer(answer_start, answer_start_mask)
-                answer_output_list.append(answer_start_index)
-                answer_output_mask_list.append(answer_start_index_mask)
+                answer_start_output_layer = tf.layers.Dense(units=1, activation=None, trainable=answer_start_trainable)
+                answer_start_output = answer_start_output_layer(answer_start)
+                answer_start_output_mask = answer_start_mask
+            
+            answer_intermediate_list.append(answer_start)
+            answer_intermediate_mask_list.append(answer_start_mask)
+            answer_intermediate_unit_dim = answer_intermediate_unit_dim + answer_start_unit_dim * 2
             
             with tf.variable_scope("end", reuse=tf.AUTO_REUSE):
-                answer_end_unit_dim = answer_modeling_unit_dim + answer_output_unit_dim * 2
                 answer_end, answer_end_mask = self._build_fusion_result(answer_intermediate_list, answer_intermediate_mask_list,
-                    answer_end_unit_dim, answer_output_unit_dim, "pass", 0, None, answer_output_trainable)
+                    answer_intermediate_unit_dim, answer_end_unit_dim, "pass", 0, None, answer_end_trainable)
                 
-                answer_end_layer = create_recurrent_layer("bi", answer_output_num_layer,
-                    answer_output_unit_dim, answer_output_cell_type, answer_output_hidden_activation,
-                    answer_output_dropout, answer_output_forget_bias, answer_output_residual_connect,
-                    self.num_gpus, self.default_gpu_id, answer_output_trainable)
-                
+                answer_end_layer = create_recurrent_layer("bi", answer_end_num_layer,
+                    answer_end_unit_dim, answer_end_cell_type, answer_end_hidden_activation,
+                    answer_end_dropout, answer_end_forget_bias, answer_end_residual_connect,
+                    self.num_gpus, self.default_gpu_id, answer_end_trainable)
                 answer_end, _ = answer_end_layer(answer_end, answer_end_mask)
                 
-                answer_end_index_layer = create_pointer_layer("default", answer_output_trainable)
-                answer_end_index, answer_end_index_mask = answer_end_index_layer(answer_end, answer_end_mask)
-                answer_output_list.append(answer_end_index)
-                answer_output_mask_list.append(answer_end_index_mask)
-            
-            answer_output = tf.concat(answer_output_list, axis=-2)
-            answer_output_mask = tf.concat(answer_output_mask_list, axis=-2)
+                answer_end_output_layer = tf.layers.Dense(units=1, activation=None, trainable=answer_end_trainable)
+                answer_end_output = answer_end_output_layer(answer_end)
+                answer_end_output_mask = answer_end_mask
         
-        return answer_output, answer_output_mask
+        return answer_start_output, answer_end_output, answer_start_output_mask, answer_end_output_mask
     
     def save(self,
              sess,

@@ -6,13 +6,13 @@ from util.reading_comprehension_util import *
 __all__ = ["Highway", "StackedHighway"]
 
 class Highway(object):
-    """highway network layer"""
+    """highway layer"""
     def __init__(self,
                  unit_dim,
                  activation,
                  trainable=True,
                  scope="highway"):
-        """initialize highway network layer"""
+        """initialize highway layer"""
         self.unit_dim = unit_dim
         self.activation = activation
         self.trainable = trainable
@@ -30,7 +30,7 @@ class Highway(object):
     
     def __call__(self,
                  input_data):
-        """call highway network layer"""
+        """call highway layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             transform = self.transform_layer(input_data)
             gate = self.gate_layer(input_data)
@@ -39,14 +39,14 @@ class Highway(object):
         return output_highway
 
 class StackedHighway(object):
-    """stacked highway network layer"""
+    """stacked highway layer"""
     def __init__(self,
                  num_layer,
                  unit_dim,
                  activation,
                  trainable=True,
                  scope="stacked_highway"):
-        """initialize highway network layer"""
+        """initialize stacked highway layer"""
         self.num_layer = num_layer
         self.unit_dim = unit_dim
         self.activation = activation
@@ -63,7 +63,7 @@ class StackedHighway(object):
     
     def __call__(self,
                  input_data):
-        """call stacked highway network layer"""
+        """call stacked highway layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             input_highway = input_data
             for highway_layer in self.highway_layer_list:
