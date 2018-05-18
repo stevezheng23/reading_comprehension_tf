@@ -159,6 +159,7 @@ def create_src_dataset(input_file,
                        word_pad,
                        word_sos,
                        word_eos,
+                       word_placeholder_enable,
                        word_feat_enable,
                        subword_vocab_index,
                        subword_max_length,
@@ -175,19 +176,21 @@ def create_src_dataset(input_file,
     word_dataset = None
     if word_feat_enable == True:
         word_dataset = dataset.map(lambda sent: generate_word_feat(sent, word_vocab_index,
-            word_max_length, word_sos, word_eos, word_pad))
+            word_max_length, word_pad, word_sos, word_eos, word_placeholder_enable))
 
     subword_dataset = None
     if subword_feat_enable == True:
         subword_pad_id = subword_vocab_index.lookup(tf.constant(subword_pad))
         subword_dataset = dataset.map(lambda sent: generate_subword_feat(sent, subword_vocab_index,
-            word_max_length, subword_max_length, subword_size, word_sos, word_eos, subword_pad, subword_pad_id))
+            word_max_length, subword_max_length, subword_size, word_sos, word_eos,
+            word_placeholder_enable, subword_pad, subword_pad_id))
 
     char_dataset = None
     if char_feat_enable == True:
         char_pad_id = char_vocab_index.lookup(tf.constant(char_pad))
         char_dataset = dataset.map(lambda sent: generate_char_feat(sent, char_vocab_index,
-            word_max_length, char_max_length, word_sos, word_eos, char_pad, char_pad_id))
+            word_max_length, char_max_length, word_sos, word_eos,
+            word_placeholder_enable, char_pad, char_pad_id))
     
     return word_dataset, subword_dataset, char_dataset
 
@@ -195,8 +198,10 @@ def create_trg_dataset(input_file,
                        input_data_type,
                        word_vocab_index,
                        word_max_length,
+                       word_pad,
                        word_sos,
-                       word_eos):
+                       word_eos,
+                       word_placeholder_enable):
     """create dataset for input target data"""
     dataset = tf.data.TextLineDataset([input_file])
     
@@ -206,22 +211,27 @@ def create_trg_dataset(input_file,
         dataset = dataset.map(lambda span: tf.expand_dims(span, axis=-1))
     elif input_data_type == "generation":
         dataset = dataset.map(lambda sent: generate_word_feat(sent, word_vocab_index,
-            word_max_length, word_sos, word_eos))
+            word_max_length, word_pad, word_sos, word_eos, word_placeholder_enable))
     
     return dataset
 
 def generate_word_feat(sentence,
                        word_vocab_index,
                        word_max_length,
+                       word_pad,
                        word_sos,
                        word_eos,
-                       word_pad):
+                       word_placeholder_enable):
     """process words for sentence"""
     words = tf.string_split([sentence], delimiter=' ').values
-    words = tf.concat([[word_sos], words[:word_max_length], [word_eos],
-        tf.constant(word_pad, shape=[word_max_length])], axis=0)
-    max_length = word_max_length + 2
-    words = words[:max_length]
+    if word_placeholder_enable == True:
+        words = tf.concat([[word_sos], words[:word_max_length], [word_eos],
+            tf.constant(word_pad, shape=[word_max_length])], axis=0)
+        word_max_length = word_max_length + 2
+    else:
+        words = tf.concat([words[:word_max_length],
+            tf.constant(word_pad, shape=[word_max_length])], axis=0)
+    words = words[:word_max_length]
     words = word_vocab_index.lookup(words)
     words = tf.expand_dims(words, axis=-1)
     
@@ -234,6 +244,7 @@ def generate_subword_feat(sentence,
                           subword_size,
                           word_sos,
                           word_eos,
+                          word_placeholder_enable,
                           subword_pad,
                           subword_pad_id):
     """generate char feature for sentence"""
@@ -256,11 +267,15 @@ def generate_subword_feat(sentence,
     
     """process words for sentence"""
     words = tf.string_split([sentence], delimiter=' ').values
-    words = tf.concat([[word_sos], words[:word_max_length], [word_eos],
-        tf.constant(subword_pad, shape=[word_max_length])], axis=0)
-    max_length = word_max_length + 2
-    words = words[:max_length]
-    words = tf.dynamic_partition(words, tf.range(max_length), max_length)
+    if word_placeholder_enable == True:
+        words = tf.concat([[word_sos], words[:word_max_length], [word_eos],
+            tf.constant(subword_pad, shape=[word_max_length])], axis=0)
+        word_max_length = word_max_length + 2
+    else:
+        words = tf.concat([words[:word_max_length],
+            tf.constant(subword_pad, shape=[word_max_length])], axis=0)
+    words = words[:word_max_length]
+    words = tf.dynamic_partition(words, tf.range(word_max_length), word_max_length)
     words = tf.unstack(words, axis=0)
     word_subwords = [word_to_subword(tf.squeeze(word, axis=0)) for word in words]
     word_subwords = tf.stack(word_subwords, axis=0)
@@ -273,6 +288,7 @@ def generate_char_feat(sentence,
                        char_max_length,
                        word_sos,
                        word_eos,
+                       word_placeholder_enable,
                        char_pad,
                        char_pad_id):
     """generate char feature for sentence"""
@@ -289,11 +305,15 @@ def generate_char_feat(sentence,
     
     """process words for sentence"""
     words = tf.string_split([sentence], delimiter=' ').values
-    words = tf.concat([[word_sos], words[:word_max_length], [word_eos],
-        tf.constant(char_pad, shape=[word_max_length])], axis=0)
-    max_length = word_max_length + 2
-    words = words[:max_length]
-    words = tf.dynamic_partition(words, tf.range(max_length), max_length)
+    if word_placeholder_enable == True:
+        words = tf.concat([[word_sos], words[:word_max_length], [word_eos],
+            tf.constant(char_pad, shape=[word_max_length])], axis=0)
+        word_max_length = word_max_length + 2
+    else:
+        words = tf.concat([words[:word_max_length],
+            tf.constant(char_pad, shape=[word_max_length])], axis=0)
+    words = words[:word_max_length]
+    words = tf.dynamic_partition(words, tf.range(word_max_length), word_max_length)
     words = tf.unstack(words, axis=0)
     word_chars = [word_to_char(tf.squeeze(word, axis=0)) for word in words]
     word_chars = tf.stack(word_chars, axis=0)

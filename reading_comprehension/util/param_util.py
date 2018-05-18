@@ -32,6 +32,7 @@ def create_default_hyperparams():
         data_word_pad="<pad>",
         data_word_sos="<sos>",
         data_word_eos="<eos>",
+        data_word_placeholder_enable=False,
         data_subword_vocab_file="",
         data_subword_vocab_size=10000,
         data_subword_unk="***",

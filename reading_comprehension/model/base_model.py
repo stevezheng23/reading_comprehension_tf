@@ -34,16 +34,19 @@ class BaseModel(object):
         self.mode = mode
         self.scope = scope
         
+        self.batch_size = tf.size(tf.reduce_max(self.data_pipeline.input_answer_mask, axis=-2))
         self.num_gpus = self.hyperparams.device_num_gpus
         self.default_gpu_id = self.hyperparams.device_default_gpu_id
         self.logger.log_print("# {0} gpus are used with default gpu id set as {1}"
             .format(self.num_gpus, self.default_gpu_id))
 
     def _compute_loss(self,
-                      predicts,
+                      logits,
                       labels):
         """compute optimization loss"""
-        loss = None
+        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
+        print(tf.shape(cross_entropy))
+        loss = tf.reduce_sum(cross_entropy) / tf.to_float(self.batch_size)
         
         return loss
     
