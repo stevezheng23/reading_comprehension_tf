@@ -42,7 +42,7 @@ class BiDAF(BaseModel):
             context_char_mask = self.data_pipeline.input_context_char_mask
             answer_result = self.data_pipeline.input_answer
             answer_result_mask = self.data_pipeline.input_answer_mask
-
+            
             """build graph for bidaf model"""
             self.logger.log_print("# build graph for bidaf model")
             (answer_start_output, answer_end_output, answer_start_output_mask,
@@ -60,8 +60,10 @@ class BiDAF(BaseModel):
             if self.mode == "train":
                 """compute optimization loss"""
                 self.logger.log_print("# setup loss computation mechanism")
-                start_loss = self._compute_loss(self.answer_start_output, answer_result[:,0,:])
-                end_loss = self._compute_loss(self.answer_end_output, answer_result[:,1,:])
+                answer_start_result = answer_result[:,0,:]
+                answer_end_result = answer_result[:,1,:]
+                start_loss = self._compute_loss(self.answer_start_output, answer_start_result)
+                end_loss = self._compute_loss(self.answer_end_output, answer_end_result)
                 self.train_loss = start_loss + end_loss
                 
                 """apply learning rate decay"""

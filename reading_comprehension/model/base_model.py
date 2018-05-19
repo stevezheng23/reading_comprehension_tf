@@ -43,6 +43,8 @@ class BaseModel(object):
                       logits,
                       labels):
         """compute optimization loss"""
+        logits = tf.squeeze(logits)
+        labels = tf.squeeze(labels)
         cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
         loss = tf.reduce_sum(cross_entropy) / tf.to_float(self.batch_size)
         
