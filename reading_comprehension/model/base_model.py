@@ -12,11 +12,10 @@ class TrainResult(collections.namedtuple("TrainResult",
     ("loss", "learning_rate", "global_step", "batch_size", "summary"))):
     pass
 
-class EvaluateResult(collections.namedtuple("EvaluateResult", ("loss", "batch_size", "word_count"))):
+class EvaluateResult(collections.namedtuple("EvaluateResult", ("predict", "batch_size"))):
     pass
 
-class InferResult(collections.namedtuple("InferResult",
-    ("logits", "sample_id", "sample_word", "sample_sentence", "batch_size", "summary"))):
+class InferResult(collections.namedtuple("InferResult", ("predict", "batch_size"))):
     pass
 
 class BaseModel(object):
@@ -45,7 +44,6 @@ class BaseModel(object):
                       labels):
         """compute optimization loss"""
         cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
-        print(tf.shape(cross_entropy))
         loss = tf.reduce_sum(cross_entropy) / tf.to_float(self.batch_size)
         
         return loss

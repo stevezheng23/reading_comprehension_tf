@@ -1,5 +1,6 @@
 import argparse
-import json
+import os.path
+import time
 
 import numpy as np
 import tensorflow as tf
@@ -8,6 +9,9 @@ from util.default_util import *
 from util.param_util import *
 from util.model_util import *
 from util.debug_logger import *
+from util.train_logger import *
+from util.eval_logger import *
+from util.summary_writer import *
 
 def add_arguments(parser):
     parser.add_argument("--mode", help="mode to run", required=True)
@@ -54,7 +58,7 @@ def train(logger,
             try:
                 start_time = time.time()
                 train_result = train_model.model.train(train_sess,
-                    train_model.src_embedding, train_model.trg_embedding)
+                    train_model.word_embedding, train_model.word_embedding)
                 end_time = time.time()
                 
                 global_step = train_result.global_step
@@ -96,23 +100,15 @@ def test(logger,
     
     (input_question_word, input_context_word, input_question_word_mask, input_context_word_mask,
         input_question_char, input_context_char, input_question_char_mask, input_context_char_mask,
-        input_answer, input_answer_mask, question_feat, context_feat, question_feat_mask, context_feat_mask,
-        question_understanding, context_understanding, question_understanding_mask, context_understanding_mask,
-        answer_interaction, answer_interaction_mask, answer_modeling, answer_modeling_mask,
-        answer_start_output, answer_start_output_mask, answer_end_output,
+        input_answer, input_answer_mask, answer_start_output, answer_start_output_mask, answer_end_output,
         answer_end_output_mask) = train_sess.run([train_model.data_pipeline.input_question_word, 
             train_model.data_pipeline.input_context_word, train_model.data_pipeline.input_question_word_mask, 
             train_model.data_pipeline.input_context_word_mask, train_model.data_pipeline.input_question_char,
             train_model.data_pipeline.input_context_char, train_model.data_pipeline.input_question_char_mask,
             train_model.data_pipeline.input_context_char_mask, train_model.data_pipeline.input_answer,
-            train_model.data_pipeline.input_answer_mask, train_model.model.question_feat, train_model.model.context_feat,
-            train_model.model.question_feat_mask, train_model.model.context_feat_mask,
-            train_model.model.question_understanding, train_model.model.context_understanding,
-            train_model.model.question_understanding_mask, train_model.model.context_understanding_mask,
-            train_model.model.answer_interaction, train_model.model.answer_interaction_mask,
-            train_model.model.answer_modeling, train_model.model.answer_modeling_mask,
-            train_model.model.answer_start_output, train_model.model.answer_start_output_mask,
-            train_model.model.answer_end_output, train_model.model.answer_end_output_mask])
+            train_model.data_pipeline.input_answer_mask, train_model.model.answer_start_output,
+            train_model.model.answer_start_output_mask, train_model.model.answer_end_output,
+            train_model.model.answer_end_output_mask])
     print(input_question_word)
     print(input_context_word)
     print(input_question_word_mask)
@@ -123,18 +119,6 @@ def test(logger,
     print(input_context_char_mask)
     print(input_answer)
     print(input_answer_mask)
-    print(question_feat)
-    print(context_feat)
-    print(question_feat_mask)
-    print(context_feat_mask)
-    print(question_understanding)
-    print(context_understanding)
-    print(question_understanding_mask)
-    print(context_understanding_mask)
-    print(answer_interaction)
-    print(answer_interaction_mask)
-    print(answer_modeling)
-    print(answer_modeling_mask)
     print(answer_start_output)
     print(answer_end_output)
     print(answer_start_output_mask)

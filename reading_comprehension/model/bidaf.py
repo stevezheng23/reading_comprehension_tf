@@ -41,64 +41,28 @@ class BiDAF(BaseModel):
             context_subword_mask = self.data_pipeline.input_context_subword_mask
             context_char_mask = self.data_pipeline.input_context_char_mask
             answer_result = self.data_pipeline.input_answer
-            answer_reuslt_mask = self.data_pipeline.input_answer_mask
+            answer_result_mask = self.data_pipeline.input_answer_mask
 
             """build graph for bidaf model"""
             self.logger.log_print("# build graph for bidaf model")
-            """build representation layer for bidaf model"""
-            self.logger.log_print("# build question representation layer for bidaf model")
-            (question_feat, question_feat_mask,
-                question_word_embedding_placeholder) = self._build_representation_layer(question_word, question_word_mask,
-                    question_subword, question_subword_mask, question_char, question_char_mask)
-            self.logger.log_print("# build context representation layer for bidaf model")
-            (context_feat, context_feat_mask,
-                context_word_embedding_placeholder) = self._build_representation_layer(context_word, context_word_mask,
-                    context_subword, context_subword_mask, context_char, context_char_mask)
-            self.question_feat = question_feat
-            self.question_feat_mask = question_feat_mask
-            self.question_word_embedding_placeholder = question_word_embedding_placeholder
-            self.context_feat = context_feat
-            self.context_feat_mask = context_feat_mask
-            self.context_word_embedding_placeholder = context_word_embedding_placeholder
-            
-            """build understanding layer for bidaf model"""
-            (question_understanding, context_understanding, question_understanding_mask,
-                context_understanding_mask) = self._build_understanding_layer(self.question_feat,
-                    self.context_feat, self.question_feat_mask, self.context_feat_mask)
-            self.question_understanding = question_understanding
-            self.question_understanding_mask = question_understanding_mask
-            self.context_understanding = context_understanding
-            self.context_understanding_mask = context_understanding_mask
-            
-            """build interaction layer for bidaf model"""
-            answer_interaction, answer_interaction_mask = self._build_interaction_layer(self.question_understanding,
-                self.context_understanding, self.question_understanding_mask, self.context_understanding_mask)
-            self.answer_interaction = answer_interaction
-            self.answer_interaction_mask = answer_interaction_mask
-            
-            """build modeling layer for bidaf model"""
-            self.logger.log_print("# build answer modeling layer for bidaf model")
-            answer_modeling, answer_modeling_mask = self._build_modeling_layer(self.answer_interaction, self.answer_interaction_mask)
-            self.answer_modeling = answer_interaction
-            self.answer_modeling_mask = answer_interaction_mask
-            
-            """build output layer for bidaf model"""
-            self.logger.log_print("# build answer output layer for bidaf model")
             (answer_start_output, answer_end_output, answer_start_output_mask,
-                answer_end_output_mask) = self._build_output_layer(self.answer_modeling, self.answer_modeling_mask)
+                answer_end_output_mask, question_word_embedding_placeholder,
+                context_word_embedding_placeholder) = self._build_graph(question_word, question_word_mask,
+                    question_subword, question_subword_mask, question_char, question_char_mask,
+                    context_word, context_word_mask, context_subword, context_subword_mask, context_char, context_char_mask)
             self.answer_start_output = answer_start_output
             self.answer_end_output = answer_end_output
             self.answer_start_output_mask = answer_start_output_mask
             self.answer_end_output_mask = answer_end_output_mask
+            self.question_word_embedding_placeholder = question_word_embedding_placeholder
+            self.context_word_embedding_placeholder = context_word_embedding_placeholder
             
-            if self.mode == "train" or self.mode == "eval":
+            if self.mode == "train":
                 """compute optimization loss"""
                 self.logger.log_print("# setup loss computation mechanism")
                 start_loss = self._compute_loss(self.answer_start_output, answer_result[:,0,:])
                 end_loss = self._compute_loss(self.answer_end_output, answer_result[:,1,:])
-                loss = start_loss + end_loss
-                self.train_loss = loss
-                self.eval_loss = loss
+                self.train_loss = start_loss + end_loss
                 
                 """apply learning rate decay"""
                 self.logger.log_print("# setup learning rate decay mechanism")
@@ -123,7 +87,7 @@ class BiDAF(BaseModel):
             self.ckpt_dir = self.hyperparams.train_ckpt_output_dir
             self.ckpt_name = os.path.join(self.ckpt_dir, "model_ckpt")
             self.ckpt_saver = tf.train.Saver()
-    
+        
     def _build_fusion_result(self,
                              input_data_list,
                              input_mask_list,
@@ -500,6 +464,71 @@ class BiDAF(BaseModel):
                 answer_end_output_mask = answer_end_mask
         
         return answer_start_output, answer_end_output, answer_start_output_mask, answer_end_output_mask
+    
+    def _build_graph(self,
+                     question_word,
+                     question_word_mask,
+                     question_subword,
+                     question_subword_mask,
+                     question_char,
+                     question_char_mask,
+                     context_word,
+                     context_word_mask,
+                     context_subword,
+                     context_subword_mask,
+                     context_char,
+                     context_char_mask):
+        """build graph for bidaf model"""
+        with tf.variable_scope("graph", reuse=tf.AUTO_REUSE):
+            """build representation layer for bidaf model"""
+            self.logger.log_print("# build question representation layer for bidaf model")
+            (question_feat, question_feat_mask,
+                question_word_embedding_placeholder) = self._build_representation_layer(question_word, question_word_mask,
+                    question_subword, question_subword_mask, question_char, question_char_mask)
+            self.logger.log_print("# build context representation layer for bidaf model")
+            (context_feat, context_feat_mask,
+                context_word_embedding_placeholder) = self._build_representation_layer(context_word, context_word_mask,
+                    context_subword, context_subword_mask, context_char, context_char_mask)
+            
+            """build understanding layer for bidaf model"""
+            (question_understanding, context_understanding, question_understanding_mask,
+                context_understanding_mask) = self._build_understanding_layer(question_feat,
+                    context_feat, question_feat_mask, context_feat_mask)
+            
+            """build interaction layer for bidaf model"""
+            answer_interaction, answer_interaction_mask = self._build_interaction_layer(question_understanding,
+                context_understanding, question_understanding_mask, context_understanding_mask)
+            
+            """build modeling layer for bidaf model"""
+            self.logger.log_print("# build answer modeling layer for bidaf model")
+            answer_modeling, answer_modeling_mask = self._build_modeling_layer(answer_interaction, answer_interaction_mask)
+            
+            """build output layer for bidaf model"""
+            self.logger.log_print("# build answer output layer for bidaf model")
+            (answer_start_output, answer_end_output, answer_start_output_mask,
+                answer_end_output_mask) = self._build_output_layer(answer_modeling, answer_modeling_mask)
+            
+        return (answer_start_output, answer_end_output, answer_start_output_mask, answer_end_output_mask, 
+            question_word_embedding_placeholder, context_word_embedding_placeholder)
+    
+    def train(self,
+              sess,
+              question_word_embedding,
+              context_word_embedding):
+        """train bidaf model"""
+        word_embed_pretrained = self.hyperparams.model_representation_word_embed_pretrained
+        
+        if word_embed_pretrained == True:
+            _, loss, learning_rate, global_step, batch_size, summary = sess.run([self.update_model,
+                self.train_loss, self.decayed_learning_rate, self.global_step, self.batch_size, self.train_summary],
+                feed_dict={self.question_word_embedding_placeholder: question_word_embedding,
+                    self.context_word_embedding_placeholder: context_word_embedding})
+        else:
+            _, loss, learning_rate, global_step, batch_size, summary = sess.run([self.update_model,
+                self.train_loss, self.decayed_learning_rate, self.global_step, self.batch_size, self.train_summary])
+        
+        return TrainResult(loss=loss, learning_rate=learning_rate,
+            global_step=global_step, batch_size=batch_size, summary=summary)
     
     def save(self,
              sess,
