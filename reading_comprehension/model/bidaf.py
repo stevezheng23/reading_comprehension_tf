@@ -58,12 +58,26 @@ class BiDAF(BaseModel):
             self.context_word_embedding_placeholder = context_word_embedding_placeholder
             
             if self.mode == "train":
+                """create infer answer"""
+                self.infer_answer_start = tf.nn.softmax(tf.squeeze(
+                    self.answer_start_output * self.answer_start_output_mask), dim=-1)
+                self.infer_answer_end = tf.nn.softmax(tf.squeeze(
+                    self.answer_end_output * self.answer_end_output_mask), dim=-1)
+                self.infer_answer_start_mask = tf.squeeze(self.answer_start_output_mask)
+                self.infer_answer_end_mask = tf.squeeze(self.answer_end_output_mask)
+                
+                """create infer summary"""
+                self.infer_summary = self._get_infer_summary()
+            
+            if self.mode == "train":
                 """compute optimization loss"""
                 self.logger.log_print("# setup loss computation mechanism")
                 answer_start_result = answer_result[:,0,:]
                 answer_end_result = answer_result[:,1,:]
-                start_loss = self._compute_loss(self.answer_start_output, answer_start_result)
-                end_loss = self._compute_loss(self.answer_end_output, answer_end_result)
+                start_loss = self._compute_loss(answer_start_result,
+                    self.answer_start_output, self.answer_start_output_mask)
+                end_loss = self._compute_loss(answer_end_result,
+                    self.answer_end_output, self.answer_end_output_mask)
                 self.train_loss = start_loss + end_loss
                 
                 """apply learning rate decay"""
@@ -79,7 +93,7 @@ class BiDAF(BaseModel):
                 self.logger.log_print("# setup loss minimization mechanism")
                 self.update_model, self.clipped_gradients, self.gradient_norm = self._minimize_loss(self.train_loss)
                 
-                """create summary"""
+                """create train summary"""
                 self.train_summary = self._get_train_summary()
             
             """create checkpoint saver"""
@@ -513,6 +527,18 @@ class BiDAF(BaseModel):
         return (answer_start_output, answer_end_output, answer_start_output_mask, answer_end_output_mask, 
             question_word_embedding_placeholder, context_word_embedding_placeholder)
     
+    def _compute_loss(self,
+                      label,
+                      logit,
+                      logit_mask):
+        """compute optimization loss"""
+        label = tf.squeeze(label)
+        logit = tf.squeeze(logit * logit_mask)
+        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=label, logits=logit)
+        loss = tf.reduce_sum(cross_entropy) / tf.to_float(self.batch_size)
+        
+        return loss
+    
     def train(self,
               sess,
               question_word_embedding,
@@ -531,6 +557,54 @@ class BiDAF(BaseModel):
         
         return TrainResult(loss=loss, learning_rate=learning_rate,
             global_step=global_step, batch_size=batch_size, summary=summary)
+    
+    def infer(self,
+              sess,
+              question_word_embedding,
+              context_word_embedding):
+        """infer bidaf model"""
+        word_embed_pretrained = self.hyperparams.model_representation_word_embed_pretrained
+        
+        if word_embed_pretrained == True:
+            (answer_start, answer_end, answer_start_mask, answer_end_mask,
+                batch_size, summary) = sess.run([self.infer_answer_start, self.infer_answer_end,
+                    self.infer_answer_start_mask, self.infer_answer_end_mask, self.batch_size, self.infer_summary],
+                    feed_dict={self.question_word_embedding_placeholder: question_word_embedding,
+                        self.context_word_embedding_placeholder: context_word_embedding})
+        else:
+            (answer_start, answer_end, answer_start_mask, answer_end_mask,
+                batch_size, summary) = sess.run([self.infer_answer_start, self.infer_answer_end,
+                    self.infer_answer_start_mask, self.infer_answer_end_mask, self.batch_size, self.infer_summary])
+        
+        max_length = self.hyperparams.data_max_context_length
+        
+        predict = np.full((batch_size, 2), -1)
+        for k in range(batch_size):
+            curr_max_value = np.full((max_length), 0.0)
+            curr_max_span = np.full((max_length, 2), -1)
+            
+            start_max_length = np.count_nonzero(answer_start_mask[k, :])
+            for i in range(start_max_length):
+                if i == 0:
+                    curr_max_value[i] = answer_start[k, i]
+                    curr_max_span[i, 0] = i
+                else:
+                    if answer_start[k, i] < curr_max_value[i-1]:
+                        curr_max_value[i] = curr_max_value[i-1]
+                        curr_max_span[i, 0] = curr_max_span[i-1, 0]
+                    else:
+                        curr_max_value[i] = answer_start[k, i]
+                        curr_max_span[i, 0] = i
+            
+            end_max_length = np.count_nonzero(answer_end_mask[k, :])
+            for j in range(end_max_length):
+                curr_max_value[j] = curr_max_value[j] + answer_end[k, j]
+                curr_max_span[j, 1] = j
+            
+            index = np.argmax(curr_max_value)
+            predict[k, :] = curr_max_span[index, :]
+        
+        return InferResult(predict=predict, batch_size=batch_size, summary=summary)            
     
     def save(self,
              sess,
