@@ -6,16 +6,14 @@ import tensorflow as tf
 
 from util.reading_comprehension_util import *
 
-__all__ = ["TrainResult", "EvaluateResult", "InferResult", "BaseModel"]
+__all__ = ["TrainResult", "InferResult", "BaseModel"]
 
 class TrainResult(collections.namedtuple("TrainResult",
     ("loss", "learning_rate", "global_step", "batch_size", "summary"))):
     pass
 
-class EvaluateResult(collections.namedtuple("EvaluateResult", ("predict", "batch_size"))):
-    pass
-
-class InferResult(collections.namedtuple("InferResult", ("predict", "batch_size"))):
+class InferResult(collections.namedtuple("InferResult",
+    ("predict", "batch_size", "summary"))):
     pass
 
 class BaseModel(object):
@@ -38,17 +36,6 @@ class BaseModel(object):
         self.default_gpu_id = self.hyperparams.device_default_gpu_id
         self.logger.log_print("# {0} gpus are used with default gpu id set as {1}"
             .format(self.num_gpus, self.default_gpu_id))
-
-    def _compute_loss(self,
-                      logits,
-                      labels):
-        """compute optimization loss"""
-        logits = tf.squeeze(logits)
-        labels = tf.squeeze(labels)
-        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
-        loss = tf.reduce_sum(cross_entropy) / tf.to_float(self.batch_size)
-        
-        return loss
     
     def _apply_learning_rate_decay(self,
                                    learning_rate):
@@ -124,3 +111,8 @@ class BaseModel(object):
         """get train summary"""
         return tf.summary.merge([tf.summary.scalar("learning_rate", self.decayed_learning_rate),
             tf.summary.scalar("train_loss", self.train_loss), tf.summary.scalar("gradient_norm", self.gradient_norm)])
+    
+    def _get_infer_summary(self):
+        """get infer summary"""
+        return tf.no_op()
+
