@@ -205,11 +205,11 @@ def create_trg_dataset(input_file,
     """create dataset for input target data"""
     dataset = tf.data.TextLineDataset([input_file])
     
-    if input_data_type == "extraction":
+    if input_data_type == "span":
         dataset = dataset.map(lambda span: tf.string_split([span], delimiter='|').values)
         dataset = dataset.map(lambda span: tf.string_to_number(span, out_type=tf.int64))
         dataset = dataset.map(lambda span: tf.expand_dims(span, axis=-1))
-    elif input_data_type == "generation":
+    elif input_data_type == "text":
         dataset = dataset.map(lambda sent: generate_word_feat(sent, word_vocab_index,
             word_max_length, word_pad, word_sos, word_eos, word_placeholder_enable))
     
