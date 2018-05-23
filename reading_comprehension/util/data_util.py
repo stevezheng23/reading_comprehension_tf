@@ -29,6 +29,7 @@ def create_data_pipeline(input_question_word_dataset,
                          input_context_subword_dataset,
                          input_context_char_dataset,
                          input_answer_dataset,
+                         input_data_type,
                          word_vocab_index,
                          word_pad,
                          word_feat_enable,
@@ -141,8 +142,15 @@ def create_data_pipeline(input_question_word_dataset,
         input_context_char = None
         input_context_char_mask = None
     
-    input_answer = batch_data[6]
-    input_answer_mask = tf.cast(tf.greater_equal(batch_data[6], 0), dtype=tf.float32)
+    if input_data_type == "span":
+        input_answer = batch_data[6]
+        input_answer_mask = tf.cast(tf.greater_equal(batch_data[6], index_pad_id), dtype=tf.float32)
+    elif input_data_type == "text":
+        input_answer = batch_data[6]
+        input_answer_mask = tf.cast(tf.not_equal(batch_data[6], word_pad_id), dtype=tf.float32)
+    else:
+        input_answer = None
+        input_answer_mask = None
     
     return DataPipeline(initializer=iterator.initializer,
         input_question_word=input_question_word, input_question_subword=input_question_subword,
