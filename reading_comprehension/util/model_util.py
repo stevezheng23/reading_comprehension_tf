@@ -65,7 +65,7 @@ def create_train_model(logger,
         logger.log_print("# create train data pipeline")
         data_pipeline = create_data_pipeline(input_question_word_dataset,
             input_question_subword_dataset, input_question_char_dataset, input_context_word_dataset,
-            input_context_subword_dataset, input_context_char_dataset, input_answer_dataset,
+            input_context_subword_dataset, input_context_char_dataset, input_answer_dataset, hyperparams.data_answer_type,
             word_vocab_index, hyperparams.data_word_pad, hyperparams.model_representation_word_feat_enable,
             subword_vocab_index, hyperparams.data_subword_pad, hyperparams.model_representation_subword_feat_enable,
             char_vocab_index, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable, len(input_answer_data),
@@ -131,11 +131,11 @@ def create_infer_model(logger,
         logger.log_print("# create inference data pipeline")
         data_pipeline = create_data_pipeline(input_question_word_dataset,
             input_question_subword_dataset, input_question_char_dataset, input_context_word_dataset,
-            input_context_subword_dataset, input_context_char_dataset, input_answer_dataset,
+            input_context_subword_dataset, input_context_char_dataset, input_answer_dataset, "text",
             word_vocab_index, hyperparams.data_word_pad, hyperparams.model_representation_word_feat_enable,
             subword_vocab_index, hyperparams.data_subword_pad, hyperparams.model_representation_subword_feat_enable,
             char_vocab_index, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable, len(input_answer_data),
-            hyperparams.eval_batch_size, hyperparams.train_random_seed, False)
+            hyperparams.train_eval_batch_size, hyperparams.train_random_seed, False)
         
         model_creator = get_model_creator(hyperparams.model_type)
         model = model_creator(logger=logger, hyperparams=hyperparams, data_pipeline=data_pipeline,
