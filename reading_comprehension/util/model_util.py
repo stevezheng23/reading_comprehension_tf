@@ -40,8 +40,9 @@ def create_train_model(logger,
              hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
         logger.log_print("# create train question dataset")
+        question_dataset = tf.data.TextLineDataset([hyperparams.data_train_question_file])
         (input_question_word_dataset, input_question_subword_dataset,
-             input_question_char_dataset) = create_src_dataset(hyperparams.data_train_question_file,
+             input_question_char_dataset) = create_src_dataset(question_dataset,
              word_vocab_index, hyperparams.data_max_question_length, hyperparams.data_word_pad, hyperparams.data_word_sos,
              hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable, hyperparams.model_representation_word_feat_enable,
              subword_vocab_index, hyperparams.data_max_subword_length, hyperparams.data_subword_pad,
@@ -49,8 +50,9 @@ def create_train_model(logger,
              hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
         logger.log_print("# create train context dataset")
+        context_dataset = tf.data.TextLineDataset([hyperparams.data_train_context_file])
         (input_context_word_dataset, input_context_subword_dataset,
-             input_context_char_dataset) = create_src_dataset(hyperparams.data_train_context_file,
+             input_context_char_dataset) = create_src_dataset(context_dataset,
              word_vocab_index, hyperparams.data_max_context_length, hyperparams.data_word_pad, hyperparams.data_word_sos,
              hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable, hyperparams.model_representation_word_feat_enable,
              subword_vocab_index, hyperparams.data_max_subword_length, hyperparams.data_subword_pad,
@@ -58,8 +60,9 @@ def create_train_model(logger,
              hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
         logger.log_print("# create answer dataset")
-        input_answer_dataset = create_trg_dataset(hyperparams.data_train_answer_file,
-            hyperparams.data_answer_type, word_vocab_index, hyperparams.data_max_answer_length, hyperparams.data_word_pad,
+        answer_dataset = tf.data.TextLineDataset([hyperparams.data_train_answer_file])
+        input_answer_dataset = create_trg_dataset(answer_dataset, hyperparams.data_answer_type,
+            word_vocab_index, hyperparams.data_max_answer_length, hyperparams.data_word_pad,
             hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable)
         
         logger.log_print("# create train data pipeline")
@@ -106,8 +109,9 @@ def create_infer_model(logger,
              hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
         logger.log_print("# create inference question dataset")
+        question_dataset = tf.data.TextLineDataset([hyperparams.data_eval_question_file])
         (input_question_word_dataset, input_question_subword_dataset,
-             input_question_char_dataset) = create_src_dataset(hyperparams.data_eval_question_file,
+             input_question_char_dataset) = create_src_dataset(question_dataset,
              word_vocab_index, hyperparams.data_max_question_length, hyperparams.data_word_pad, hyperparams.data_word_sos,
              hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable, hyperparams.model_representation_word_feat_enable,
              subword_vocab_index, hyperparams.data_max_subword_length, hyperparams.data_subword_pad,
@@ -115,8 +119,9 @@ def create_infer_model(logger,
              hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
         logger.log_print("# create inference context dataset")
+        context_dataset = tf.data.TextLineDataset([hyperparams.data_eval_context_file])
         (input_context_word_dataset, input_context_subword_dataset,
-             input_context_char_dataset) = create_src_dataset(hyperparams.data_eval_context_file,
+             input_context_char_dataset) = create_src_dataset(context_dataset,
              word_vocab_index, hyperparams.data_max_context_length, hyperparams.data_word_pad, hyperparams.data_word_sos,
              hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable, hyperparams.model_representation_word_feat_enable,
              subword_vocab_index, hyperparams.data_max_subword_length, hyperparams.data_subword_pad,
@@ -124,8 +129,9 @@ def create_infer_model(logger,
              hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
         logger.log_print("# create answer dataset")
-        input_answer_dataset = create_trg_dataset(hyperparams.data_eval_answer_file,
-            "text", word_vocab_index, hyperparams.data_max_answer_length, hyperparams.data_word_pad,
+        answer_dataset = tf.data.TextLineDataset([hyperparams.data_eval_answer_file])
+        input_answer_dataset = create_trg_dataset(answer_dataset, "text",
+            word_vocab_index, hyperparams.data_max_answer_length, hyperparams.data_word_pad,
             hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable)
         
         logger.log_print("# create inference data pipeline")
