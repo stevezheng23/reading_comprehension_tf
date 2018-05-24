@@ -7,7 +7,8 @@ import tensorflow as tf
 
 from tqdm import tqdm
 
-__all__ = ["DataPipeline", "create_data_pipeline", "create_src_dataset", "create_trg_dataset",
+__all__ = ["DataPipeline", "create_dynamic_pipeline", "create_data_pipeline",
+           "create_src_dataset", "create_trg_dataset",
            "generate_word_feat", "generate_subword_feat", "generate_char_feat",
            "create_embedding_file", "load_embedding_file", "convert_embedding",
            "create_vocab_file", "load_vocab_file", "process_vocab_table",
