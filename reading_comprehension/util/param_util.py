@@ -13,12 +13,10 @@ __all__ = ["create_default_hyperparams", "load_hyperparams",
 def create_default_hyperparams():
     """create default hyperparameters"""
     hyperparams = tf.contrib.training.HParams(
-        data_train_question_file="",
-        data_train_context_file="",
-        data_train_answer_file="",
-        data_eval_question_file="",
-        data_eval_context_file="",
-        data_eval_answer_file="",
+        data_train_mrc_file="",
+        data_train_mrc_file_type="",
+        data_eval_mrc_file="",
+        data_eval_mrc_file_type="",
         data_embedding_file="",
         data_full_embedding_file="",
         data_max_question_length=30,

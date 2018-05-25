@@ -1,6 +1,7 @@
 import codecs
 import collections
 import os.path
+import json
 
 import numpy as np
 import tensorflow as tf
@@ -13,7 +14,8 @@ __all__ = ["DataPipeline", "create_dynamic_pipeline", "create_data_pipeline",
            "create_embedding_file", "load_embedding_file", "convert_embedding",
            "create_vocab_file", "load_vocab_file", "process_vocab_table",
            "create_word_vocab", "create_subword_vocab", "create_char_vocab",
-           "load_input_data", "prepare_data", "prepare_mrc_data"]
+           "load_tsv_data", "load_json_data", "load_mrc_data",
+           "prepare_data", "prepare_mrc_data"]
 
 class DataPipeline(collections.namedtuple("DataPipeline",
     ("initializer", "input_question_word", "input_question_subword", "input_question_char",
@@ -612,18 +614,62 @@ def create_char_vocab(input_data):
     
     return char_vocab
 
-def load_input_data(input_file):
-    """load input data from input file"""
-    input_data = []
+def load_tsv_data(input_file):
+    """load data from tsv file"""
     if tf.gfile.Exists(input_file):
         with codecs.getreader("utf-8")(tf.gfile.GFile(input_file, "rb")) as file:
-            for line in tqdm(file):
+            input_data = []
+            for line in file:
                 input_data.append(line.strip())
-            input_size = len(input_data)
             
-            return input_data, input_size
+            return input_data
     else:
         raise FileNotFoundError("input file not found")
+
+def load_json_data(input_file):
+    """load data from json file"""
+    if tf.gfile.Exists(input_file):
+        with codecs.getreader("utf-8")(tf.gfile.GFile(input_file, "rb")) as file:
+            input_data = json.load(file)
+            
+            return input_data
+    else:
+        raise FileNotFoundError("input file not found")
+    
+def load_mrc_data(input_file,
+                  file_type,
+                  answer_type):
+    """load mrc data from input file"""
+    question_data = []
+    context_data = []
+    answer_text_data = []
+    answer_span_data = []
+    if file_type == "tsv":
+        input_data = load_tsv_data(input_file)
+        for line in input_data:
+            item = line.split("\t")
+            question_data.append(item[1])
+            context_data.append(item[2])
+            answer_text_data.append(item[3])
+            answer_span_data.append(item[4])
+    elif file_type == "json":
+        input_data = load_json_data(input_file)
+        for item in input_data:
+            question_data.append(item["question"])
+            context_data.append(item["context"])
+            answer_text_data.append(item["answer_text"])
+            answer_span_data.append("{0}|{1}".format(item["answer_span"]["start"], item["answer_span"]["end"]))
+    else:
+        raise ValueError("can not load data from unsupported file type {0}".format(file_type))
+    
+    if answer_type == "text":
+        answer_data = answer_text_data
+    elif answer_type == "span":
+        answer_data = answer_span_data
+    else:
+        raise ValueError("can not genertate data from unsupported answer type {0}".format(answer_type))
+    
+    return input_data, question_data, context_data, answer_data
 
 def prepare_data(logger,
                  input_data,
@@ -649,7 +695,7 @@ def prepare_data(logger,
                  char_unk,
                  char_pad,
                  char_feat_enable):
-    """prepare mrc data from input data"""    
+    """prepare data"""    
     word_embed_data = None
     if pretrain_word_embed == True:
         if tf.gfile.Exists(word_embed_file):
@@ -745,9 +791,8 @@ def prepare_data(logger,
         char_vocab_size, char_vocab_index, char_vocab_inverted_index)
 
 def prepare_mrc_data(logger,
-                     input_question_file,
-                     input_context_file,
-                     input_answer_file,
+                     input_mrc_file,
+                     input_file_type,
                      input_answer_type,
                      word_vocab_file,
                      word_vocab_size,
@@ -771,29 +816,25 @@ def prepare_mrc_data(logger,
                      char_unk,
                      char_pad,
                      char_feat_enable):
-    """prepare mrc data from question/context/answer files""" 
+    """prepare mrc data"""
     input_data = set()
-    if tf.gfile.Exists(input_question_file):
-        logger.log_print("# loading input question data from {0}".format(input_question_file))
-        input_question_data, input_question_size = load_input_data(input_question_file)
-        logger.log_print("# input question data has {0} lines".format(input_question_size))
-        input_data.update(input_question_data)
+    logger.log_print("# loading input mrc data from {0}".format(input_mrc_file))
+    (input_mrc_data, input_question_data, input_context_data,
+        input_answer_data) = load_mrc_data(input_mrc_file, input_file_type, input_answer_type)
     
-    if tf.gfile.Exists(input_context_file):
-        logger.log_print("# loading input context data from {0}".format(input_context_file))
-        input_context_data, input_context_size = load_input_data(input_context_file)
-        logger.log_print("# input context data has {0} lines".format(input_context_size))
-        input_data.update(input_context_data)
-    
-    if tf.gfile.Exists(input_answer_file):
-        logger.log_print("# loading input answer data from {0}".format(input_answer_file))
-        input_answer_data, input_answer_size = load_input_data(input_answer_file)
-        logger.log_print("# input answer data has {0} lines".format(input_answer_size))
-        if input_answer_type == "generation":
-            input_data.update(input_answer_data)
+    input_mrc_size = len(input_mrc_data)
+    input_question_size = len(input_question_data)
+    input_context_size = len(input_context_data)
+    input_answer_size = len(input_answer_data)
+    logger.log_print("# input mrc data has {0} lines".format(input_mrc_size))
     
     if input_answer_size != input_question_size or input_answer_size != input_context_size:
         raise ValueError("question, context & answer input data must have the same size")
+    
+    input_data.update(input_question_data)
+    input_data.update(input_context_data)
+    if input_answer_type == "text":
+        input_data.update(input_answer_data)
     
     input_data = list(input_data)
     (word_embed_data, word_vocab_size, word_vocab_index, word_vocab_inverted_index,
@@ -804,7 +845,7 @@ def prepare_mrc_data(logger,
             subword_vocab_file, subword_vocab_size, subword_unk, subword_pad, subword_size, subword_feat_enable,
             char_vocab_file, char_vocab_size, char_unk, char_pad, char_feat_enable)
     
-    return (input_question_data, input_context_data, input_answer_data,
+    return (input_mrc_data, input_question_data, input_context_data, input_answer_data,
         word_embed_data, word_vocab_size, word_vocab_index, word_vocab_inverted_index,
         subword_vocab_size, subword_vocab_index, subword_vocab_inverted_index,
         char_vocab_size, char_vocab_index, char_vocab_inverted_index)

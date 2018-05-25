@@ -14,7 +14,7 @@ class TrainModel(collections.namedtuple("TrainModel", ("graph", "model", "data_p
     pass
 
 class InferModel(collections.namedtuple("InferModel",
-    ("graph", "model", "data_pipeline", "word_embedding", "input_question", "input_context", "input_answer"))):
+    ("graph", "model", "data_pipeline", "word_embedding", "input_data", "input_question", "input_context", "input_answer"))):
     pass
 
 def create_train_model(logger,
@@ -22,12 +22,12 @@ def create_train_model(logger,
     graph = tf.Graph()
     with graph.as_default():
         logger.log_print("# prepare train data")
-        (input_question_data, input_context_data, input_answer_data,
+        (_, input_question_data, input_context_data, input_answer_data,
              word_embed_data, word_vocab_size, word_vocab_index, word_vocab_inverted_index,
              subword_vocab_size, subword_vocab_index, subword_vocab_inverted_index,
              char_vocab_size, char_vocab_index, char_vocab_inverted_index) = prepare_mrc_data(logger,
-             hyperparams.data_train_question_file, hyperparams.data_train_context_file,
-             hyperparams.data_train_answer_file, hyperparams.data_answer_type, hyperparams.data_word_vocab_file, 
+             hyperparams.data_train_mrc_file, hyperparams.data_train_mrc_file_type,
+             hyperparams.data_answer_type, hyperparams.data_word_vocab_file, 
              hyperparams.data_word_vocab_size, hyperparams.model_representation_word_embed_dim,
              hyperparams.data_embedding_file, hyperparams.data_full_embedding_file, hyperparams.data_word_unk,
              hyperparams.data_word_pad, hyperparams.data_word_sos, hyperparams.data_word_eos,
@@ -38,7 +38,7 @@ def create_train_model(logger,
              hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
         logger.log_print("# create train question dataset")
-        question_dataset = tf.data.TextLineDataset([hyperparams.data_train_question_file])
+        question_dataset = tf.data.Dataset.from_tensor_slices(input_question_data)
         (input_question_word_dataset, input_question_subword_dataset,
              input_question_char_dataset) = create_src_dataset(question_dataset,
              word_vocab_index, hyperparams.data_max_question_length, hyperparams.data_word_pad, hyperparams.data_word_sos,
@@ -48,7 +48,7 @@ def create_train_model(logger,
              hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
         logger.log_print("# create train context dataset")
-        context_dataset = tf.data.TextLineDataset([hyperparams.data_train_context_file])
+        context_dataset = tf.data.Dataset.from_tensor_slices(input_context_data)
         (input_context_word_dataset, input_context_subword_dataset,
              input_context_char_dataset) = create_src_dataset(context_dataset,
              word_vocab_index, hyperparams.data_max_context_length, hyperparams.data_word_pad, hyperparams.data_word_sos,
@@ -58,7 +58,7 @@ def create_train_model(logger,
              hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
         logger.log_print("# create answer dataset")
-        answer_dataset = tf.data.TextLineDataset([hyperparams.data_train_answer_file])
+        answer_dataset = tf.data.Dataset.from_tensor_slices(input_answer_data)
         input_answer_dataset = create_trg_dataset(answer_dataset, hyperparams.data_answer_type,
             word_vocab_index, hyperparams.data_max_answer_length, hyperparams.data_word_pad,
             hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable)
@@ -83,12 +83,11 @@ def create_infer_model(logger,
     graph = tf.Graph()
     with graph.as_default():
         logger.log_print("# prepare inference data")
-        (input_question_data, input_context_data, input_answer_data,
+        (input_data, input_question_data, input_context_data, input_answer_data,
              word_embed_data, word_vocab_size, word_vocab_index, word_vocab_inverted_index,
              subword_vocab_size, subword_vocab_index, subword_vocab_inverted_index,
              char_vocab_size, char_vocab_index, char_vocab_inverted_index) = prepare_mrc_data(logger,
-             hyperparams.data_eval_question_file, hyperparams.data_eval_context_file,
-             hyperparams.data_eval_answer_file, hyperparams.data_answer_type, hyperparams.data_word_vocab_file, 
+             hyperparams.data_eval_mrc_file, hyperparams.data_eval_mrc_file_type, "text", hyperparams.data_word_vocab_file, 
              hyperparams.data_word_vocab_size, hyperparams.model_representation_word_embed_dim,
              hyperparams.data_embedding_file, hyperparams.data_full_embedding_file, hyperparams.data_word_unk,
              hyperparams.data_word_pad, hyperparams.data_word_sos, hyperparams.data_word_eos,
@@ -143,7 +142,7 @@ def create_infer_model(logger,
             mode="infer", scope=hyperparams.model_scope)
         
         return InferModel(graph=graph, model=model, data_pipeline=data_pipeline, word_embedding=word_embed_data,
-            input_question=input_question_data, input_context=input_context_data, input_answer=input_answer_data)
+            input_data=input_data, input_question=input_question_data, input_context=input_context_data, input_answer=input_answer_data)
 
 def get_model_creator(model_type):
     if model_type == "bidaf":
