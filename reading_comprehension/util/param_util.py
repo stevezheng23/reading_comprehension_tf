@@ -49,6 +49,7 @@ def create_default_hyperparams():
         train_enable_shuffle=True,
         train_batch_size=64,
         train_eval_batch_size=100,
+        train_eval_metric=["exact", "f1"],
         train_infer_batch_size=3,
         train_num_epoch=3,
         train_ckpt_output_dir="",

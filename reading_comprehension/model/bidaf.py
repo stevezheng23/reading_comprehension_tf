@@ -58,7 +58,7 @@ class BiDAF(BaseModel):
             self.context_word_embedding_placeholder = context_word_embedding_placeholder
             
             if self.mode == "infer":
-                """create infer answer"""
+                """get infer answer"""
                 self.infer_answer_start = tf.nn.softmax(tf.squeeze(
                     self.answer_start_output * self.answer_start_output_mask), dim=-1)
                 self.infer_answer_end = tf.nn.softmax(tf.squeeze(

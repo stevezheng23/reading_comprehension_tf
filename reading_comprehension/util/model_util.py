@@ -6,17 +6,16 @@ import tensorflow as tf
 from model.bidaf import *
 from util.data_util import *
 
-__all__ = ["TrainModel", "EvalModel", "InferModel",
-           "create_train_model", "create_eval_model", "create_infer_model",
+__all__ = ["TrainModel", "InferModel",
+           "create_train_model", "create_infer_model",
            "init_model", "load_model"]
 
 class TrainModel(collections.namedtuple("TrainModel", ("graph", "model", "data_pipeline", "word_embedding"))):
     pass
 
-class EvalModel(collections.namedtuple("EvalModel", ("graph", "model", "data_pipeline"))):
-    pass
-
-class InferModel(collections.namedtuple("InferModel", ("graph", "model", "data_pipeline", "word_embedding"))):
+class InferModel(collections.namedtuple("InferModel",
+    ("graph", "model", "data_pipeline", "word_embedding",
+     "input_question", "input_context", "input_answer"))):
     pass
 
 def create_train_model(logger,
@@ -79,14 +78,6 @@ def create_train_model(logger,
             mode="train", scope=hyperparams.model_scope)
         
         return TrainModel(graph=graph, model=model, data_pipeline=data_pipeline, word_embedding=word_embed_data)
-
-def create_eval_model(logger,
-                      hyperparams):
-    graph = tf.Graph()
-    with graph.as_default():
-        logger.log_print("# prepare evaluation data")
-        logger.log_print("# create evaluation data pipeline")
-        return EvalModel(graph=graph, model=None, data_pipeline=None)
 
 def create_infer_model(logger,
                        hyperparams):
@@ -152,7 +143,8 @@ def create_infer_model(logger,
         model = model_creator(logger=logger, hyperparams=hyperparams, data_pipeline=data_pipeline,
             mode="infer", scope=hyperparams.model_scope)
         
-        return InferModel(graph=graph, model=model, data_pipeline=data_pipeline, word_embedding=word_embed_data)
+        return InferModel(graph=graph, model=model, data_pipeline=data_pipeline, word_embedding=word_embed_data
+            input_question=input_question_data, input_context=input_context_data, input_answer=input_answer_data)
 
 def get_model_creator(model_type):
     if model_type == "bidaf":
