@@ -14,8 +14,7 @@ class TrainModel(collections.namedtuple("TrainModel", ("graph", "model", "data_p
     pass
 
 class InferModel(collections.namedtuple("InferModel",
-    ("graph", "model", "data_pipeline", "word_embedding",
-     "input_question", "input_context", "input_answer"))):
+    ("graph", "model", "data_pipeline", "word_embedding", "input_question", "input_context", "input_answer"))):
     pass
 
 def create_train_model(logger,
@@ -143,7 +142,7 @@ def create_infer_model(logger,
         model = model_creator(logger=logger, hyperparams=hyperparams, data_pipeline=data_pipeline,
             mode="infer", scope=hyperparams.model_scope)
         
-        return InferModel(graph=graph, model=model, data_pipeline=data_pipeline, word_embedding=word_embed_data
+        return InferModel(graph=graph, model=model, data_pipeline=data_pipeline, word_embedding=word_embed_data,
             input_question=input_question_data, input_context=input_context_data, input_answer=input_answer_data)
 
 def get_model_creator(model_type):
