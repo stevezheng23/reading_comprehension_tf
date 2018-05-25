@@ -8,6 +8,7 @@ import tensorflow as tf
 from util.default_util import *
 from util.param_util import *
 from util.model_util import *
+from util.eval_util import *
 from util.debug_logger import *
 from util.train_logger import *
 from util.eval_logger import *
@@ -21,6 +22,7 @@ def extrinsic_eval(logger,
                    summary_writer,
                    sess,
                    model,
+                   input_data,
                    question_data,
                    context_data,
                    answer_data,
@@ -28,12 +30,13 @@ def extrinsic_eval(logger,
                    batch_size,
                    metric_list,
                    global_step):
+    data_size = len(input_data)
     load_model(sess, model)
     sess.run(model.data_pipeline.initializer,
         feed_dict={model.data_pipeline.input_question_placeholder: question_data,
             model.data_pipeline.input_context_placeholder: context_data,
             model.data_pipeline.input_answer_placeholder: answer_data,
-            model.data_pipeline.data_size_placeholder: len(answer_data),
+            model.data_pipeline.data_size_placeholder: data_size,
             model.data_pipeline.batch_size_placeholder: batch_size})
     
     predict = []
@@ -105,16 +108,16 @@ def train(logger,
                     train_model.model.save(train_sess, global_step)
                 if step_in_epoch % hyperparams.train_step_per_eval == 0:
                     extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
-                        infer_model, infer_model.input_question, infer_model.input_context,
-                        infer_model.input_answer, infer_model.word_embedding,
+                        infer_model, infer_model.input_data, infer_model.input_question,
+                        infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
                         hyperparams.train_eval_batch_size, hyperparams.train_eval_metric, global_step)
             except tf.errors.OutOfRangeError:
                 train_logger.check()
                 train_summary_writer.add_summary(train_result.summary, global_step)
                 train_model.model.save(train_sess, global_step)
                 extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
-                    infer_model, infer_model.input_question, infer_model.input_context,
-                    infer_model.input_answer, infer_model.word_embedding,
+                    infer_model, infer_model.input_data, infer_model.input_question,
+                    infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
                     hyperparams.train_eval_batch_size, hyperparams.train_eval_metric, global_step)
                 break
 
