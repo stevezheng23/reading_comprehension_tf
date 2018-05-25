@@ -17,14 +17,13 @@ def add_arguments(parser):
     parser.add_argument("--mode", help="mode to run", required=True)
     parser.add_argument("--config", help="path to json config", required=True)
 
-
 def extrinsic_eval(logger,
                    summary_writer,
                    sess,
                    model,
                    question_data,
                    context_data,
-                   answer_data
+                   answer_data,
                    word_embedding,
                    batch_size,
                    metric_list,
