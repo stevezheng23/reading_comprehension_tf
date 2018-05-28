@@ -27,7 +27,7 @@ def create_train_model(logger,
              subword_vocab_size, subword_vocab_index, subword_vocab_inverted_index,
              char_vocab_size, char_vocab_index, char_vocab_inverted_index) = prepare_mrc_data(logger,
              hyperparams.data_train_mrc_file, hyperparams.data_train_mrc_file_type,
-             hyperparams.data_answer_type, hyperparams.data_word_vocab_file, 
+             hyperparams.data_answer_type, hyperparams.data_expand_multiple_answer, hyperparams.data_word_vocab_file, 
              hyperparams.data_word_vocab_size, hyperparams.model_representation_word_embed_dim,
              hyperparams.data_embedding_file, hyperparams.data_full_embedding_file, hyperparams.data_word_unk,
              hyperparams.data_word_pad, hyperparams.data_word_sos, hyperparams.data_word_eos,
@@ -87,7 +87,7 @@ def create_infer_model(logger,
              word_embed_data, word_vocab_size, word_vocab_index, word_vocab_inverted_index,
              subword_vocab_size, subword_vocab_index, subword_vocab_inverted_index,
              char_vocab_size, char_vocab_index, char_vocab_inverted_index) = prepare_mrc_data(logger,
-             hyperparams.data_eval_mrc_file, hyperparams.data_eval_mrc_file_type, "text", hyperparams.data_word_vocab_file, 
+             hyperparams.data_eval_mrc_file, hyperparams.data_eval_mrc_file_type, "text", False, hyperparams.data_word_vocab_file, 
              hyperparams.data_word_vocab_size, hyperparams.model_representation_word_embed_dim,
              hyperparams.data_embedding_file, hyperparams.data_full_embedding_file, hyperparams.data_word_unk,
              hyperparams.data_word_pad, hyperparams.data_word_sos, hyperparams.data_word_eos,
@@ -141,8 +141,9 @@ def create_infer_model(logger,
         model = model_creator(logger=logger, hyperparams=hyperparams, data_pipeline=data_pipeline,
             mode="infer", scope=hyperparams.model_scope)
         
-        return InferModel(graph=graph, model=model, data_pipeline=data_pipeline, word_embedding=word_embed_data,
-            input_data=input_data, input_question=input_question_data, input_context=input_context_data, input_answer=input_answer_data)
+        return InferModel(graph=graph, model=model, data_pipeline=data_pipeline,
+            word_embedding=word_embed_data, input_data=input_data, input_question=input_question_data,
+            input_context=input_context_data, input_answer=input_answer_data)
 
 def get_model_creator(model_type):
     if model_type == "bidaf":

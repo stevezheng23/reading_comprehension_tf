@@ -20,7 +20,7 @@ def preprocess(file_name):
     if not os.path.exists(file_name):
         raise FileNotFoundError("file not found")
     
-    flatten_data_list = []
+    processed_data_list = []
     with open(file_name, "r") as file:
         json_content = json.load(file)
         for article in json_content["data"]:
@@ -29,25 +29,29 @@ def preprocess(file_name):
                 for qa in paragraph["qas"]:
                     qa_id = qa["id"]
                     question = qa["question"]
+                    
+                    processed_data = {
+                        "id": qa_id,
+                        "question": question,
+                        "context": context,
+                        "answers": []
+                    }
+                    
                     for answer in qa["answers"]:
                         answer_text = answer["text"]
                         answer_start = answer["answer_start"]
                         answer_word_start, answer_word_end = get_word_span(context,
                             answer_text, answer_start)
                         
-                        flatten_data = {
-                            "id": qa_id,
-                            "question": question,
-                            "context": context,
-                            "answer_text": answer_text,
-                            "answer_span": {
-                                "start": answer_word_start,
-                                "end": answer_word_end
-                            }
-                        }
-                        flatten_data_list.append(flatten_data)
+                        processed_data["answers"].append({
+                            "text": answer_text,
+                            "start": answer_word_start,
+                            "end": answer_word_end
+                        })
+                    
+                    processed_data_list.append(processed_data)
     
-    return flatten_data_list
+    return processed_data_list
 
 def output_to_json(data_list, file_name):
     with open(file_name, "w") as file:
@@ -57,30 +61,32 @@ def output_to_json(data_list, file_name):
 def output_to_plain(data_list, file_name):
     with open(file_name, "wb") as file:
         for data in data_list:
-            data_plain = "{0}\t{1}\t{2}\t{3}\t{4}|{5}\r\n".format(data["id"], data["question"], data["context"].replace("\n", " "),
-                data["answer_text"], data["answer_span"]["start"], data["answer_span"]["end"])
-            file.write(data_plain.encode("utf-8"))
+            for answer in data["answers"]:
+                data_plain = "{0}\t{1}\t{2}\t{3}\t{4}|{5}\r\n".format(data["id"], data["question"],
+                    data["context"].replace("\n", " "), answer["text"], answer["start"], answer["end"])
+                file.write(data_plain.encode("utf-8"))
 
 def output_to_split(data_list, file_prefix):
     with open("{0}.question".format(file_prefix), "wb") as q_file, open("{0}.context".format(file_prefix), "wb") as c_file, open("{0}.answer_text".format(file_prefix), "wb") as at_file, open("{0}.answer_span".format(file_prefix), "wb") as as_file:
         for data in data_list:
-            q_data_plain = "{0}\r\n".format(data["question"])
-            q_file.write(q_data_plain.encode("utf-8"))
-            c_data_plain = "{0}\r\n".format(data["context"].replace("\n", " "))
-            c_file.write(c_data_plain.encode("utf-8"))
-            at_data_plain = "{0}\r\n".format(data["answer_text"])
-            at_file.write(at_data_plain.encode("utf-8"))
-            as_data_plain = "{0}|{1}\r\n".format(data["answer_span"]["start"], data["answer_span"]["end"])
-            as_file.write(as_data_plain.encode("utf-8"))
+            for answer in data["answers"]:
+                q_data_plain = "{0}\r\n".format(data["question"])
+                q_file.write(q_data_plain.encode("utf-8"))
+                c_data_plain = "{0}\r\n".format(data["context"].replace("\n", " "))
+                c_file.write(c_data_plain.encode("utf-8"))
+                at_data_plain = "{0}\r\n".format(answer["text"])
+                at_file.write(at_data_plain.encode("utf-8"))
+                as_data_plain = "{0}|{1}\r\n".format(answer["start"], answer["end"])
+                as_file.write(as_data_plain.encode("utf-8"))
 
 def main(args):
-    flatten_data = preprocess(args.input_file)
+    processed_data = preprocess(args.input_file)
     if (args.format == 'json'):
-        output_to_json(flatten_data, args.output_file)
+        output_to_json(processed_data, args.output_file)
     elif (args.format == 'plain'):
-        output_to_plain(flatten_data, args.output_file)
+        output_to_plain(processed_data, args.output_file)
     elif (args.format == 'split'):
-        output_to_split(flatten_data, args.output_file)
+        output_to_split(processed_data, args.output_file)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

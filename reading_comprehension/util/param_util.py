@@ -41,6 +41,7 @@ def create_default_hyperparams():
         data_char_unk="*",
         data_char_pad="#",
         data_answer_type="",
+        data_expand_multiple_answer=False,
         data_log_output_dir="",
         data_result_output_dir="",
         train_random_seed=100,

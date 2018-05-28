@@ -20,6 +20,7 @@
     "data_log_output_dir": "output/log",
     "data_result_output_dir": "output/result",
     "data_answer_type": "span",
+    "data_expand_multiple_answer": false,
     "train_random_seed": 100,
     "train_enable_shuffle": false,
     "train_batch_size": 64,
