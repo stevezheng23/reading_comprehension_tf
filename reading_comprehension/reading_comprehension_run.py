@@ -39,17 +39,25 @@ def extrinsic_eval(logger,
             model.data_pipeline.data_size_placeholder: data_size,
             model.data_pipeline.batch_size_placeholder: batch_size})
     
-    predict = []
+    predict_span = []
     while True:
         try:
             infer_result = model.model.infer(sess, word_embedding, word_embedding)
-            predict.extend(infer_result.predict)
+            predict_span.extend(infer_result.predict)
         except  tf.errors.OutOfRangeError:
             break
     
+    predict_text = []
+    for i in range(data_size):
+        start = predict_span[i][0]
+        end = predict_span[i][1]
+        context = context_data[i].split(" ")
+        predict = " ".join(context[start:end+1])
+        predict_text.append(predict)
+    
     eval_result_list = []
     for metric in metric_list:
-        score = evaluate_from_data(predict, answer_data, metric)
+        score = evaluate_from_data(predict_text, answer_data, metric)
         summary_writer.add_value_summary(metric, score, global_step)
         eval_result = ExtrinsicEvalLog(metric=metric,
             score=score, sample_output=predict, sample_size=len(predict))
