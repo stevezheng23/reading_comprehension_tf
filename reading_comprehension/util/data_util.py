@@ -638,7 +638,8 @@ def load_json_data(input_file):
     
 def load_mrc_data(input_file,
                   file_type,
-                  answer_type):
+                  answer_type,
+                  expand_multiple_answer):
     """load mrc data from input file"""
     question_data = []
     context_data = []
@@ -655,10 +656,17 @@ def load_mrc_data(input_file,
     elif file_type == "json":
         input_data = load_json_data(input_file)
         for item in input_data:
-            question_data.append(item["question"])
-            context_data.append(item["context"])
-            answer_text_data.append(item["answer_text"])
-            answer_span_data.append("{0}|{1}".format(item["answer_span"]["start"], item["answer_span"]["end"]))
+            if expand_multiple_answer == True:
+                for answer in item["answers"]:
+                    question_data.append(item["question"])
+                    context_data.append(item["context"])
+                    answer_text_data.append(answer["text"])
+                    answer_span_data.append("{0}|{1}".format(answer["start"], answer["end"]))
+            else:
+                question_data.append(item["question"])
+                context_data.append(item["context"])
+                answer_text_data.append(item["answers"][0]["text"])
+                answer_span_data.append("{0}|{1}".format(item["answers"][0]["start"], item["answers"][0]["end"]))
     else:
         raise ValueError("can not load data from unsupported file type {0}".format(file_type))
     
@@ -794,6 +802,7 @@ def prepare_mrc_data(logger,
                      input_mrc_file,
                      input_file_type,
                      input_answer_type,
+                     input_expand_multiple_answer,
                      word_vocab_file,
                      word_vocab_size,
                      word_embed_dim,
@@ -820,7 +829,8 @@ def prepare_mrc_data(logger,
     input_data = set()
     logger.log_print("# loading input mrc data from {0}".format(input_mrc_file))
     (input_mrc_data, input_question_data, input_context_data,
-        input_answer_data) = load_mrc_data(input_mrc_file, input_file_type, input_answer_type)
+        input_answer_data) = load_mrc_data(input_mrc_file,
+            input_file_type, input_answer_type, input_expand_multiple_answer)
     
     input_mrc_size = len(input_mrc_data)
     input_question_size = len(input_question_data)

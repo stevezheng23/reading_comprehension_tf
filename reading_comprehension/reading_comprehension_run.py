@@ -48,16 +48,23 @@ def extrinsic_eval(logger,
             break
     
     predict_text = []
+    label_text = []
     for i in range(data_size):
         start = predict_span[i][0]
         end = predict_span[i][1]
         context = context_data[i].split(" ")
         predict = " ".join(context[start:end+1])
         predict_text.append(predict)
+        
+        answer_text = []
+        for answer in input_data[i]["answers"]:
+            answer_text.append(answer["text"])
+        
+        label_text.append(answer_text)
     
     eval_result_list = []
     for metric in metric_list:
-        score = evaluate_from_data(predict_text, answer_data, metric)
+        score = evaluate_from_data(predict_text, label_text, metric)
         summary_writer.add_value_summary(metric, score, global_step)
         eval_result = ExtrinsicEvalLog(metric=metric,
             score=score, sample_output=predict, sample_size=len(predict))
