@@ -1,1 +1,1 @@
-__all__ = ["bleu", "rouge"]
+__all__ = ["bleu", "rouge", "squad"]
