@@ -59,11 +59,9 @@ class EvalLogger(object):
             log_line = "sample {0} - input: {1}".format(i+1, eval_result.sample_input).encode('utf-8')
             self.log_writer.write("{0}\r\n".format(log_line))
             print(log_line)
-            decode_output = self.decode_sample_output[i]
             log_line = "sample {0} - output: {1}".format(i+1, eval_result.sample_output).encode('utf-8')
             self.log_writer.write("{0}\r\n".format(log_line))
             print(log_line)
-            decode_reference = self.decode_sample_reference[i]
             log_line = "sample {0} - reference: {1}".format(i+1, eval_result.sample_reference).encode('utf-8')
             self.log_writer.write("{0}\r\n".format(log_line))
             print(log_line)

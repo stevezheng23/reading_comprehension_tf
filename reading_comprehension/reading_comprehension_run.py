@@ -31,6 +31,12 @@ def extrinsic_eval(logger,
                    metric_list,
                    global_step):
     data_size = len(input_data)
+    data_size = batch_size * 2
+    input_data = input_data[:data_size]
+    question_data = question_data[:data_size]
+    context_data = context_data[:data_size]
+    answer_data = answer_data[:data_size]
+    
     load_model(sess, model)
     sess.run(model.data_pipeline.initializer,
         feed_dict={model.data_pipeline.input_question_placeholder: question_data,
@@ -208,47 +214,37 @@ def train(logger,
 
 def evaluate(logger,
              hyperparams):
-    pass
-
-def test(logger,
-         hyperparams):   
-    train_model = create_train_model(logger, hyperparams)
+    logger.log_print("##### create infer model #####")
+    infer_model = create_infer_model(logger, hyperparams)
     
     config_proto = get_config_proto(hyperparams.device_log_device_placement,
         hyperparams.device_allow_soft_placement, hyperparams.device_allow_growth,
         hyperparams.device_per_process_gpu_memory_fraction)
     
-    train_sess = tf.Session(config=config_proto, graph=train_model.graph)
+    infer_sess = tf.Session(config=config_proto, graph=infer_model.graph)
     
-    init_model(train_sess, train_model)
+    logger.log_print("##### start evaluation #####")
+    summary_output_dir = hyperparams.train_summary_output_dir
+    if not tf.gfile.Exists(summary_output_dir):
+        tf.gfile.MakeDirs(summary_output_dir)
     
-    train_sess.run(train_model.data_pipeline.initializer)
+    infer_summary_writer = SummaryWriter(infer_model.graph, os.path.join(summary_output_dir, "infer"))
     
-    (input_question_word, input_context_word, input_question_word_mask, input_context_word_mask,
-        input_question_char, input_context_char, input_question_char_mask, input_context_char_mask,
-        input_answer, input_answer_mask, answer_start_output, answer_start_output_mask, answer_end_output,
-        answer_end_output_mask) = train_sess.run([train_model.data_pipeline.input_question_word, 
-            train_model.data_pipeline.input_context_word, train_model.data_pipeline.input_question_word_mask, 
-            train_model.data_pipeline.input_context_word_mask, train_model.data_pipeline.input_question_char,
-            train_model.data_pipeline.input_context_char, train_model.data_pipeline.input_question_char_mask,
-            train_model.data_pipeline.input_context_char_mask, train_model.data_pipeline.input_answer,
-            train_model.data_pipeline.input_answer_mask, train_model.model.answer_start_output,
-            train_model.model.answer_start_output_mask, train_model.model.answer_end_output,
-            train_model.model.answer_end_output_mask])
-    print(input_question_word.shape)
-    print(input_context_word.shape)
-    print(input_question_word_mask.shape)
-    print(input_context_word_mask.shape)
-    print(input_question_char.shape)
-    print(input_context_char.shape)
-    print(input_question_char_mask.shape)
-    print(input_context_char_mask.shape)
-    print(input_answer.shape)
-    print(input_answer_mask.shape)
-    print(answer_start_output.shape)
-    print(answer_end_output.shape)
-    print(answer_start_output_mask.shape)
-    print(answer_end_output_mask.shape)
+    init_model(infer_sess, infer_model)
+    
+    global_step = 0
+    eval_logger = EvalLogger(hyperparams.data_log_output_dir)
+    extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
+        infer_model, infer_model.input_data, infer_model.input_question,
+        infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
+        hyperparams.train_eval_batch_size, hyperparams.train_eval_metric, global_step)
+    decoding_eval(eval_logger, infer_summary_writer, infer_sess,
+        infer_model, infer_model.input_data, infer_model.input_question,
+        infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
+        hyperparams.train_decoding_sample_size, hyperparams.train_random_seed + global_step, global_step)
+
+    infer_summary_writer.close_writer()
+    logger.log_print("##### finish evaluation #####")
 
 def main(args):
     hyperparams = load_hyperparams(args.config)
@@ -261,8 +257,6 @@ def main(args):
         train(logger, hyperparams)
     elif (args.mode == 'eval'):
         evaluate(logger, hyperparams)
-    elif (args.mode == 'test'):
-        test(logger, hyperparams)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
