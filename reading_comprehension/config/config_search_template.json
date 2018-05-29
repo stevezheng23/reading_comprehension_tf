@@ -58,12 +58,12 @@
         "model_representation_subword_hidden_activation": {
             "stype": "lookup",
             "key": "representation_hidden_activation",
-            "dtype": "int"
+            "dtype": "string"
         },
         "model_representation_subword_pooling_type": {
             "stype": "lookup",
             "key": "representation_pooling_type",
-            "dtype": "int"
+            "dtype": "string"
         },
         "model_representation_char_embed_dim": {
             "stype": "uniform",
@@ -72,18 +72,18 @@
         },
         "model_representation_char_window_size": {
             "stype": "lookup",
-            "key": "feat_window_size",
+            "key": "representation_window_size",
             "dtype": "int"
         },
         "model_representation_char_hidden_activation": {
             "stype": "lookup",
             "key": "representation_hidden_activation",
-            "dtype": "int"
+            "dtype": "string"
         },
         "model_representation_char_pooling_type": {
             "stype": "lookup",
             "key": "representation_pooling_type",
-            "dtype": "int"
+            "dtype": "string"
         },
         "model_representation_fusion_num_layer": {
             "stype": "discrete",
@@ -97,7 +97,7 @@
         },
         "model_representation_fusion_hidden_activation": {
             "stype": "discrete",
-            "range": ["tanh", "relu", "leaky_relu", "sigmoid"],
+            "set": ["tanh", "relu", "leaky_relu", "sigmoid"],
             "dtype": "string"
         },
         "model_understanding_question_num_layer": {
@@ -123,7 +123,7 @@
         "model_understanding_question_dropout": {
             "stype": "lookup",
             "key": "understanding_dropout",
-            "dtype": "int"
+            "dtype": "float"
         },
         "model_understanding_context_num_layer": {
             "stype": "lookup",
@@ -148,7 +148,7 @@
         "model_understanding_context_dropout": {
             "stype": "lookup",
             "key": "understanding_dropout",
-            "dtype": "int"
+            "dtype": "float"
         },
         "model_interaction_context2quesiton_unit_dim": {
             "stype": "lookup",
@@ -182,7 +182,7 @@
         },
         "model_interaction_fusion_hidden_activation": {
             "stype": "discrete",
-            "range": ["tanh", "relu", "leaky_relu", "sigmoid"],
+            "set": ["tanh", "relu", "leaky_relu", "sigmoid"],
             "dtype": "string"
         },
         "model_modeling_answer_num_layer": {
@@ -208,7 +208,7 @@
         "model_modeling_answer_dropout": {
             "stype": "lookup",
             "key": "modeling_dropout",
-            "dtype": "int"
+            "dtype": "float"
         },
         "model_output_answer_start_num_layer": {
             "stype": "lookup",
@@ -233,7 +233,7 @@
         "model_output_answer_start_dropout": {
             "stype": "lookup",
             "key": "output_dropout",
-            "dtype": "int"
+            "dtype": "float"
         },
         "model_output_answer_end_num_layer": {
             "stype": "lookup",
@@ -258,8 +258,8 @@
         "model_output_answer_end_dropout": {
             "stype": "lookup",
             "key": "output_dropout",
-            "dtype": "int"
-        },
+            "dtype": "float"
+        }
     },
     "variables": {
         "feat_max_length": {
@@ -269,17 +269,17 @@
         },
         "representation_window_size": {
             "stype": "discrete",
-            "range": [3, 5, 7, 9, 11],
+            "set": [3, 5, 7, 9, 11],
             "dtype": "int"
         },
         "representation_hidden_activation": {
             "stype": "discrete",
-            "range": ["tanh", "relu", "leaky_relu", "sigmoid"],
+            "set": ["tanh", "relu", "leaky_relu", "sigmoid"],
             "dtype": "string"
         },
         "representation_pooling_type": {
             "stype": "discrete",
-            "range": ["max", "avg"],
+            "set": ["max", "avg"],
             "dtype": "string"
         },
         "understanding_num_layer": {
@@ -294,12 +294,12 @@
         },
         "understanding_cell_type": {
             "stype": "discrete",
-            "range": ["lstm", "peephole_lstm", "layer_norm_lstm", "gru"],
+            "set": ["lstm", "peephole_lstm", "layer_norm_lstm", "gru"],
             "dtype": "string"
         },
         "understanding_hidden_activation": {
             "stype": "discrete",
-            "range": ["tanh", "relu", "leaky_relu", "sigmoid"],
+            "set": ["tanh", "relu", "leaky_relu", "sigmoid"],
             "dtype": "string"
         },
         "understanding_dropout": {
@@ -314,7 +314,7 @@
         },
         "interaction_score_type": {
             "stype": "discrete",
-            "range": ["add", "mul"],
+            "set": ["add", "mul"],
             "dtype": "string"
         },
         "modeling_num_layer": {
@@ -329,12 +329,12 @@
         },
         "modeling_cell_type": {
             "stype": "discrete",
-            "range": ["lstm", "peephole_lstm", "layer_norm_lstm", "gru"],
+            "set": ["lstm", "peephole_lstm", "layer_norm_lstm", "gru"],
             "dtype": "string"
         },
         "modeling_hidden_activation": {
             "stype": "discrete",
-            "range": ["tanh", "relu", "leaky_relu", "sigmoid"],
+            "set": ["tanh", "relu", "leaky_relu", "sigmoid"],
             "dtype": "string"
         },
         "modeling_dropout": {
@@ -354,18 +354,18 @@
         },
         "output_cell_type": {
             "stype": "discrete",
-            "range": ["lstm", "peephole_lstm", "layer_norm_lstm", "gru"],
+            "set": ["lstm", "peephole_lstm", "layer_norm_lstm", "gru"],
             "dtype": "string"
         },
         "output_hidden_activation": {
             "stype": "discrete",
-            "range": ["tanh", "relu", "leaky_relu", "sigmoid"],
+            "set": ["tanh", "relu", "leaky_relu", "sigmoid"],
             "dtype": "string"
         },
         "output_dropout": {
             "stype": "uniform",
             "range": [0.0, 1.0],
             "dtype": "float"
-        },
+        }
     }
 }
