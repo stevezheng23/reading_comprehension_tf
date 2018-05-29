@@ -31,12 +31,6 @@ def extrinsic_eval(logger,
                    metric_list,
                    global_step):
     data_size = len(input_data)
-    data_size = batch_size * 2
-    input_data = input_data[:data_size]
-    question_data = question_data[:data_size]
-    context_data = context_data[:data_size]
-    answer_data = answer_data[:data_size]
-    
     load_model(sess, model)
     sess.run(model.data_pipeline.initializer,
         feed_dict={model.data_pipeline.input_question_placeholder: question_data,
