@@ -57,7 +57,7 @@ def create_train_model(logger,
              hyperparams.data_subword_size, hyperparams.model_representation_subword_feat_enable, char_vocab_index,
              hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
-        logger.log_print("# create answer dataset")
+        logger.log_print("# create train answer dataset")
         answer_dataset = tf.data.Dataset.from_tensor_slices(input_answer_data)
         input_answer_dataset = create_trg_dataset(answer_dataset, hyperparams.data_answer_type,
             word_vocab_index, hyperparams.data_max_answer_length, hyperparams.data_word_pad,
@@ -119,7 +119,7 @@ def create_infer_model(logger,
              hyperparams.data_subword_size, hyperparams.model_representation_subword_feat_enable, char_vocab_index,
              hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
-        logger.log_print("# create answer dataset")
+        logger.log_print("# create inference answer dataset")
         answer_placeholder = tf.placeholder(shape=[None], dtype=tf.string)
         answer_dataset = tf.data.Dataset.from_tensor_slices(answer_placeholder)
         input_answer_dataset = create_trg_dataset(answer_dataset, "text",

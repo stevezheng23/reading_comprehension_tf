@@ -45,17 +45,23 @@ class BiDAF(BaseModel):
             
             """build graph for bidaf model"""
             self.logger.log_print("# build graph for bidaf model")
+            self.word_embedding_layer = None
+            self.word_embedding_placeholder = None
+            self.subword_embedding_layer = None
+            self.subword_conv_layer = None
+            self.subword_pooling_layer = None
+            self.char_embedding_layer = None
+            self.char_conv_layer = None
+            self.char_pooling_layer = None
+            
             (answer_start_output, answer_end_output, answer_start_output_mask,
-                answer_end_output_mask, question_word_embedding_placeholder,
-                context_word_embedding_placeholder) = self._build_graph(question_word, question_word_mask,
+                answer_end_output_mask) = self._build_graph(question_word, question_word_mask,
                     question_subword, question_subword_mask, question_char, question_char_mask,
                     context_word, context_word_mask, context_subword, context_subword_mask, context_char, context_char_mask)
             self.answer_start_output = answer_start_output
             self.answer_end_output = answer_end_output
             self.answer_start_output_mask = answer_start_output_mask
             self.answer_end_output_mask = answer_end_output_mask
-            self.question_word_embedding_placeholder = question_word_embedding_placeholder
-            self.context_word_embedding_placeholder = context_word_embedding_placeholder
             
             if self.mode == "infer":
                 """get infer answer"""
@@ -112,9 +118,11 @@ class BiDAF(BaseModel):
                              fusion_type,
                              fusion_num_layer,
                              fusion_hidden_activation,
-                             fusion_trainable):
+                             fusion_trainable,
+                             scope=None):
         """build fusion layer for bidaf model"""
-        with tf.variable_scope("fusion", reuse=tf.AUTO_REUSE):
+        fusion_scope = "fusion" if scope == None else "{0}/fusion".format(scope)
+        with tf.variable_scope(fusion_scope, reuse=tf.AUTO_REUSE):
             input_data = tf.concat(input_data_list, axis=-1)
             output_fusion_mask = tf.reduce_max(tf.concat(input_mask_list, axis=-1), axis=-1, keep_dims=True)
             
@@ -140,14 +148,18 @@ class BiDAF(BaseModel):
                          word_feat_trainable):
         """build word-level featurization for bidaf model"""
         with tf.variable_scope("feat/word", reuse=tf.AUTO_REUSE):
-            word_embedding_layer = create_embedding_layer(word_vocab_size,
-                word_embed_dim, word_embed_pretrained, word_feat_trainable)
-            input_word_embedding, word_embedding_placeholder = word_embedding_layer(input_word)
+            if self.word_embedding_layer == None:
+                self.word_embedding_layer = create_embedding_layer(word_vocab_size,
+                    word_embed_dim, word_embed_pretrained, word_feat_trainable)
             
+            if self.word_embedding_placeholder == None:
+                self.word_embedding_placeholder = self.word_embedding_layer.get_embedding_placeholder()
+            
+            input_word_embedding = self.word_embedding_layer(input_word)
             input_word_feat = tf.squeeze(input_word_embedding, axis=-2)
             input_word_feat_mask = input_word_mask
         
-        return input_word_feat, input_word_feat_mask, word_embedding_placeholder
+        return input_word_feat, input_word_feat_mask
     
     def _build_subword_feat(self,
                             input_subword,
@@ -161,16 +173,22 @@ class BiDAF(BaseModel):
                             subword_pooling_type):
         """build subword-level featurization for bidaf model"""
         with tf.variable_scope("feat/subword", reuse=tf.AUTO_REUSE):
-            subword_embedding_layer = create_embedding_layer(subword_vocab_size,
-                subword_embed_dim, False, subword_feat_trainable)
-            input_subword_embedding, _ = subword_embedding_layer(input_subword)
+            if self.subword_embedding_layer == None:
+                self.subword_embedding_layer = create_embedding_layer(subword_vocab_size,
+                    subword_embed_dim, False, subword_feat_trainable)
             
-            subword_conv_layer = create_convolution_layer("2d", subword_embed_dim, subword_embed_dim,
-                subword_window_size, 1, "SAME", subword_hidden_activation, subword_feat_trainable)
-            input_subword_conv = subword_conv_layer(input_subword_embedding)
+            input_subword_embedding = self.subword_embedding_layer(input_subword)
             
-            subword_pooling_layer = create_pooling_layer(subword_pooling_type)
-            input_subword_pool, input_subword_pool_mask = subword_pooling_layer(input_subword_conv, input_subword_mask)
+            if self.subword_conv_layer == None:
+                self.subword_conv_layer = create_convolution_layer("2d", subword_embed_dim, subword_embed_dim,
+                    subword_window_size, 1, "SAME", subword_hidden_activation, subword_feat_trainable)
+            
+            input_subword_conv = self.subword_conv_layer(input_subword_embedding)
+            
+            if self.subword_pooling_layer == None:
+                subword_pooling_layer = create_pooling_layer(subword_pooling_type)
+            
+            input_subword_pool, input_subword_pool_mask = self.subword_pooling_layer(input_subword_conv, input_subword_mask)
             input_subword_feat = input_subword_pool
             input_subword_feat_mask = input_subword_pool_mask
         
@@ -188,16 +206,22 @@ class BiDAF(BaseModel):
                          char_pooling_type):
         """build char-level featurization for bidaf model"""
         with tf.variable_scope("feat/char", reuse=tf.AUTO_REUSE):
-            char_embedding_layer = create_embedding_layer(char_vocab_size,
-                char_embed_dim, False, char_feat_trainable)
-            input_char_embedding, _ = char_embedding_layer(input_char)
+            if self.char_embedding_layer == None:
+                self.char_embedding_layer = create_embedding_layer(char_vocab_size,
+                    char_embed_dim, False, char_feat_trainable)
             
-            char_conv_layer = create_convolution_layer("2d", char_embed_dim, char_embed_dim,
-                char_window_size, 1, "SAME", char_hidden_activation, char_feat_trainable)
-            input_char_conv = char_conv_layer(input_char_embedding)
+            input_char_embedding = self.char_embedding_layer(input_char)
             
-            char_pooling_layer = create_pooling_layer(char_pooling_type)
-            input_char_pool, input_char_pool_mask = char_pooling_layer(input_char_conv, input_char_mask)
+            if self.char_conv_layer == None:
+                self.char_conv_layer = create_convolution_layer("2d", char_embed_dim, char_embed_dim,
+                    char_window_size, 1, "SAME", char_hidden_activation, char_feat_trainable)
+            
+            input_char_conv = self.char_conv_layer(input_char_embedding)
+            
+            if self.char_pooling_layer == None:
+                self.char_pooling_layer = create_pooling_layer(char_pooling_type)
+            
+            input_char_pool, input_char_pool_mask = self.char_pooling_layer(input_char_conv, input_char_mask)
             input_char_feat = input_char_pool
             input_char_feat_mask = input_char_pool_mask
         
@@ -209,7 +233,8 @@ class BiDAF(BaseModel):
                                     input_subword,
                                     input_subword_mask,
                                     input_char,
-                                    input_char_mask):
+                                    input_char_mask,
+                                    scope=None):
         """build representation layer for bidaf model"""
         word_vocab_size = self.hyperparams.data_word_vocab_size
         word_embed_dim = self.hyperparams.model_representation_word_embed_dim
@@ -242,14 +267,13 @@ class BiDAF(BaseModel):
             input_feat_list = []
             input_feat_mask_list = []
             if word_feat_enable == True:
-                (input_word_feat, input_word_feat_mask,
-                    word_embedding_placeholder) = self._build_word_feat(input_word, input_word_mask,
+                input_word_feat, input_word_feat_mask = self._build_word_feat(input_word, input_word_mask,
                         word_vocab_size, word_embed_dim, word_embed_pretrained, word_feat_trainable)
                 input_feat_list.append(input_word_feat)
                 input_feat_mask_list.append(input_word_feat_mask)
             else:
                 word_embed_dim = 0
-                word_embedding_placeholder = None
+                self.word_embedding_placeholder = None
             
             if subword_feat_enable == True:
                 input_subword_feat, input_subword_feat_mask = self._build_subword_feat(input_subword, input_subword_mask,
@@ -271,11 +295,13 @@ class BiDAF(BaseModel):
             
             feat_embed_dim = word_embed_dim + subword_embed_dim + char_embed_dim
             
+        representation_scope = "representation" if scope == None else "{0}/representation".format(scope)
+        with tf.variable_scope(representation_scope, reuse=tf.AUTO_REUSE):
             input_feat, input_feat_mask = self._build_fusion_result(input_feat_list,
                 input_feat_mask_list, feat_embed_dim, fusion_unit_dim, fusion_type,
-                fusion_num_layer, fusion_hidden_activation, fusion_trainable)
+                fusion_num_layer, fusion_hidden_activation, fusion_trainable, scope)
         
-        return input_feat, input_feat_mask, word_embedding_placeholder
+        return input_feat, input_feat_mask
 
     def _build_understanding_layer(self,
                                    question_feat,
@@ -301,29 +327,30 @@ class BiDAF(BaseModel):
         context_understanding_residual_connect = self.hyperparams.model_understanding_context_residual_connect
         context_understanding_trainable = self.hyperparams.model_understanding_context_trainable
         
-        with tf.variable_scope("understanding/question", reuse=tf.AUTO_REUSE):
-            self.logger.log_print("# build question understanding layer for bidaf model")
-            question_understanding, question_understanding_mask = self._build_fusion_result([question_feat], [question_feat_mask],
-                feat_unit_dim, question_understanding_unit_dim, "pass", 0, None, question_understanding_trainable)
-            
-            question_understanding_layer = create_recurrent_layer("bi", question_understanding_num_layer,
-                question_understanding_unit_dim, question_understanding_cell_type, question_understanding_hidden_activation,
-                question_understanding_dropout, question_understanding_forget_bias, question_understanding_residual_connect,
-                self.num_gpus, self.default_gpu_id, question_understanding_trainable)
-            
-            question_understanding, _ = question_understanding_layer(question_understanding, question_understanding_mask)
-        
-        with tf.variable_scope("understanding/context", reuse=tf.AUTO_REUSE):
-            self.logger.log_print("# build context understanding layer for bidaf model")
-            context_understanding, context_understanding_mask = self._build_fusion_result([context_feat], [context_feat_mask],
-                feat_unit_dim, context_understanding_unit_dim, "pass", 0, None, context_understanding_trainable)
-            
-            context_understanding_layer = create_recurrent_layer("bi", context_understanding_num_layer,
-                context_understanding_unit_dim, context_understanding_cell_type, context_understanding_hidden_activation,
-                context_understanding_dropout, context_understanding_forget_bias, context_understanding_residual_connect,
-                self.num_gpus, self.default_gpu_id, context_understanding_trainable)
-            
-            context_understanding, _ = context_understanding_layer(context_understanding, context_understanding_mask)
+        with tf.variable_scope("understanding", reuse=tf.AUTO_REUSE):
+            with tf.variable_scope("question", reuse=tf.AUTO_REUSE):
+                self.logger.log_print("# build question understanding layer for bidaf model")
+                question_understanding, question_understanding_mask = self._build_fusion_result([question_feat], [question_feat_mask],
+                    feat_unit_dim, question_understanding_unit_dim, "pass", 0, None, question_understanding_trainable)
+
+                question_understanding_layer = create_recurrent_layer("bi", question_understanding_num_layer,
+                    question_understanding_unit_dim, question_understanding_cell_type, question_understanding_hidden_activation,
+                    question_understanding_dropout, question_understanding_forget_bias, question_understanding_residual_connect,
+                    self.num_gpus, self.default_gpu_id, question_understanding_trainable)
+
+                question_understanding, _ = question_understanding_layer(question_understanding, question_understanding_mask)
+
+            with tf.variable_scope("context", reuse=tf.AUTO_REUSE):
+                self.logger.log_print("# build context understanding layer for bidaf model")
+                context_understanding, context_understanding_mask = self._build_fusion_result([context_feat], [context_feat_mask],
+                    feat_unit_dim, context_understanding_unit_dim, "pass", 0, None, context_understanding_trainable)
+
+                context_understanding_layer = create_recurrent_layer("bi", context_understanding_num_layer,
+                    context_understanding_unit_dim, context_understanding_cell_type, context_understanding_hidden_activation,
+                    context_understanding_dropout, context_understanding_forget_bias, context_understanding_residual_connect,
+                    self.num_gpus, self.default_gpu_id, context_understanding_trainable)
+
+                context_understanding, _ = context_understanding_layer(context_understanding, context_understanding_mask)
         
         return question_understanding, context_understanding, question_understanding_mask, context_understanding_mask
     
@@ -498,13 +525,11 @@ class BiDAF(BaseModel):
         with tf.variable_scope("graph", reuse=tf.AUTO_REUSE):
             """build representation layer for bidaf model"""
             self.logger.log_print("# build question representation layer for bidaf model")
-            (question_feat, question_feat_mask,
-                question_word_embedding_placeholder) = self._build_representation_layer(question_word, question_word_mask,
-                    question_subword, question_subword_mask, question_char, question_char_mask)
+            question_feat, question_feat_mask = self._build_representation_layer(question_word, question_word_mask,
+                    question_subword, question_subword_mask, question_char, question_char_mask, "question")
             self.logger.log_print("# build context representation layer for bidaf model")
-            (context_feat, context_feat_mask,
-                context_word_embedding_placeholder) = self._build_representation_layer(context_word, context_word_mask,
-                    context_subword, context_subword_mask, context_char, context_char_mask)
+            context_feat, context_feat_mask = self._build_representation_layer(context_word, context_word_mask,
+                    context_subword, context_subword_mask, context_char, context_char_mask, "context")
             
             """build understanding layer for bidaf model"""
             (question_understanding, context_understanding, question_understanding_mask,
@@ -524,8 +549,7 @@ class BiDAF(BaseModel):
             (answer_start_output, answer_end_output, answer_start_output_mask,
                 answer_end_output_mask) = self._build_output_layer(answer_modeling, answer_modeling_mask)
             
-        return (answer_start_output, answer_end_output, answer_start_output_mask, answer_end_output_mask, 
-            question_word_embedding_placeholder, context_word_embedding_placeholder)
+        return answer_start_output, answer_end_output, answer_start_output_mask, answer_end_output_mask
     
     def _compute_loss(self,
                       label,
@@ -541,16 +565,14 @@ class BiDAF(BaseModel):
     
     def train(self,
               sess,
-              question_word_embedding,
-              context_word_embedding):
+              word_embedding):
         """train bidaf model"""
         word_embed_pretrained = self.hyperparams.model_representation_word_embed_pretrained
         
         if word_embed_pretrained == True:
             _, loss, learning_rate, global_step, batch_size, summary = sess.run([self.update_model,
                 self.train_loss, self.decayed_learning_rate, self.global_step, self.batch_size, self.train_summary],
-                feed_dict={self.question_word_embedding_placeholder: question_word_embedding,
-                    self.context_word_embedding_placeholder: context_word_embedding})
+                feed_dict={self.word_embedding_placeholder: word_embedding})
         else:
             _, loss, learning_rate, global_step, batch_size, summary = sess.run([self.update_model,
                 self.train_loss, self.decayed_learning_rate, self.global_step, self.batch_size, self.train_summary])
@@ -560,8 +582,7 @@ class BiDAF(BaseModel):
     
     def infer(self,
               sess,
-              question_word_embedding,
-              context_word_embedding):
+              word_embedding):
         """infer bidaf model"""
         word_embed_pretrained = self.hyperparams.model_representation_word_embed_pretrained
         
@@ -569,8 +590,7 @@ class BiDAF(BaseModel):
             (answer_start, answer_end, answer_start_mask, answer_end_mask,
                 batch_size, summary) = sess.run([self.infer_answer_start, self.infer_answer_end,
                     self.infer_answer_start_mask, self.infer_answer_end_mask, self.batch_size, self.infer_summary],
-                    feed_dict={self.question_word_embedding_placeholder: question_word_embedding,
-                        self.context_word_embedding_placeholder: context_word_embedding})
+                    feed_dict={self.word_embedding_placeholder: word_embedding})
         else:
             (answer_start, answer_end, answer_start_mask, answer_end_mask,
                 batch_size, summary) = sess.run([self.infer_answer_start, self.infer_answer_end,
