@@ -42,7 +42,7 @@ def extrinsic_eval(logger,
     predict_span = []
     while True:
         try:
-            infer_result = model.model.infer(sess, word_embedding, word_embedding)
+            infer_result = model.model.infer(sess, word_embedding)
             predict_span.extend(infer_result.predict)
         except  tf.errors.OutOfRangeError:
             break
@@ -103,7 +103,7 @@ def decoding_eval(logger,
     sample_output_span = []
     while True:
         try:
-            infer_result = model.model.infer(sess, word_embedding, word_embedding)
+            infer_result = model.model.infer(sess, word_embedding)
             sample_output_span.extend(infer_result.predict)
         except  tf.errors.OutOfRangeError:
             break
@@ -166,8 +166,7 @@ def train(logger,
         while True:
             try:
                 start_time = time.time()
-                train_result = train_model.model.train(train_sess,
-                    train_model.word_embedding, train_model.word_embedding)
+                train_result = train_model.model.train(train_sess, train_model.word_embedding)
                 end_time = time.time()
                 
                 global_step = train_result.global_step

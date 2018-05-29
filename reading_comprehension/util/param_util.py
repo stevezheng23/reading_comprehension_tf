@@ -119,7 +119,7 @@ def create_default_hyperparams():
         model_interaction_quesiton2context_score_type="add",
         model_interaction_quesiton2context_trainable=True,
         model_interaction_quesiton2context_enable=True,
-        model_interaction_fusion_type="dense",
+        model_interaction_fusion_type="highway",
         model_interaction_fusion_num_layer=1,
         model_interaction_fusion_unit_dim=256,
         model_interaction_fusion_hidden_activation="tanh",
