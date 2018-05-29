@@ -73,6 +73,64 @@ def extrinsic_eval(logger,
     logger.update_extrinsic_eval(eval_result_list)
     logger.check_extrinsic_eval()
 
+def decoding_eval(logger,
+                  summary_writer,
+                  sess,
+                  model,
+                  input_data,
+                  question_data,
+                  context_data,
+                  answer_data,
+                  word_embedding,
+                  sample_size,
+                  random_seed,
+                  global_step):
+    np.random.seed(random_seed)
+    sample_ids = np.random.randint(0, len(input_data)-1, size=sample_size)
+    sample_input_data = [input_data[sample_id] for sample_id in sample_ids]
+    sample_question_data = [question_data[sample_id] for sample_id in sample_ids]
+    sample_context_data = [context_data[sample_id] for sample_id in sample_ids]
+    sample_answer_data = [answer_data[sample_id] for sample_id in sample_ids]
+    
+    load_model(sess, model)
+    sess.run(model.data_pipeline.initializer,
+        feed_dict={model.data_pipeline.input_question_placeholder: sample_question_data,
+            model.data_pipeline.input_context_placeholder: sample_context_data,
+            model.data_pipeline.input_answer_placeholder: sample_answer_data,
+            model.data_pipeline.data_size_placeholder: sample_size,
+            model.data_pipeline.batch_size_placeholder: sample_size})
+    
+    sample_output_span = []
+    while True:
+        try:
+            infer_result = model.model.infer(sess, word_embedding, word_embedding)
+            sample_output_span.extend(infer_result.predict)
+        except  tf.errors.OutOfRangeError:
+            break
+    
+    if infer_result.summary is not None:
+        summary_writer.add_summary(infer_result.summary, global_step)
+    
+    eval_result_list = []
+    for i in range(sample_size):
+        sample_input = sample_input_data[i]
+        
+        start = sample_output_span[i][0]
+        end = sample_output_span[i][1]
+        sample_context = sample_context_data[i].split(" ")
+        sample_output = " ".join(sample_context[start:end+1])
+        
+        sample_reference_list = []
+        for sample_answer in sample_input_data[i]["answers"]:
+            sample_reference_list.append(sample_answer["text"])
+        
+        eval_result = DecodingEvalLog(sample_input=sample_input,
+            sample_output=sample_output, sample_reference=sample_reference_list)
+        eval_result_list.append(eval_result)
+    
+    logger.update_decoding_eval(eval_result_list)
+    logger.check_decoding_eval()
+
 def train(logger,
           hyperparams):
     logger.log_print("##### create train model #####")
@@ -126,6 +184,10 @@ def train(logger,
                         infer_model, infer_model.input_data, infer_model.input_question,
                         infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
                         hyperparams.train_eval_batch_size, hyperparams.train_eval_metric, global_step)
+                    decoding_eval(eval_logger, infer_summary_writer, infer_sess,
+                        infer_model, infer_model.input_data, infer_model.input_question,
+                        infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
+                        hyperparams.train_decoding_sample_size, hyperparams.train_random_seed + global_step, global_step)
             except tf.errors.OutOfRangeError:
                 train_logger.check()
                 train_summary_writer.add_summary(train_result.summary, global_step)
@@ -134,6 +196,10 @@ def train(logger,
                     infer_model, infer_model.input_data, infer_model.input_question,
                     infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
                     hyperparams.train_eval_batch_size, hyperparams.train_eval_metric, global_step)
+                decoding_eval(eval_logger, infer_summary_writer, infer_sess,
+                    infer_model, infer_model.input_data, infer_model.input_question,
+                    infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
+                    hyperparams.train_decoding_sample_size, hyperparams.train_random_seed + global_step, global_step)
                 break
 
     train_summary_writer.close_writer()
