@@ -157,11 +157,5 @@ class BiRNN(object):
                 cell_bw=self.bwd_cell, inputs=input_data, sequence_length=input_length, dtype=input_data.dtype)
             
             output_recurrent = tf.concat(output_recurrent, -1)
-            if self.num_layer > 1:
-                state_list = []
-                for i in range(self.num_layer):
-                    state_list.append(final_state_recurrent[0][i])
-                    state_list.append(final_state_recurrent[1][i])
-                final_state_recurrent = tuple(state_list)
         
         return output_recurrent, final_state_recurrent
