@@ -1,1 +1,1 @@
-__all__ = ["embedding", "convolution", "pooling", "highway", "recurrent", "attention"]
+__all__ = ["embedding", "convolution", "pooling", "dense", "highway", "recurrent", "attention"]
