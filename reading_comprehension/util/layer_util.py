@@ -4,12 +4,13 @@ import tensorflow as tf
 from layer.embedding import *
 from layer.convolution import *
 from layer.pooling import *
+from layer.dense import *
 from layer.highway import *
 from layer.recurrent import *
 from layer.attention import *
 
 __all__ = ["create_embedding_layer", "create_convolution_layer", "create_pooling_layer",
-           "create_highway_layer", "create_recurrent_layer", "create_attention_layer"]
+           "create_dense_layer", "create_highway_layer", "create_recurrent_layer", "create_attention_layer"]
 
 def create_embedding_layer(vocab_size,
                            embed_dim,
@@ -56,47 +57,31 @@ def create_pooling_layer(pooling_type):
     
     return pooling_layer
 
-def create_highway_layer(highway_type,
-                         num_layer,
+def create_dense_layer(num_layer,
+                       unit_dim,
+                       activation,
+                       trainable):
+    """create highway layer"""
+    if num_layer > 1:
+        dense_layer = Dense(unit_dim=unit_dim,
+            activation=activation, trainable=trainable, scope="dense")
+    else:
+        dense_layer = StackedDense(num_layer=num_layer, unit_dim=unit_dim,
+            activation=activation, trainable=trainable, scope="stacked_dense")
+    
+    return dense_layer
+
+def create_highway_layer(num_layer,
                          unit_dim,
                          activation,
                          trainable):
     """create highway layer"""
     if num_layer > 1:
-        highway_layer = create_stacked_highway_layer(highway_type,
-            num_layer, unit_dim, activation, trainable)
-    else:
-        highway_layer = create_single_highway_layer(highway_type,
-            unit_dim, activation, trainable)
-    
-    return highway_layer
-
-def create_single_highway_layer(highway_type,
-                                unit_dim,
-                                activation,
-                                trainable):
-    """create single highway layer"""
-    scope = "highway/{0}".format(highway_type)
-    if highway_type == "fc":
         highway_layer = Highway(unit_dim=unit_dim,
-            activation=activation, trainable=trainable, scope=scope)
+            activation=activation, trainable=trainable, scope="highway")
     else:
-        raise ValueError("unsupported highway type {0}".format(highway_type))
-    
-    return highway_layer
-
-def create_stacked_highway_layer(highway_type,
-                                 num_layer,
-                                 unit_dim,
-                                 activation,
-                                 trainable):
-    """create stacked highway layer"""
-    scope = "stacked_highway/{0}".format(highway_type)
-    if highway_type == "fc":
         highway_layer = StackedHighway(num_layer=num_layer, unit_dim=unit_dim,
-            activation=activation, trainable=trainable, scope=scope)
-    else:
-        raise ValueError("unsupported highway type {0}".format(highway_type))
+            activation=activation, trainable=trainable, scope="stacked_highway")
     
     return highway_layer
 
@@ -139,6 +124,12 @@ def create_attention_layer(attention_type,
             score_type=score_type, trainable=trainable, scope=scope)
     elif attention_type == "max_att":
         attention_layer = MaxAttention(src_dim=src_dim, trg_dim=trg_dim, unit_dim=unit_dim,
+            score_type=score_type, trainable=trainable, scope=scope)
+    elif attention_type == "self_att":
+        if src_dim != trg_dim:
+            raise ValueError("source dimension {0} is not equal to target dimension {1} for self-attention".format(src_dim, trg_dim))
+        
+        attention_layer = SelfAttention(src_dim=src_dim, trg_dim=trg_dim, unit_dim=unit_dim,
             score_type=score_type, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported attention type {0}".format(attention_type))
