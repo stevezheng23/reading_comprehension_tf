@@ -3,7 +3,7 @@ import tensorflow as tf
 
 from util.reading_comprehension_util import *
 
-__all__ = ["Attention", "MaxAttention"]
+__all__ = ["Attention", "MaxAttention", "SelfAttention"]
 
 def _create_attention_matrix(src_unit_dim,
                              trg_unit_dim,
@@ -119,7 +119,7 @@ class Attention(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.attention_matrix = _create_attention_matrix(self.src_dim,
-                    self.trg_dim, self.unit_dim, self.score_type)
+                self.trg_dim, self.unit_dim, self.score_type)
     
     def __call__(self,
                  input_src_data,
@@ -140,8 +140,8 @@ class Attention(object):
     def get_attention_matrix():
         return self.attention_matrix
 
-class MaxAttention(Attention):
-    """maximum attention layer"""
+class MaxAttention(object):
+    """max-attention layer"""
     def __init__(self,
                  src_dim,
                  trg_dim,
@@ -149,16 +149,24 @@ class MaxAttention(Attention):
                  score_type,
                  trainable=True,
                  scope="max_att"):
-        """initialize maximum attention layer"""       
-        super(MaxAttention, self).__init__(src_dim=src_dim, trg_dim=trg_dim, unit_dim=unit_dim,
-            score_type=score_type, trainable=trainable, scope=scope)
+        """initialize max-attention layer"""       
+        self.src_dim = src_dim
+        self.trg_dim = trg_dim
+        self.unit_dim = unit_dim
+        self.score_type = score_type
+        self.trainable = trainable
+        self.scope = scope
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            self.attention_matrix = _create_attention_matrix(self.src_dim,
+                self.trg_dim, self.unit_dim, self.score_type)
     
     def __call__(self,
                  input_src_data,
                  input_trg_data,
                  input_src_mask,
                  input_trg_mask):
-        """call maximum attention layer"""
+        """call max-attention layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             input_src_data = input_src_data * input_src_mask
             input_trg_data = input_trg_data * input_trg_mask
@@ -172,3 +180,43 @@ class MaxAttention(Attention):
             output_attention = tf.tile(output_attention, multiples=[1, src_max_length, 1])
         
         return output_attention
+
+class SelfAttention(object):
+    """self-attention layer"""
+    def __init__(self,
+                 src_dim,
+                 trg_dim,
+                 unit_dim,
+                 score_type,
+                 trainable=True,
+                 scope="self_att"):
+        """initialize self-attention layer"""
+        self.src_dim = src_dim
+        self.trg_dim = trg_dim
+        self.unit_dim = unit_dim
+        self.score_type = score_type
+        self.trainable = trainable
+        self.scope = scope
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            self.attention_matrix = _create_attention_matrix(self.src_dim,
+                self.trg_dim, self.unit_dim, self.score_type)
+    
+    def __call__(self,
+                 input_src_data,
+                 input_trg_data,
+                 input_src_mask,
+                 input_trg_mask):
+        """call self-attention layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            input_src_data = input_src_data * input_src_mask
+            input_trg_data = input_trg_data * input_trg_mask
+            input_attention_score = _generate_attention_score(input_src_data,
+                input_trg_data, self.attention_matrix, self.score_type)
+            input_attention_weight = tf.nn.softmax(input_attention_score, dim=1)
+            output_attention = tf.matmul(input_attention_weight, input_trg_data)
+        
+        return output_attention
+    
+    def get_attention_matrix():
+        return self.attention_matrix

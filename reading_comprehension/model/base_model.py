@@ -60,19 +60,27 @@ class BaseModel(object):
         """build fusion layer for mrc base model"""
         fusion_scope = "fusion" if scope == None else "{0}/fusion".format(scope)
         with tf.variable_scope(fusion_scope, reuse=tf.AUTO_REUSE):
-            input_data = tf.concat(input_data_list, axis=-1)
             output_fusion_mask = tf.reduce_max(tf.concat(input_mask_list, axis=-1), axis=-1, keep_dims=True)
             
-            if input_unit_dim != output_unit_dim:
-                convert_layer = tf.layers.Dense(units=output_unit_dim, activation=None, trainable=fusion_trainable)
-                input_data = convert_layer(input_data)
-            
-            if fusion_type == "highway":
-                fusion_layer = create_highway_layer("fc", fusion_num_layer,
+            if fusion_type == "concate":
+                output_fusion = tf.concat(input_data_list, axis=-1)
+            elif fusion_type == "dense":
+                input_data = tf.concat(input_data_list, axis=-1)
+                fusion_layer = create_dense_layer(fusion_num_layer,
+                    output_unit_dim, fusion_hidden_activation, fusion_trainable)
+                output_fusion = fusion_layer(input_data)
+            elif fusion_type == "highway":
+                input_data = tf.concat(input_data_list, axis=-1)
+                
+                if input_unit_dim != output_unit_dim:
+                    convert_layer = tf.layers.Dense(units=output_unit_dim, activation=None, trainable=fusion_trainable)
+                    input_data = convert_layer(input_data)
+                
+                fusion_layer = create_highway_layer(fusion_num_layer,
                     output_unit_dim, fusion_hidden_activation, fusion_trainable)
                 output_fusion = fusion_layer(input_data)
             else:
-                output_fusion = input_data
+                raise ValueError("unsupported fusion type {0}".format(fusion_type))
         
         return output_fusion, output_fusion_mask
     
@@ -231,7 +239,7 @@ class BaseModel(object):
                 char_embed_dim = 0
             
             feat_embed_dim = word_embed_dim + subword_embed_dim + char_embed_dim
-            
+        
         representation_scope = "representation" if scope == None else "{0}/representation".format(scope)
         with tf.variable_scope(representation_scope, reuse=tf.AUTO_REUSE):
             input_feat, input_feat_mask = self._build_fusion_result(input_feat_list,
