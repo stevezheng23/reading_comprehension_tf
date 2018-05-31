@@ -41,8 +41,8 @@
             "dtype": "float"
         },
         "model_representation_word_embed_dim": {
-            "stype": "lookup",
-            "key": "embed_dim",
+            "stype": "discrete",
+            "set": [300],
             "dtype": "int"
         },
         "model_representation_subword_embed_dim": {
@@ -351,7 +351,7 @@
         },
         "score_type": {
             "stype": "discrete",
-            "set": ["add", "mul"],
+            "set": ["mul"],
             "dtype": "string"
         }
     }
