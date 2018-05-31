@@ -67,7 +67,7 @@ def extrinsic_eval(logger,
         score = evaluate_from_data(predict_text, label_text, metric)
         summary_writer.add_value_summary(metric, score, global_step)
         eval_result = ExtrinsicEvalLog(metric=metric,
-            score=score, sample_output=predict, sample_size=len(predict))
+            score=score, sample_output=predict_text, sample_size=len(predict_text))
         eval_result_list.append(eval_result)
     
     logger.update_extrinsic_eval(eval_result_list)
