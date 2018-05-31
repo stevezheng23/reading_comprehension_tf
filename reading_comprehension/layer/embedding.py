@@ -55,7 +55,7 @@ class PretrainedEmbedding(object):
                 initializer=initializer, trainable=self.trainable, dtype=tf.float32)
             self.embedding_placeholder = tf.placeholder(name="embedding_placeholder",
                 shape=[self.vocab_size, self.embed_dim], dtype=tf.float32)
-            self.embedding = embedding.assign(embedding_placeholder)
+            self.embedding = embedding.assign(self.embedding_placeholder)
     
     def __call__(self,
                  input_data):
