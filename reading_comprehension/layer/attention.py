@@ -213,7 +213,11 @@ class SelfAttention(object):
             input_trg_data = input_trg_data * input_trg_mask
             input_attention_score = _generate_attention_score(input_src_data,
                 input_trg_data, self.attention_matrix, self.score_type)
-            input_attention_mask = 1 - tf.eye(self.src_dim, self.trg_dim)
+            input_src_shape = tf.shape(input_src_data)
+            input_trg_shape = tf.shape(input_trg_data)
+            src_max_length = input_src_shape[1]
+            trg_max_length = input_trg_shape[1]
+            input_attention_mask = 1 - tf.eye(src_max_length, trg_max_length)
             input_attention_score = input_attention_score * input_attention_mask
             input_attention_weight = tf.nn.softmax(input_attention_score, dim=1)
             output_attention = tf.matmul(input_attention_weight, input_trg_data)
