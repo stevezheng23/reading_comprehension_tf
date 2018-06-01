@@ -6,8 +6,6 @@ import json
 import numpy as np
 import tensorflow as tf
 
-from tqdm import tqdm
-
 __all__ = ["DataPipeline", "create_dynamic_pipeline", "create_data_pipeline",
            "create_src_dataset", "create_trg_dataset",
            "generate_word_feat", "generate_subword_feat", "generate_char_feat",
@@ -459,7 +457,7 @@ def load_embedding_file(embedding_file,
     if tf.gfile.Exists(embedding_file):
         with codecs.getreader("utf-8")(tf.gfile.GFile(embedding_file, "rb")) as file:
             embedding = {}
-            for line in tqdm(file):
+            for line in file:
                 items = line.strip().split(' ')
                 if len(items) != embedding_size + 1:
                     continue
@@ -506,7 +504,7 @@ def load_vocab_file(vocab_file):
     if tf.gfile.Exists(vocab_file):
         with codecs.getreader("utf-8")(tf.gfile.GFile(vocab_file, "rb")) as file:
             vocab = {}
-            for line in tqdm(file):
+            for line in file:
                 items = line.strip().split('\t')
                 
                 item_size = len(items)
