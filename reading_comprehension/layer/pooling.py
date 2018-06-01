@@ -38,7 +38,7 @@ class AveragePooling(object):
             output_mask = tf.reduce_max(input_mask, axis=-1, keep_dims=True)
             input_mask = tf.expand_dims(input_mask, axis=-1)
             input_sum = tf.reduce_sum(input_data * input_mask, axis=-2)
-            input_count = tf.count_nonzero(input_mask, axis=-2)
+            input_count = tf.count_nonzero(input_mask, axis=-2, dtype=tf.float32)
             output_pool = 1.0 * input_sum / input_count
         
         return output_pool, output_mask
