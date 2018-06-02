@@ -25,10 +25,10 @@ def preprocess(file_name):
         json_content = json.load(file)
         for article in json_content["data"]:
             for paragraph in article["paragraphs"]:
-                context = paragraph["context"]
+                context = paragraph["context"].strip()
                 for qa in paragraph["qas"]:
                     qa_id = qa["id"]
-                    question = qa["question"]
+                    question = qa["question"].strip()
                     
                     processed_data = {
                         "id": qa_id,
@@ -38,7 +38,7 @@ def preprocess(file_name):
                     }
                     
                     for answer in qa["answers"]:
-                        answer_text = answer["text"]
+                        answer_text = answer["text"].strip()
                         answer_start = answer["answer_start"]
                         answer_word_start, answer_word_end = get_word_span(context,
                             answer_text, answer_start)
