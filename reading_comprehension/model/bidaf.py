@@ -399,6 +399,12 @@ class BiDAF(BaseModel):
         return TrainResult(loss=loss, learning_rate=learning_rate,
             global_step=global_step, batch_size=batch_size, summary=summary)
     
+    def softmax(self,
+                input_data,
+                input_mask):
+        """compute softmax"""
+        return np.exp(input_data) * input_mask / np.sum(np.exp(input_data) * input_mask, axis=-1, keepdims=True)
+    
     def infer(self,
               sess,
               word_embedding):
@@ -416,10 +422,12 @@ class BiDAF(BaseModel):
                     self.infer_answer_start_mask, self.infer_answer_end_mask, self.batch_size, self.infer_summary])
         
         max_length = self.hyperparams.data_max_context_length
+        answer_start = self.softmax(answer_start, answer_start_mask)
+        answer_end = self.softmax(answer_end, answer_end_mask)
         
         predict = np.full((batch_size, 2), -1)
         for k in range(batch_size):
-            curr_max_value = np.full((max_length), 0.0)
+            curr_max_value = np.full((max_length), float('-inf'))
             curr_max_span = np.full((max_length, 2), -1)
             
             start_max_length = np.count_nonzero(answer_start_mask[k, :])
@@ -437,13 +445,17 @@ class BiDAF(BaseModel):
             
             end_max_length = np.count_nonzero(answer_end_mask[k, :])
             for j in range(end_max_length):
-                curr_max_value[j] = curr_max_value[j] + answer_end[k, j]
+                curr_max_value[j] = curr_max_value[j] * answer_end[k, j]
                 curr_max_span[j, 1] = j
             
             index = np.argmax(curr_max_value)
             predict[k, :] = curr_max_span[index, :]
         
-        return InferResult(predict=predict, batch_size=batch_size, summary=summary)            
+        predict_start = np.expand_dims(answer_start, axis=1)
+        predict_end = np.expand_dims(answer_end, axis=1)
+        predict_detail = np.concatenate((predict_start, predict_end), axis=1)
+        
+        return InferResult(predict=predict, predict_detail=predict_detail, batch_size=batch_size, summary=summary)            
     
     def save(self,
              sess,

@@ -20,6 +20,8 @@ class EvalLogger(object):
                  output_dir):
         """extrinsic evaluation result"""
         self.extrinsic_eval = None
+        self.extrinsic_eval_detail = None
+        
         """extrinsic evaluation result"""
         self.decoding_eval = None
         
@@ -32,8 +34,13 @@ class EvalLogger(object):
     
     def update_extrinsic_eval(self,
                               eval_result_list):
-        """update evaluation logger based on extrinsic evaluation result"""
+        """update evaluation logger with extrinsic evaluation result"""
         self.extrinsic_eval = eval_result_list
+    
+    def update_extrinsic_eval_detail(self,
+                                     eval_result_detail):
+        """update evaluation logger with extrinsic evaluation result detail"""
+        self.extrinsic_eval_detail = eval_result_detail
     
     def check_extrinsic_eval(self):
         """check extrinsic evaluation result"""
@@ -43,9 +50,19 @@ class EvalLogger(object):
             self.log_writer.write("{0}\r\n".format(log_line))
             print(log_line)
     
+    def check_extrinsic_eval_detail(self,
+                                    eval_id):
+        """check extrinsic evaluation detail result"""
+        eval_detail_file = os.path.join(self.output_dir, "eval_{0}_{1}.detail".format(eval_id, time.time()))
+        with codecs.getwriter("utf-8")(tf.gfile.GFile(eval_detail_file, mode="w")) as eval_detail_writer:
+            if self.extrinsic_eval_detail is None:
+                return
+            for sample_output in self.extrinsic_eval_detail.sample_output:
+                eval_detail_writer.write("{0}\r\n".format(sample_output))
+    
     def update_decoding_eval(self,
                              eval_result_list):
-        """update evaluation logger based on decoding evaluation result"""
+        """update evaluation logger with decoding evaluation result"""
         self.decoding_eval = eval_result_list
     
     def check_decoding_eval(self):

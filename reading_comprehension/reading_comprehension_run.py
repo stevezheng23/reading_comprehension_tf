@@ -47,9 +47,12 @@ def extrinsic_eval(logger,
         except  tf.errors.OutOfRangeError:
             break
     
+    sample_output = []
     predict_text = []
     label_text = []
     for i in range(data_size):
+        sample_id = input_data[i]["id"]
+        
         start = predict_span[i][0]
         end = predict_span[i][1]
         context = context_data[i].split(" ")
@@ -61,17 +64,31 @@ def extrinsic_eval(logger,
             answer_text.append(answer["text"])
         
         label_text.append(answer_text)
+        sample_output.append({
+            "id": sample_id,
+            "predict": {
+                "text": predict,
+                "start": predict_span[i][0],
+                "end": predict_span[i][1]
+            },
+            "answers": input_data[i]["answers"]
+        })
     
     eval_result_list = []
     for metric in metric_list:
         score = evaluate_from_data(predict_text, label_text, metric)
         summary_writer.add_value_summary(metric, score, global_step)
         eval_result = ExtrinsicEvalLog(metric=metric,
-            score=score, sample_output=predict_text, sample_size=len(predict_text))
+            score=score, sample_output=None, sample_size=len(sample_output))
         eval_result_list.append(eval_result)
     
+    eval_result_detail = ExtrinsicEvalLog(metric="detail",
+        score=0.0, sample_output=sample_output, sample_size=len(sample_output))
+    
     logger.update_extrinsic_eval(eval_result_list)
+    logger.update_extrinsic_eval_detail(eval_result_detail)
     logger.check_extrinsic_eval()
+    logger.check_extrinsic_eval_detail(global_step)
 
 def decoding_eval(logger,
                   summary_writer,
@@ -235,7 +252,7 @@ def evaluate(logger,
         infer_model, infer_model.input_data, infer_model.input_question,
         infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
         hyperparams.train_decoding_sample_size, hyperparams.train_random_seed + global_step, global_step)
-
+    
     infer_summary_writer.close_writer()
     logger.log_print("##### finish evaluation #####")
 
