@@ -9,7 +9,7 @@ __all__ = ["RNN", "BiRNN"]
 def _create_single_reccurent_cell(unit_dim,
                                   cell_type,
                                   activation,
-                                  drop_out,
+                                  dropout,
                                   forget_bias,
                                   residual_connect,
                                   device_spec):
@@ -35,8 +35,8 @@ def _create_single_reccurent_cell(unit_dim,
     else:
         raise ValueError("unsupported cell type {0}".format(cell_type))
     
-    if drop_out > 0.0:
-        single_cell = tf.contrib.rnn.DropoutWrapper(cell=single_cell, input_keep_prob=1.0-drop_out)
+    if dropout > 0.0:
+        single_cell = tf.contrib.rnn.DropoutWrapper(cell=single_cell, input_keep_prob=1.0-dropout)
     
     if residual_connect == True:
         single_cell = tf.contrib.rnn.ResidualWrapper(cell=single_cell)
@@ -50,7 +50,7 @@ def _creat_recurrent_cell(num_layer,
                           unit_dim,
                           cell_type,
                           activation,
-                          drop_out,
+                          dropout,
                           forget_bias,
                           residual_connect,
                           num_gpus,
@@ -60,12 +60,12 @@ def _creat_recurrent_cell(num_layer,
         cell_list = []
         for i in range(num_layer):
             single_cell = _create_single_reccurent_cell(unit_dim, cell_type, activation,
-                drop_out, forget_bias, residual_connect, get_device_spec(default_gpu_id+i, num_gpus))
+                dropout, forget_bias, residual_connect, get_device_spec(default_gpu_id+i, num_gpus))
         cell_list.append(single_cell)
         cell = tf.contrib.rnn.MultiRNNCell(cell_list)
     else:
         cell = _create_single_reccurent_cell(unit_dim, cell_type, activation,
-            drop_out, forget_bias, residual_connect, get_device_spec(default_gpu_id, num_gpus))
+            dropout, forget_bias, residual_connect, get_device_spec(default_gpu_id, num_gpus))
     
     return cell
 
@@ -76,7 +76,7 @@ class RNN(object):
                  unit_dim,
                  cell_type,
                  activation,
-                 drop_out,
+                 dropout,
                  forget_bias=1.0,
                  residual_connect=False,
                  num_gpus=1,
@@ -88,7 +88,7 @@ class RNN(object):
         self.unit_dim = unit_dim
         self.cell_type = cell_type
         self.activation = activation
-        self.drop_out = drop_out
+        self.dropout = dropout
         self.forget_bias = forget_bias
         self.residual_connect = residual_connect
         self.num_gpus = num_gpus
@@ -98,7 +98,7 @@ class RNN(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.cell = _creat_recurrent_cell(self.num_layer,
-                self.unit_dim, self.cell_type, self.activation, self.drop_out,
+                self.unit_dim, self.cell_type, self.activation, self.dropout,
                 self.forget_bias, self.residual_connect, self.num_gpus, self.default_gpu_id)
     
     def __call__(self,
@@ -119,7 +119,7 @@ class BiRNN(object):
                  unit_dim,
                  cell_type,
                  activation,
-                 drop_out,
+                 dropout,
                  forget_bias=1.0,
                  residual_connect=False,
                  num_gpus=1,
@@ -131,7 +131,7 @@ class BiRNN(object):
         self.unit_dim = unit_dim
         self.cell_type = cell_type
         self.activation = activation
-        self.drop_out = drop_out
+        self.dropout = dropout
         self.forget_bias = forget_bias
         self.residual_connect = residual_connect
         self.num_gpus = num_gpus
@@ -141,10 +141,10 @@ class BiRNN(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.fwd_cell = _creat_recurrent_cell(self.num_layer,
-                self.unit_dim, self.cell_type, self.activation, self.drop_out,
+                self.unit_dim, self.cell_type, self.activation, self.dropout,
                 self.forget_bias, self.residual_connect, self.num_gpus, self.default_gpu_id)
             self.bwd_cell = _creat_recurrent_cell(self.num_layer,
-                self.unit_dim, self.cell_type, self.activation, self.drop_out,
+                self.unit_dim, self.cell_type, self.activation, self.dropout,
                 self.forget_bias, self.residual_connect, self.num_gpus, self.default_gpu_id)
     
     def __call__(self,

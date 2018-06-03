@@ -10,11 +10,13 @@ class Dense(object):
     def __init__(self,
                  unit_dim,
                  activation,
+                 dropout,
                  trainable=True,
                  scope="dense"):
         """initialize dense layer"""
         self.unit_dim = unit_dim
         self.activation = activation
+        self.dropout = dropout
         self.trainable = trainable
         self.scope = scope
         
@@ -29,6 +31,9 @@ class Dense(object):
                  input_data):
         """call dense layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            if self.dropout > 0.0:
+                input_data = tf.nn.dropout(input_data, 1.0-self.dropout)
+            
             output_dense = self.dense_layer(input_data)
         
         return output_dense
@@ -39,12 +44,14 @@ class StackedDense(object):
                  num_layer,
                  unit_dim,
                  activation,
+                 dropout,
                  trainable=True,
                  scope="stacked_dense"):
         """initialize stacked dense layer"""
         self.num_layer = num_layer
         self.unit_dim = unit_dim
         self.activation = activation
+        self.dropout = dropout
         self.trainable = trainable
         self.scope = scope
         
@@ -52,8 +59,8 @@ class StackedDense(object):
             self.dense_layer_list = []
             for i in range(num_layer):
                 layer_scope = "layer_{0}".format(i)
-                dense_layer = Dense(unit_dim=self.unit_dim,
-                    activation=self.activation, trainable=self.trainable, scope=layer_scope)
+                dense_layer = Dense(unit_dim=self.unit_dim, activation=self.activation,
+                    dropout=self.dropout, trainable=self.trainable, scope=layer_scope)
                 self.dense_layer_list.append(dense_layer)
     
     def __call__(self,
