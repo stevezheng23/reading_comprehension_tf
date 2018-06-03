@@ -167,6 +167,7 @@ class BiDAF(BaseModel):
         fusion_num_layer = self.hyperparams.model_interaction_fusion_num_layer
         fusion_unit_dim = self.hyperparams.model_interaction_fusion_unit_dim
         fusion_hidden_activation = self.hyperparams.model_interaction_fusion_hidden_activation
+        fusion_dropout = self.hyperparams.model_interaction_fusion_dropout
         fusion_trainable = self.hyperparams.model_interaction_fusion_trainable
         
         with tf.variable_scope("interaction", reuse=tf.AUTO_REUSE):
@@ -208,7 +209,7 @@ class BiDAF(BaseModel):
             answer_intermediate_unit_dim = question_understanding_unit_dim + context_understanding_unit_dim * 2
             answer_interaction, answer_interaction_mask = self._build_fusion_result(answer_intermediate_list,
                 answer_intermediate_mask_list, answer_intermediate_unit_dim, fusion_unit_dim, fusion_type,
-                fusion_num_layer, fusion_hidden_activation, fusion_trainable)
+                fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable)
         
         return answer_interaction, answer_interaction_mask
     
@@ -232,6 +233,7 @@ class BiDAF(BaseModel):
         fusion_num_layer = self.hyperparams.model_modeling_fusion_num_layer
         fusion_unit_dim = self.hyperparams.model_modeling_fusion_unit_dim
         fusion_hidden_activation = self.hyperparams.model_modeling_fusion_hidden_activation
+        fusion_dropout = self.hyperparams.model_modeling_fusion_dropout
         fusion_trainable = self.hyperparams.model_modeling_fusion_trainable
         
         with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE):
@@ -265,7 +267,7 @@ class BiDAF(BaseModel):
             answer_intermediate_unit_dim = answer_interaction_unit_dim + answer_modeling_unit_dim * 2
             answer_modeling, answer_modeling_mask = self._build_fusion_result(answer_intermediate_list,
                 answer_intermediate_mask_list, answer_intermediate_unit_dim, fusion_unit_dim, fusion_type,
-                fusion_num_layer, fusion_hidden_activation, fusion_trainable)
+                fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable)
         
         return answer_modeling, answer_modeling_mask
     
@@ -304,6 +306,7 @@ class BiDAF(BaseModel):
                 answer_start, _ = answer_start_layer(answer_modeling, answer_modeling_mask)
                 answer_start_mask = answer_modeling_mask
                 
+                answer_start = tf.nn.dropout(answer_start, 1.0-answer_start_dropout)
                 answer_start_output_layer = tf.layers.Dense(units=1, activation=None, trainable=answer_start_trainable)
                 answer_start_output = answer_start_output_layer(answer_start)
                 answer_start_output_mask = answer_start_mask
@@ -314,7 +317,7 @@ class BiDAF(BaseModel):
             
             with tf.variable_scope("end", reuse=tf.AUTO_REUSE):
                 answer_intermediate, answer_intermediate_mask = self._build_fusion_result(answer_intermediate_list,
-                    answer_intermediate_mask_list, 0, 0, "concate", 0, None, False)
+                    answer_intermediate_mask_list, 0, 0, "concate", 0, None, 0.0, False)
                 
                 answer_end_layer = create_recurrent_layer("bi", answer_end_num_layer,
                     answer_end_unit_dim, answer_end_cell_type, answer_end_hidden_activation,
@@ -323,6 +326,7 @@ class BiDAF(BaseModel):
                 answer_end, _ = answer_end_layer(answer_intermediate, answer_intermediate_mask)
                 answer_end_mask = answer_intermediate_mask
                 
+                answer_end = tf.nn.dropout(answer_end, 1.0-answer_end_dropout)
                 answer_end_output_layer = tf.layers.Dense(units=1, activation=None, trainable=answer_end_trainable)
                 answer_end_output = answer_end_output_layer(answer_end)
                 answer_end_output_mask = answer_end_mask

@@ -31,15 +31,16 @@ def create_convolution_layer(conv_type,
                              stride_size,
                              padding_type,
                              activation,
+                             dropout,
                              trainable):
     """create convolution layer"""
     scope = "conv/{0}".format(conv_type)
     if conv_type == "1d":
         conv_layer = Conv1D(num_filter=num_filter, window_size=window_size, stride_size=stride_size,
-            padding_type=padding_type, activation=activation, trainable=trainable, scope=scope)
+            padding_type=padding_type, activation=activation, dropout=dropout, trainable=trainable, scope=scope)
     elif conv_type == "2d":
         conv_layer = Conv2D(num_channel=num_channel, num_filter=num_filter, window_size=window_size, stride_size=stride_size,
-            padding_type=padding_type, activation=activation, trainable=trainable, scope=scope)
+            padding_type=padding_type, activation=activation, dropout=dropout, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported convolution type {0}".format(conv_type))
     
@@ -60,28 +61,30 @@ def create_pooling_layer(pooling_type):
 def create_dense_layer(num_layer,
                        unit_dim,
                        activation,
+                       dropout,
                        trainable):
     """create highway layer"""
     if num_layer > 1:
         dense_layer = Dense(unit_dim=unit_dim,
-            activation=activation, trainable=trainable, scope="dense")
+            activation=activation, dropout=dropout, trainable=trainable, scope="dense")
     else:
         dense_layer = StackedDense(num_layer=num_layer, unit_dim=unit_dim,
-            activation=activation, trainable=trainable, scope="stacked_dense")
+            activation=activation, dropout=dropout, trainable=trainable, scope="stacked_dense")
     
     return dense_layer
 
 def create_highway_layer(num_layer,
                          unit_dim,
                          activation,
+                         dropout,
                          trainable):
     """create highway layer"""
     if num_layer > 1:
         highway_layer = Highway(unit_dim=unit_dim,
-            activation=activation, trainable=trainable, scope="highway")
+            activation=activation, dropout=dropout, trainable=trainable, scope="highway")
     else:
         highway_layer = StackedHighway(num_layer=num_layer, unit_dim=unit_dim,
-            activation=activation, trainable=trainable, scope="stacked_highway")
+            activation=activation, dropout=dropout, trainable=trainable, scope="stacked_highway")
     
     return highway_layer
 
@@ -90,7 +93,7 @@ def create_recurrent_layer(recurrent_type,
                            unit_dim,
                            cell_type,
                            activation,
-                           drop_out,
+                           dropout,
                            forget_bias,
                            residual_connect,
                            num_gpus,
@@ -100,11 +103,11 @@ def create_recurrent_layer(recurrent_type,
     scope = "recurrent/{0}".format(recurrent_type)
     if recurrent_type == "uni":
         recurrent_layer = RNN(num_layer=num_layer, unit_dim=unit_dim, cell_type=cell_type,
-            activation=activation, drop_out=drop_out, forget_bias=forget_bias, residual_connect=residual_connect,
+            activation=activation, dropout=dropout, forget_bias=forget_bias, residual_connect=residual_connect,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif recurrent_type == "bi":
         recurrent_layer = BiRNN(num_layer=num_layer, unit_dim=unit_dim, cell_type=cell_type,
-            activation=activation, drop_out=drop_out, forget_bias=forget_bias, residual_connect=residual_connect,
+            activation=activation, dropout=dropout, forget_bias=forget_bias, residual_connect=residual_connect,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported recurrent type {0}".format(recurrent_type))

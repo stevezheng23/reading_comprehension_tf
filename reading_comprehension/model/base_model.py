@@ -55,6 +55,7 @@ class BaseModel(object):
                              fusion_type,
                              fusion_num_layer,
                              fusion_hidden_activation,
+                             fusion_dropout,
                              fusion_trainable,
                              scope=None):
         """build fusion layer for mrc base model"""
@@ -66,8 +67,8 @@ class BaseModel(object):
                 output_fusion = tf.concat(input_data_list, axis=-1)
             elif fusion_type == "dense":
                 input_data = tf.concat(input_data_list, axis=-1)
-                fusion_layer = create_dense_layer(fusion_num_layer,
-                    output_unit_dim, fusion_hidden_activation, fusion_trainable)
+                fusion_layer = create_dense_layer(fusion_num_layer, output_unit_dim,
+                    fusion_hidden_activation, fusion_dropout, fusion_trainable)
                 output_fusion = fusion_layer(input_data)
             elif fusion_type == "highway":
                 input_data = tf.concat(input_data_list, axis=-1)
@@ -76,8 +77,8 @@ class BaseModel(object):
                     convert_layer = tf.layers.Dense(units=output_unit_dim, activation=None, trainable=fusion_trainable)
                     input_data = convert_layer(input_data)
                 
-                fusion_layer = create_highway_layer(fusion_num_layer,
-                    output_unit_dim, fusion_hidden_activation, fusion_trainable)
+                fusion_layer = create_highway_layer(fusion_num_layer, output_unit_dim,
+                    fusion_hidden_activation, fusion_dropout, fusion_trainable)
                 output_fusion = fusion_layer(input_data)
             else:
                 raise ValueError("unsupported fusion type {0}".format(fusion_type))
@@ -115,6 +116,7 @@ class BaseModel(object):
                             subword_max_length,
                             subword_window_size,
                             subword_hidden_activation,
+                            subword_dropout,
                             subword_pooling_type):
         """build subword-level featurization for mrc base model"""
         with tf.variable_scope("feat/subword", reuse=tf.AUTO_REUSE):
@@ -126,7 +128,7 @@ class BaseModel(object):
             
             if self.subword_conv_layer == None:
                 self.subword_conv_layer = create_convolution_layer("2d", subword_embed_dim, subword_embed_dim,
-                    subword_window_size, 1, "SAME", subword_hidden_activation, subword_feat_trainable)
+                    subword_window_size, 1, "SAME", subword_hidden_activation, subword_dropout, subword_feat_trainable)
             
             input_subword_conv = self.subword_conv_layer(input_subword_embedding)
             
@@ -148,6 +150,7 @@ class BaseModel(object):
                          char_max_length,
                          char_window_size,
                          char_hidden_activation,
+                         char_dropout,
                          char_pooling_type):
         """build char-level featurization for mrc base model"""
         with tf.variable_scope("feat/char", reuse=tf.AUTO_REUSE):
@@ -159,7 +162,7 @@ class BaseModel(object):
             
             if self.char_conv_layer == None:
                 self.char_conv_layer = create_convolution_layer("2d", char_embed_dim, char_embed_dim,
-                    char_window_size, 1, "SAME", char_hidden_activation, char_feat_trainable)
+                    char_window_size, 1, "SAME", char_hidden_activation, char_dropout, char_feat_trainable)
             
             input_char_conv = self.char_conv_layer(input_char_embedding)
             
@@ -192,6 +195,7 @@ class BaseModel(object):
         subword_max_length = self.hyperparams.data_max_subword_length
         subword_window_size = self.hyperparams.model_representation_subword_window_size
         subword_hidden_activation = self.hyperparams.model_representation_subword_hidden_activation
+        subword_dropout = self.hyperparams.model_representation_subword_dropout
         subword_pooling_type = self.hyperparams.model_representation_subword_pooling_type
         subword_feat_enable = self.hyperparams.model_representation_subword_feat_enable
         char_vocab_size = self.hyperparams.data_char_vocab_size
@@ -200,12 +204,14 @@ class BaseModel(object):
         char_max_length = self.hyperparams.data_max_char_length
         char_window_size = self.hyperparams.model_representation_char_window_size
         char_hidden_activation = self.hyperparams.model_representation_char_hidden_activation
+        char_dropout = self.hyperparams.model_representation_char_dropout
         char_pooling_type = self.hyperparams.model_representation_char_pooling_type
         char_feat_enable = self.hyperparams.model_representation_char_feat_enable
         fusion_type = self.hyperparams.model_representation_fusion_type
         fusion_num_layer = self.hyperparams.model_representation_fusion_num_layer
         fusion_unit_dim = self.hyperparams.model_representation_fusion_unit_dim
         fusion_hidden_activation = self.hyperparams.model_representation_fusion_hidden_activation
+        fusion_dropout = self.hyperparams.model_representation_fusion_dropout
         fusion_trainable = self.hyperparams.model_representation_fusion_trainable
         
         with tf.variable_scope("representation", reuse=tf.AUTO_REUSE):
@@ -223,7 +229,7 @@ class BaseModel(object):
             if subword_feat_enable == True:
                 input_subword_feat, input_subword_feat_mask = self._build_subword_feat(input_subword, input_subword_mask,
                     subword_vocab_size, subword_embed_dim, subword_feat_trainable, subword_max_length,
-                    subword_window_size, subword_hidden_activation, subword_pooling_type)
+                    subword_window_size, subword_hidden_activation, subword_dropout, subword_pooling_type)
                 input_feat_list.append(input_subword_feat)
                 input_feat_mask_list.append(input_subword_feat_mask)
             else:
@@ -232,7 +238,7 @@ class BaseModel(object):
             if char_feat_enable == True:
                 input_char_feat, input_char_feat_mask = self._build_char_feat(input_char, input_char_mask,
                     char_vocab_size, char_embed_dim, char_feat_trainable, char_max_length,
-                    char_window_size, char_hidden_activation, char_pooling_type)
+                    char_window_size, char_hidden_activation, char_dropout, char_pooling_type)
                 input_feat_list.append(input_char_feat)
                 input_feat_mask_list.append(input_char_feat_mask)
             else:
@@ -244,7 +250,7 @@ class BaseModel(object):
         with tf.variable_scope(representation_scope, reuse=tf.AUTO_REUSE):
             input_feat, input_feat_mask = self._build_fusion_result(input_feat_list,
                 input_feat_mask_list, feat_embed_dim, fusion_unit_dim, fusion_type,
-                fusion_num_layer, fusion_hidden_activation, fusion_trainable, scope)
+                fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable, scope)
         
         return input_feat, input_feat_mask
     

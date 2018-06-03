@@ -10,11 +10,13 @@ class Highway(object):
     def __init__(self,
                  unit_dim,
                  activation,
+                 dropout,
                  trainable=True,
                  scope="highway"):
         """initialize highway layer"""
         self.unit_dim = unit_dim
         self.activation = activation
+        self.dropout = dropout
         self.trainable = trainable
         self.scope = scope
         
@@ -32,6 +34,9 @@ class Highway(object):
                  input_data):
         """call highway layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            if self.dropout > 0.0:
+                input_data = tf.nn.dropout(input_data, 1.0-self.dropout)
+            
             transform = self.transform_layer(input_data)
             gate = self.gate_layer(input_data)
             output_highway = transform * gate + input_data * (1 - gate)
@@ -44,12 +49,14 @@ class StackedHighway(object):
                  num_layer,
                  unit_dim,
                  activation,
+                 dropout,
                  trainable=True,
                  scope="stacked_highway"):
         """initialize stacked highway layer"""
         self.num_layer = num_layer
         self.unit_dim = unit_dim
         self.activation = activation
+        self.dropout = dropout
         self.trainable = trainable
         self.scope = scope
         
@@ -57,8 +64,8 @@ class StackedHighway(object):
             self.highway_layer_list = []
             for i in range(num_layer):
                 layer_scope = "layer_{0}".format(i)
-                highway_layer = Highway(unit_dim=self.unit_dim,
-                    activation=self.activation, trainable=self.trainable, scope=layer_scope)
+                highway_layer = Highway(unit_dim=self.unit_dim, activation=self.activation,
+                    dropout=self.dropout, trainable=self.trainable, scope=layer_scope)
                 self.highway_layer_list.append(highway_layer)
     
     def __call__(self,
