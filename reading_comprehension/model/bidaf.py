@@ -56,10 +56,8 @@ class BiDAF(BaseModel):
             
             if self.mode == "infer":
                 """get infer answer"""
-                self.infer_answer_start = tf.nn.softmax(tf.squeeze(
-                    self.answer_start_output * self.answer_start_output_mask), dim=-1)
-                self.infer_answer_end = tf.nn.softmax(tf.squeeze(
-                    self.answer_end_output * self.answer_end_output_mask), dim=-1)
+                self.infer_answer_start = tf.squeeze(self.answer_start_output * self.answer_start_output_mask)
+                self.infer_answer_end = tf.squeeze(self.answer_end_output * self.answer_end_output_mask)
                 self.infer_answer_start_mask = tf.squeeze(self.answer_start_output_mask)
                 self.infer_answer_end_mask = tf.squeeze(self.answer_end_output_mask)
                 
