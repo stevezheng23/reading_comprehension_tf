@@ -2,11 +2,30 @@ import argparse
 import codecs
 import json
 import os.path
+import string
+import re
 
 def add_arguments(parser):
     parser.add_argument("--format", help="format to generate", required=True)
     parser.add_argument("--input_file", help="path to input file", required=True)
     parser.add_argument("--output_file", help="path to output file", required=True)
+
+def normalize_answer(s):
+    """Lower text and remove punctuation, articles and extra whitespace."""
+    def remove_articles(text):
+        return re.sub(r'\b(a|an|the)\b', ' ', text)
+
+    def white_space_fix(text):
+        return ' '.join(text.split())
+
+    def remove_punc(text):
+        exclude = set(string.punctuation)
+        return ''.join(ch for ch in text if ch not in exclude)
+
+    def lower(text):
+        return text.lower()
+
+    return white_space_fix(remove_articles(remove_punc(lower(s))))
 
 def get_word_span(context, text, start):
     end = start + len(text)
@@ -26,27 +45,34 @@ def preprocess(file_name):
         for article in json_content["data"]:
             for paragraph in article["paragraphs"]:
                 context = paragraph["context"].strip()
+                norm_context = normalize_answer(context)
                 for qa in paragraph["qas"]:
                     qa_id = qa["id"]
                     question = qa["question"].strip()
+                    norm_question = normalize_answer(question)
                     
                     processed_data = {
                         "id": qa_id,
-                        "question": question,
-                        "context": context,
+                        "question": norm_question,
+                        "context": norm_context,
                         "answers": []
                     }
                     
                     for answer in qa["answers"]:
                         answer_text = answer["text"].strip()
+                        norm_answer_text = normalize_answer(answer_text)
+                        
                         answer_start = answer["answer_start"]
-                        answer_word_start, answer_word_end = get_word_span(context,
-                            answer_text, answer_start)
+                        norm_answer_start = len(normalize_answer(context[:answer_start]))
+                        norm_answer_start = norm_answer_start + 1 if norm_answer_start > 0 else norm_answer_start 
+                        
+                        norm_answer_word_start, norm_answer_word_end = get_word_span(norm_context,
+                            norm_answer_text, norm_answer_start)
                         
                         processed_data["answers"].append({
-                            "text": answer_text,
-                            "start": answer_word_start,
-                            "end": answer_word_end
+                            "text": norm_answer_text,
+                            "start": norm_answer_word_start,
+                            "end": norm_answer_word_end
                         })
                     
                     processed_data_list.append(processed_data)

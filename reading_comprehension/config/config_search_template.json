@@ -60,6 +60,11 @@
             "key": "hidden_activation",
             "dtype": "string"
         },
+        "model_representation_subword_dropout": {
+            "stype": "lookup",
+            "key": "dropout",
+            "dtype": "float"
+        },
         "model_representation_subword_pooling_type": {
             "stype": "lookup",
             "key": "pooling_type",
@@ -79,6 +84,11 @@
             "stype": "lookup",
             "key": "hidden_activation",
             "dtype": "string"
+        },
+        "model_representation_char_dropout": {
+            "stype": "lookup",
+            "key": "dropout",
+            "dtype": "float"
         },
         "model_representation_char_pooling_type": {
             "stype": "lookup",
@@ -101,6 +111,11 @@
             "stype": "lookup",
             "key": "hidden_activation",
             "dtype": "string"
+        },
+        "model_representation_fusion_dropout": {
+            "stype": "lookup",
+            "key": "dropout",
+            "dtype": "float"
         },
         "model_understanding_question_num_layer": {
             "stype": "lookup",
@@ -197,6 +212,11 @@
             "key": "hidden_activation",
             "dtype": "string"
         },
+        "model_interaction_fusion_dropout": {
+            "stype": "lookup",
+            "key": "dropout",
+            "dtype": "float"
+        },
         "model_modeling_answer_num_layer": {
             "stype": "lookup",
             "key": "num_layer",
@@ -252,6 +272,11 @@
             "stype": "lookup",
             "key": "hidden_activation",
             "dtype": "string"
+        },
+        "model_modeling_fusion_dropout": {
+            "stype": "lookup",
+            "key": "dropout",
+            "dtype": "float"
         },
         "model_output_answer_start_num_layer": {
             "stype": "lookup",
