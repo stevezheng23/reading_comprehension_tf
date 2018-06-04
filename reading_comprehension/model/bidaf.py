@@ -56,10 +56,12 @@ class BiDAF(BaseModel):
             
             if self.mode == "infer":
                 """get infer answer"""
-                self.infer_answer_start = tf.squeeze(self.answer_start_output * self.answer_start_output_mask)
-                self.infer_answer_end = tf.squeeze(self.answer_end_output * self.answer_end_output_mask)
                 self.infer_answer_start_mask = tf.squeeze(self.answer_start_output_mask)
                 self.infer_answer_end_mask = tf.squeeze(self.answer_end_output_mask)
+                self.infer_answer_start = softmax_with_mask(tf.squeeze(self.answer_start_output),
+                    self.infer_answer_start_mask, axis=-1)
+                self.infer_answer_end = softmax_with_mask(tf.squeeze(self.answer_end_output),
+                    self.infer_answer_end_mask, axis=-1)
                 
                 """create infer summary"""
                 self.infer_summary = self._get_infer_summary()
@@ -191,12 +193,12 @@ class BiDAF(BaseModel):
             with tf.variable_scope("question2context", reuse=tf.AUTO_REUSE):
                 if quesiton2context_interaction_enable == True:
                     self.logger.log_print("# build question2context interaction layer for bidaf model")
-                    quesiton2context_attention_layer = create_attention_layer("max_att", context_understanding_unit_dim,
-                        question_understanding_unit_dim, quesiton2context_interaction_attention_dim,
+                    quesiton2context_attention_layer = create_attention_layer("max_att", question_understanding_unit_dim,
+                        context_understanding_unit_dim, quesiton2context_interaction_attention_dim,
                         quesiton2context_interaction_score_type, quesiton2context_interaction_trainable)
                     
-                    quesiton2context_interaction = quesiton2context_attention_layer(context_understanding,
-                        question_understanding, context_understanding_mask, question_understanding_mask)
+                    quesiton2context_interaction = quesiton2context_attention_layer(question_understanding,
+                        context_understanding, question_understanding_mask, context_understanding_mask)
                     quesiton2context_interaction_mask = context_understanding_mask
                     
                     answer_intermediate_list.append(quesiton2context_interaction)
@@ -401,12 +403,6 @@ class BiDAF(BaseModel):
         return TrainResult(loss=loss, learning_rate=learning_rate,
             global_step=global_step, batch_size=batch_size, summary=summary)
     
-    def softmax(self,
-                input_data,
-                input_mask):
-        """compute softmax"""
-        return np.exp(input_data) * input_mask / np.sum(np.exp(input_data) * input_mask, axis=-1, keepdims=True)
-    
     def infer(self,
               sess,
               word_embedding):
@@ -424,8 +420,8 @@ class BiDAF(BaseModel):
                     self.infer_answer_start_mask, self.infer_answer_end_mask, self.batch_size, self.infer_summary])
         
         max_length = self.hyperparams.data_max_context_length
-        answer_start = self.softmax(answer_start, answer_start_mask)
-        answer_end = self.softmax(answer_end, answer_end_mask)
+        answer_start = answer_start * answer_start_mask
+        answer_end = answer_end * answer_end_mask
         
         predict = np.full((batch_size, 2), -1)
         for k in range(batch_size):

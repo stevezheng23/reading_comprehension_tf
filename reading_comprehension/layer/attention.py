@@ -100,6 +100,26 @@ def _generate_additive_attention_score(input_src_data,
     
     return input_attention
 
+def _generate_attention_mask(input_src_mask,
+                             input_trg_mask,
+                             remove_diag=False):
+    """generate attention mask"""
+    input_src_shape = tf.shape(input_src_mask)
+    input_trg_shape = tf.shape(input_trg_mask)
+    batch_size = input_src_shape[0]
+    src_max_length = input_src_shape[1]
+    trg_max_length = input_trg_shape[1]
+    input_src_mask = tf.expand_dims(input_src_mask, axis=2)
+    input_trg_mask = tf.expand_dims(input_trg_mask, axis=1)
+    input_src_mask = tf.tile(input_src_mask, multiples=[1, 1, trg_max_length, 1])
+    input_trg_mask = tf.tile(input_trg_mask, multiples=[1, src_max_length, 1, 1])
+    input_mask = input_src_mask * input_trg_mask
+    input_mask = tf.squeeze(input_mask, axis=-1)
+    if remove_diag == True:
+        input_mask = input_mask * (1 - tf.eye(src_max_length, trg_max_length))
+    
+    return input_mask
+
 class Attention(object):
     """attention layer"""
     def __init__(self,
@@ -132,7 +152,9 @@ class Attention(object):
             input_trg_data = input_trg_data * input_trg_mask
             input_attention_score = _generate_attention_score(input_src_data,
                 input_trg_data, self.attention_matrix, self.score_type)
-            input_attention_weight = tf.nn.softmax(input_attention_score, dim=1)
+            input_attention_mask = _generate_attention_mask(input_src_mask, input_trg_mask, False)
+            input_attention_weight = softmax_with_mask(input_attention_score,
+                input_attention_mask, axis=-1, keepdims=True)
             output_attention = tf.matmul(input_attention_weight, input_trg_data)
         
         return output_attention
@@ -172,12 +194,14 @@ class MaxAttention(object):
             input_trg_data = input_trg_data * input_trg_mask
             input_attention_score = _generate_attention_score(input_src_data,
                 input_trg_data, self.attention_matrix, self.score_type)
-            input_attention_score = tf.reduce_max(input_attention_score, axis=-1)
-            input_attention_weight = tf.nn.softmax(input_attention_score, dim=-1)
-            input_attention_weight = tf.expand_dims(input_attention_weight, axis=-2)
-            output_attention = tf.matmul(input_attention_weight, input_src_data)
-            src_max_length = tf.shape(input_src_data)[1]
-            output_attention = tf.tile(output_attention, multiples=[1, src_max_length, 1])
+            input_attention_mask = _generate_attention_mask(input_src_mask, input_trg_mask, False)
+            input_attention_score = tf.reduce_max(input_attention_score, axis=-2, keep_dims=True)
+            input_attention_mask = tf.reduce_max(input_attention_mask, axis=-2, keep_dims=True)
+            input_attention_weight = softmax_with_mask(input_attention_score,
+                input_attention_mask, axis=-1, keepdims=True)
+            output_attention = tf.matmul(input_attention_weight, input_trg_data)
+            trg_max_length = tf.shape(input_trg_data)[1]
+            output_attention = tf.tile(output_attention, multiples=[1, trg_max_length, 1])
         
         return output_attention
 
@@ -213,13 +237,9 @@ class SelfAttention(object):
             input_trg_data = input_trg_data * input_trg_mask
             input_attention_score = _generate_attention_score(input_src_data,
                 input_trg_data, self.attention_matrix, self.score_type)
-            input_src_shape = tf.shape(input_src_data)
-            input_trg_shape = tf.shape(input_trg_data)
-            src_max_length = input_src_shape[1]
-            trg_max_length = input_trg_shape[1]
-            input_attention_mask = 1 - tf.eye(src_max_length, trg_max_length)
-            input_attention_score = input_attention_score * input_attention_mask
-            input_attention_weight = tf.nn.softmax(input_attention_score, dim=1)
+            input_attention_mask = _generate_attention_mask(input_src_mask, input_trg_mask, True)
+            input_attention_weight = softmax_with_mask(input_attention_score,
+                input_attention_mask, axis=-1, keepdims=True)
             output_attention = tf.matmul(input_attention_weight, input_trg_data)
         
         return output_attention
