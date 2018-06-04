@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-__all__ = ["create_variable_initializer", "create_weight_regularizer", "create_activation_function"]
+__all__ = ["create_variable_initializer", "create_weight_regularizer", "create_activation_function", "softmax_with_mask"]
 
 def create_variable_initializer(initializer_type,
                                 random_seed=None,
@@ -52,3 +52,10 @@ def create_activation_function(activation):
         activation_function = None
     
     return activation_function
+
+def softmax_with_mask(input_data,
+                      input_mask,
+                      axis=-1,
+                      keepdims=True):
+    """compute softmax with masking"""
+    return (tf.exp(input_data) * input_mask) / (tf.reduce_sum(tf.exp(input_data) * input_mask, axis=axis, keep_dims=keepdims) + 1e-17)
