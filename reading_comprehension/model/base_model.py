@@ -4,6 +4,7 @@ import os.path
 import numpy as np
 import tensorflow as tf
 
+from util.default_util import *
 from util.reading_comprehension_util import *
 from util.layer_util import *
 
@@ -35,6 +36,7 @@ class BaseModel(object):
         self.batch_size = tf.size(tf.reduce_max(self.data_pipeline.input_answer_mask, axis=-2))
         self.num_gpus = self.hyperparams.device_num_gpus
         self.default_gpu_id = self.hyperparams.device_default_gpu_id
+        self.device_spec = get_device_spec(self.default_gpu_id, self.num_gpus)
         self.logger.log_print("# {0} gpus are used with default gpu id set as {1}"
             .format(self.num_gpus, self.default_gpu_id))
         
@@ -60,15 +62,15 @@ class BaseModel(object):
                              scope=None):
         """build fusion layer for mrc base model"""
         fusion_scope = "fusion" if scope == None else "{0}/fusion".format(scope)
-        with tf.variable_scope(fusion_scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(fusion_scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             output_fusion_mask = tf.reduce_max(tf.concat(input_mask_list, axis=-1), axis=-1, keep_dims=True)
             
             if fusion_type == "concate":
                 output_fusion = tf.concat(input_data_list, axis=-1)
             elif fusion_type == "dense":
                 input_data = tf.concat(input_data_list, axis=-1)
-                fusion_layer = create_dense_layer(fusion_num_layer, output_unit_dim,
-                    fusion_hidden_activation, fusion_dropout, fusion_trainable)
+                fusion_layer = create_dense_layer(fusion_num_layer, output_unit_dim, fusion_hidden_activation,
+                    fusion_dropout, self.num_gpus, self.default_gpu_id, fusion_trainable)
                 output_fusion = fusion_layer(input_data)
             elif fusion_type == "highway":
                 input_data = tf.concat(input_data_list, axis=-1)
@@ -77,8 +79,8 @@ class BaseModel(object):
                     convert_layer = tf.layers.Dense(units=output_unit_dim, activation=None, trainable=fusion_trainable)
                     input_data = convert_layer(input_data)
                 
-                fusion_layer = create_highway_layer(fusion_num_layer, output_unit_dim,
-                    fusion_hidden_activation, fusion_dropout, fusion_trainable)
+                fusion_layer = create_highway_layer(fusion_num_layer, output_unit_dim, fusion_hidden_activation,
+                    fusion_dropout, self.num_gpus, self.default_gpu_id, fusion_trainable)
                 output_fusion = fusion_layer(input_data)
             else:
                 raise ValueError("unsupported fusion type {0}".format(fusion_type))
@@ -93,10 +95,10 @@ class BaseModel(object):
                          word_embed_pretrained,
                          word_feat_trainable):
         """build word-level featurization for mrc base model"""
-        with tf.variable_scope("feat/word", reuse=tf.AUTO_REUSE):
+        with tf.variable_scope("feat/word", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if self.word_embedding_layer == None:
                 self.word_embedding_layer = create_embedding_layer(word_vocab_size,
-                    word_embed_dim, word_embed_pretrained, word_feat_trainable)
+                    word_embed_dim, word_embed_pretrained, 0, 0, word_feat_trainable)
             
             if self.word_embedding_placeholder == None:
                 self.word_embedding_placeholder = self.word_embedding_layer.get_embedding_placeholder()
@@ -119,21 +121,22 @@ class BaseModel(object):
                             subword_dropout,
                             subword_pooling_type):
         """build subword-level featurization for mrc base model"""
-        with tf.variable_scope("feat/subword", reuse=tf.AUTO_REUSE):
+        with tf.variable_scope("feat/subword", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if self.subword_embedding_layer == None:
                 self.subword_embedding_layer = create_embedding_layer(subword_vocab_size,
-                    subword_embed_dim, False, subword_feat_trainable)
+                    subword_embed_dim, False, 0, 0, subword_feat_trainable)
             
             input_subword_embedding = self.subword_embedding_layer(input_subword)
             
             if self.subword_conv_layer == None:
-                self.subword_conv_layer = create_convolution_layer("2d", subword_embed_dim, subword_embed_dim,
-                    subword_window_size, 1, "SAME", subword_hidden_activation, subword_dropout, subword_feat_trainable)
+                self.subword_conv_layer = create_convolution_layer("2d", subword_embed_dim,
+                    subword_embed_dim, subword_window_size, 1, "SAME", subword_hidden_activation, 
+                    subword_dropout, self.num_gpus, self.default_gpu_id, subword_feat_trainable)
             
             input_subword_conv = self.subword_conv_layer(input_subword_embedding)
             
             if self.subword_pooling_layer == None:
-                subword_pooling_layer = create_pooling_layer(subword_pooling_type)
+                subword_pooling_layer = create_pooling_layer(subword_pooling_type, 0, 0)
             
             input_subword_pool, input_subword_pool_mask = self.subword_pooling_layer(input_subword_conv, input_subword_mask)
             input_subword_feat = input_subword_pool
@@ -153,21 +156,22 @@ class BaseModel(object):
                          char_dropout,
                          char_pooling_type):
         """build char-level featurization for mrc base model"""
-        with tf.variable_scope("feat/char", reuse=tf.AUTO_REUSE):
+        with tf.variable_scope("feat/char", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if self.char_embedding_layer == None:
                 self.char_embedding_layer = create_embedding_layer(char_vocab_size,
-                    char_embed_dim, False, char_feat_trainable)
+                    char_embed_dim, False, 0, 0, char_feat_trainable)
             
             input_char_embedding = self.char_embedding_layer(input_char)
             
             if self.char_conv_layer == None:
-                self.char_conv_layer = create_convolution_layer("2d", char_embed_dim, char_embed_dim,
-                    char_window_size, 1, "SAME", char_hidden_activation, char_dropout, char_feat_trainable)
+                self.char_conv_layer = create_convolution_layer("2d", char_embed_dim,
+                    char_embed_dim, char_window_size, 1, "SAME", char_hidden_activation,
+                    char_dropout, self.num_gpus, self.default_gpu_id, char_feat_trainable)
             
             input_char_conv = self.char_conv_layer(input_char_embedding)
             
             if self.char_pooling_layer == None:
-                self.char_pooling_layer = create_pooling_layer(char_pooling_type)
+                self.char_pooling_layer = create_pooling_layer(char_pooling_type, 0, 0)
             
             input_char_pool, input_char_pool_mask = self.char_pooling_layer(input_char_conv, input_char_mask)
             input_char_feat = input_char_pool
@@ -214,7 +218,7 @@ class BaseModel(object):
         fusion_dropout = self.hyperparams.model_representation_fusion_dropout
         fusion_trainable = self.hyperparams.model_representation_fusion_trainable
         
-        with tf.variable_scope("representation", reuse=tf.AUTO_REUSE):
+        with tf.variable_scope("representation", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_feat_list = []
             input_feat_mask_list = []
             if word_feat_enable == True:
@@ -247,7 +251,7 @@ class BaseModel(object):
             feat_embed_dim = word_embed_dim + subword_embed_dim + char_embed_dim
         
         representation_scope = "representation" if scope == None else "{0}/representation".format(scope)
-        with tf.variable_scope(representation_scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(representation_scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_feat, input_feat_mask = self._build_fusion_result(input_feat_list,
                 input_feat_mask_list, feat_embed_dim, fusion_unit_dim, fusion_type,
                 fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable, scope)

@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
+from util.default_util import *
 from util.reading_comprehension_util import *
 
 __all__ = ["Highway", "StackedHighway"]
@@ -11,6 +12,8 @@ class Highway(object):
                  unit_dim,
                  activation,
                  dropout,
+                 num_gpus=1,
+                 default_gpu_id=0,
                  trainable=True,
                  scope="highway"):
         """initialize highway layer"""
@@ -19,8 +22,9 @@ class Highway(object):
         self.dropout = dropout
         self.trainable = trainable
         self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             weight_initializer = create_variable_initializer("glorot_uniform")
             bias_initializer = create_variable_initializer("glorot_uniform")
             transform_activation = create_activation_function(self.activation)
@@ -33,7 +37,7 @@ class Highway(object):
     def __call__(self,
                  input_data):
         """call highway layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if self.dropout > 0.0:
                 input_data = tf.nn.dropout(input_data, 1.0-self.dropout)
             
@@ -50,6 +54,8 @@ class StackedHighway(object):
                  unit_dim,
                  activation,
                  dropout,
+                 num_gpus=1,
+                 default_gpu_id=0,
                  trainable=True,
                  scope="stacked_highway"):
         """initialize stacked highway layer"""
@@ -57,6 +63,8 @@ class StackedHighway(object):
         self.unit_dim = unit_dim
         self.activation = activation
         self.dropout = dropout
+        self.num_gpus = num_gpus
+        self.default_gpu_id = default_gpu_id
         self.trainable = trainable
         self.scope = scope
         
@@ -64,8 +72,8 @@ class StackedHighway(object):
             self.highway_layer_list = []
             for i in range(num_layer):
                 layer_scope = "layer_{0}".format(i)
-                highway_layer = Highway(unit_dim=self.unit_dim, activation=self.activation,
-                    dropout=self.dropout, trainable=self.trainable, scope=layer_scope)
+                highway_layer = Highway(unit_dim=self.unit_dim, activation=self.activation, dropout=self.dropout,
+                    num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
                 self.highway_layer_list.append(highway_layer)
     
     def __call__(self,

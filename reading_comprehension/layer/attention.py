@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
+from util.default_util import *
 from util.reading_comprehension_util import *
 
 __all__ = ["Attention", "MaxAttention", "SelfAttention"]
@@ -127,6 +128,8 @@ class Attention(object):
                  trg_dim,
                  unit_dim,
                  score_type,
+                 num_gpus=1,
+                 default_gpu_id=0,
                  trainable=True,
                  scope="attention"):
         """initialize attention layer"""
@@ -136,8 +139,9 @@ class Attention(object):
         self.score_type = score_type
         self.trainable = trainable
         self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.attention_matrix = _create_attention_matrix(self.src_dim,
                 self.trg_dim, self.unit_dim, self.score_type)
     
@@ -147,7 +151,7 @@ class Attention(object):
                  input_src_mask,
                  input_trg_mask):
         """call attention layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_src_data = input_src_data * input_src_mask
             input_trg_data = input_trg_data * input_trg_mask
             input_attention_score = _generate_attention_score(input_src_data,
@@ -169,6 +173,8 @@ class MaxAttention(object):
                  trg_dim,
                  unit_dim,
                  score_type,
+                 num_gpus=1,
+                 default_gpu_id=0,
                  trainable=True,
                  scope="max_att"):
         """initialize max-attention layer"""       
@@ -178,8 +184,9 @@ class MaxAttention(object):
         self.score_type = score_type
         self.trainable = trainable
         self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.attention_matrix = _create_attention_matrix(self.src_dim,
                 self.trg_dim, self.unit_dim, self.score_type)
     
@@ -189,7 +196,7 @@ class MaxAttention(object):
                  input_src_mask,
                  input_trg_mask):
         """call max-attention layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_src_data = input_src_data * input_src_mask
             input_trg_data = input_trg_data * input_trg_mask
             input_attention_score = _generate_attention_score(input_src_data,
@@ -212,6 +219,8 @@ class SelfAttention(object):
                  trg_dim,
                  unit_dim,
                  score_type,
+                 num_gpus=1,
+                 default_gpu_id=0,
                  trainable=True,
                  scope="self_att"):
         """initialize self-attention layer"""
@@ -221,8 +230,9 @@ class SelfAttention(object):
         self.score_type = score_type
         self.trainable = trainable
         self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.attention_matrix = _create_attention_matrix(self.src_dim,
                 self.trg_dim, self.unit_dim, self.score_type)
     
@@ -232,7 +242,7 @@ class SelfAttention(object):
                  input_src_mask,
                  input_trg_mask):
         """call self-attention layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_src_data = input_src_data * input_src_mask
             input_trg_data = input_trg_data * input_trg_mask
             input_attention_score = _generate_attention_score(input_src_data,
