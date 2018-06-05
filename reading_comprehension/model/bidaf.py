@@ -50,19 +50,19 @@ class BiDAF(BaseModel):
                 answer_end_output_mask) = self._build_graph(question_word, question_word_mask,
                     question_subword, question_subword_mask, question_char, question_char_mask,
                     context_word, context_word_mask, context_subword, context_subword_mask, context_char, context_char_mask)
-            self.answer_start_output = answer_start_output
-            self.answer_end_output = answer_end_output
-            self.answer_start_output_mask = answer_start_output_mask
-            self.answer_end_output_mask = answer_end_output_mask
+            self.answer_start_mask = tf.squeeze(answer_start_output_mask)
+            self.answer_end_mask = tf.squeeze(answer_end_output_mask)
+            self.answer_start = softmax_with_mask(tf.squeeze(answer_start_output),
+                self.answer_start_mask, axis=-1)
+            self.answer_end = softmax_with_mask(tf.squeeze(answer_end_output),
+                self.answer_end_mask, axis=-1)
             
             if self.mode == "infer":
                 """get infer answer"""
-                self.infer_answer_start_mask = tf.squeeze(self.answer_start_output_mask)
-                self.infer_answer_end_mask = tf.squeeze(self.answer_end_output_mask)
-                self.infer_answer_start = softmax_with_mask(tf.squeeze(self.answer_start_output),
-                    self.infer_answer_start_mask, axis=-1)
-                self.infer_answer_end = softmax_with_mask(tf.squeeze(self.answer_end_output),
-                    self.infer_answer_end_mask, axis=-1)
+                self.infer_answer_start_mask = self.answer_start_mask
+                self.infer_answer_end_mask = self.answer_end_mask
+                self.infer_answer_start = self.answer_start
+                self.infer_answer_end = self.answer_end
                 
                 """create infer summary"""
                 self.infer_summary = self._get_infer_summary()
@@ -72,21 +72,9 @@ class BiDAF(BaseModel):
                 self.logger.log_print("# setup loss computation mechanism")
                 answer_start_result = answer_result[:,0,:]
                 answer_end_result = answer_result[:,1,:]
-                start_loss = self._compute_loss(answer_start_result,
-                    self.answer_start_output, self.answer_start_output_mask)
-                end_loss = self._compute_loss(answer_end_result,
-                    self.answer_end_output, self.answer_end_output_mask)
+                start_loss = self._compute_loss(answer_start_result, self.answer_start, self.answer_start_mask)
+                end_loss = self._compute_loss(answer_end_result, self.answer_end, self.answer_end_mask)
                 self.train_loss = start_loss + end_loss
-                self.start_loss = start_loss
-                self.end_loss = end_loss
-                self.answer_start_result = answer_start_result
-                self.answer_end_result = answer_end_result
-                self.train_answer_start_mask = tf.squeeze(self.answer_start_output_mask)
-                self.train_answer_end_mask = tf.squeeze(self.answer_end_output_mask)
-                self.train_answer_start_predict = tf.nn.softmax(tf.squeeze(self.answer_start_output), dim=-1)
-                self.train_answer_end_predict = tf.nn.softmax(tf.squeeze(self.answer_end_output), dim=-1)
-                self.train_answer_start_output = tf.squeeze(self.answer_start_output)
-                self.train_answer_end_output = tf.squeeze(self.answer_end_output)
                 
                 """apply learning rate decay"""
                 self.logger.log_print("# setup learning rate decay mechanism")
@@ -390,10 +378,9 @@ class BiDAF(BaseModel):
                       logit,
                       logit_mask):
         """compute optimization loss"""
-        label = tf.squeeze(label)
-        logit = tf.squeeze(logit * logit_mask)
-        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=label, logits=logit)
-        loss = tf.reduce_sum(cross_entropy) / tf.to_float(self.batch_size)
+        logit = tf.squeeze(-1.0 * tf.log(logit * logit_mask + EPSILON) * logit_mask)
+        label = tf.one_hot(tf.squeeze(label), depth=tf.shape(logit)[1], on_value=1.0, off_value=0.0, dtype=tf.float32)
+        loss = tf.reduce_sum(logit * label) / tf.to_float(self.batch_size)
         
         return loss
     
@@ -404,26 +391,12 @@ class BiDAF(BaseModel):
         word_embed_pretrained = self.hyperparams.model_representation_word_embed_pretrained
         
         if word_embed_pretrained == True:
-            (_, start_loss, end_loss, answer_start_result, answer_end_result,
-            answer_start_output, answer_end_output, answer_start_predict, answer_end_predict,
-            loss, learning_rate, global_step, batch_size, summary) = sess.run([self.update_model,
-                self.start_loss, self.end_loss, self.answer_start_result, self.answer_end_result,
-                self.train_answer_start_output, self.train_answer_end_output,
-                self.train_answer_start_predict, self.train_answer_end_predict,
+            (_, loss, learning_rate, global_step, batch_size, summary) = sess.run([self.update_model,
                 self.train_loss, self.decayed_learning_rate, self.global_step, self.batch_size, self.train_summary],
                 feed_dict={self.word_embedding_placeholder: word_embedding})
         else:
             _, loss, learning_rate, global_step, batch_size, summary = sess.run([self.update_model,
                 self.train_loss, self.decayed_learning_rate, self.global_step, self.batch_size, self.train_summary])
-        
-        print(start_loss)
-        print(end_loss)
-        print(answer_start_result)
-        print(answer_start_output)
-        print(answer_start_predict)
-        print(answer_end_result)
-        print(answer_end_output)
-        print(answer_end_predict)
         
         return TrainResult(loss=loss, learning_rate=learning_rate,
             global_step=global_step, batch_size=batch_size, summary=summary)
