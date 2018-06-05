@@ -35,17 +35,22 @@ class Highway(object):
                 kernel_initializer=weight_initializer, bias_initializer=bias_initializer, trainable=self.trainable)
     
     def __call__(self,
-                 input_data):
+                 input_data,
+                 input_mask):
         """call highway layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            input_data = input_data * input_mask
+            output_mask = input_mask
+            
             if self.dropout > 0.0:
                 input_data = tf.nn.dropout(input_data, 1.0-self.dropout)
             
             transform = self.transform_layer(input_data)
             gate = self.gate_layer(input_data)
             output_highway = transform * gate + input_data * (1 - gate)
+            output_highway = output_highway * output_mask
         
-        return output_highway
+        return output_highway, output_mask
 
 class StackedHighway(object):
     """stacked highway layer"""
@@ -77,13 +82,15 @@ class StackedHighway(object):
                 self.highway_layer_list.append(highway_layer)
     
     def __call__(self,
-                 input_data):
+                 input_data,
+                 input_mask):
         """call stacked highway layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             input_highway = input_data
             for highway_layer in self.highway_layer_list:
-                input_highway = highway_layer(input_highway)
+                input_highway, input_mask = highway_layer(input_highway, input_mask)
             
             output_highway = input_highway
+            output_mask = input_mask
         
-        return output_highway
+        return output_highway, output_mask

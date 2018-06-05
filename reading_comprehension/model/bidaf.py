@@ -77,6 +77,16 @@ class BiDAF(BaseModel):
                 end_loss = self._compute_loss(answer_end_result,
                     self.answer_end_output, self.answer_end_output_mask)
                 self.train_loss = start_loss + end_loss
+                self.start_loss = start_loss
+                self.end_loss = end_loss
+                self.answer_start_result = answer_start_result
+                self.answer_end_result = answer_end_result
+                self.train_answer_start_mask = tf.squeeze(self.answer_start_output_mask)
+                self.train_answer_end_mask = tf.squeeze(self.answer_end_output_mask)
+                self.train_answer_start_predict = tf.nn.softmax(tf.squeeze(self.answer_start_output), dim=-1)
+                self.train_answer_end_predict = tf.nn.softmax(tf.squeeze(self.answer_end_output), dim=-1)
+                self.train_answer_start_output = tf.squeeze(self.answer_start_output)
+                self.train_answer_end_output = tf.squeeze(self.answer_end_output)
                 
                 """apply learning rate decay"""
                 self.logger.log_print("# setup learning rate decay mechanism")
@@ -133,8 +143,7 @@ class BiDAF(BaseModel):
                     question_understanding_dropout, question_understanding_forget_bias, question_understanding_residual_connect,
                     self.num_gpus, self.default_gpu_id, question_understanding_trainable)
                 
-                question_understanding, _ = question_understanding_layer(question_feat, question_feat_mask)
-                question_understanding_mask = question_feat_mask
+                question_understanding, question_understanding_mask = question_understanding_layer(question_feat, question_feat_mask)
             
             with tf.variable_scope("context", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
                 self.logger.log_print("# build context understanding layer for bidaf model")
@@ -143,8 +152,7 @@ class BiDAF(BaseModel):
                     context_understanding_dropout, context_understanding_forget_bias, context_understanding_residual_connect,
                     self.num_gpus, self.default_gpu_id, context_understanding_trainable)
                 
-                context_understanding, _ = context_understanding_layer(context_feat, context_feat_mask)
-                context_understanding_mask = context_feat_mask
+                context_understanding, context_understanding_mask = context_understanding_layer(context_feat, context_feat_mask)
         
         return question_understanding, context_understanding, question_understanding_mask, context_understanding_mask
     
@@ -183,9 +191,9 @@ class BiDAF(BaseModel):
                         context2quesiton_interaction_attention_dim, context2quesiton_interaction_score_type,
                         self.num_gpus, self.default_gpu_id, context2quesiton_interaction_trainable)
                     
-                    context2quesiton_interaction = context2quesiton_attention_layer(context_understanding,
-                        question_understanding, context_understanding_mask, question_understanding_mask)
-                    context2quesiton_interaction_mask = context_understanding_mask
+                    (context2quesiton_interaction,
+                        context2quesiton_interaction_mask) = context2quesiton_attention_layer(context_understanding,
+                            question_understanding, context_understanding_mask, question_understanding_mask)
                     
                     answer_intermediate_list.append(context2quesiton_interaction)
                     answer_intermediate_mask_list.append(context2quesiton_interaction_mask)
@@ -200,9 +208,9 @@ class BiDAF(BaseModel):
                         quesiton2context_interaction_attention_dim, quesiton2context_interaction_score_type,
                         self.num_gpus, self.default_gpu_id, quesiton2context_interaction_trainable)
                     
-                    quesiton2context_interaction = quesiton2context_attention_layer(question_understanding,
-                        context_understanding, question_understanding_mask, context_understanding_mask)
-                    quesiton2context_interaction_mask = context_understanding_mask
+                    (quesiton2context_interaction,
+                        quesiton2context_interaction_mask) = quesiton2context_attention_layer(question_understanding,
+                            context_understanding, question_understanding_mask, context_understanding_mask)
                     
                     answer_intermediate_list.append(quesiton2context_interaction)
                     answer_intermediate_mask_list.append(quesiton2context_interaction_mask)
@@ -249,8 +257,8 @@ class BiDAF(BaseModel):
                 answer_modeling_dropout, answer_modeling_forget_bias, answer_modeling_residual_connect,
                 self.num_gpus, self.default_gpu_id, answer_modeling_trainable)
             
-            answer_sequence_modeling, _ = answer_sequence_modeling_layer(answer_interaction, answer_interaction_mask)
-            answer_sequence_modeling_mask = answer_interaction_mask
+            (answer_sequence_modeling,
+                answer_sequence_modeling_mask) = answer_sequence_modeling_layer(answer_interaction, answer_interaction_mask)
             
             if answer_modeling_attention_enable == True:
                 answer_intermediate_unit_dim = answer_modeling_unit_dim * 2
@@ -259,9 +267,9 @@ class BiDAF(BaseModel):
                     answer_modeling_attention_dim, answer_modeling_score_type,
                     self.num_gpus, self.default_gpu_id, answer_modeling_trainable)
 
-                answer_attention_modeling = answer_attention_modeling_layer(answer_sequence_modeling,
-                    answer_sequence_modeling, answer_sequence_modeling_mask, answer_sequence_modeling_mask)
-                answer_attention_modeling_mask = answer_sequence_modeling_mask
+                (answer_attention_modeling,
+                    answer_attention_modeling_mask) = answer_attention_modeling_layer(answer_sequence_modeling,
+                        answer_sequence_modeling, answer_sequence_modeling_mask, answer_sequence_modeling_mask)
 
                 answer_intermediate_list.append(answer_attention_modeling)
                 answer_intermediate_mask_list.append(answer_attention_modeling_mask)
@@ -308,13 +316,12 @@ class BiDAF(BaseModel):
                     answer_start_unit_dim, answer_start_cell_type, answer_start_hidden_activation,
                     answer_start_dropout, answer_start_forget_bias, answer_start_residual_connect,
                     self.num_gpus, self.default_gpu_id, answer_start_trainable)
-                answer_start, _ = answer_start_layer(answer_modeling, answer_modeling_mask)
-                answer_start_mask = answer_modeling_mask
+                answer_start, answer_start_mask = answer_start_layer(answer_modeling, answer_modeling_mask)
                 
                 answer_start = tf.nn.dropout(answer_start, 1.0-answer_start_dropout)
-                answer_start_output_layer = tf.layers.Dense(units=1, activation=None, trainable=answer_start_trainable)
-                answer_start_output = answer_start_output_layer(answer_start)
-                answer_start_output_mask = answer_start_mask
+                answer_start_output_layer = create_dense_layer(1, 1, "", 0.0,
+                    self.num_gpus, self.default_gpu_id, answer_start_trainable)
+                answer_start_output, answer_start_output_mask = answer_start_output_layer(answer_start, answer_start_mask)
             
             answer_intermediate_list.append(answer_start)
             answer_intermediate_mask_list.append(answer_start_mask)
@@ -328,13 +335,12 @@ class BiDAF(BaseModel):
                     answer_end_unit_dim, answer_end_cell_type, answer_end_hidden_activation,
                     answer_end_dropout, answer_end_forget_bias, answer_end_residual_connect,
                     self.num_gpus, self.default_gpu_id, answer_end_trainable)
-                answer_end, _ = answer_end_layer(answer_intermediate, answer_intermediate_mask)
-                answer_end_mask = answer_intermediate_mask
+                answer_end, answer_end_mask = answer_end_layer(answer_intermediate, answer_intermediate_mask)
                 
                 answer_end = tf.nn.dropout(answer_end, 1.0-answer_end_dropout)
-                answer_end_output_layer = tf.layers.Dense(units=1, activation=None, trainable=answer_end_trainable)
-                answer_end_output = answer_end_output_layer(answer_end)
-                answer_end_output_mask = answer_end_mask
+                answer_end_output_layer = create_dense_layer(1, 1, "", 0.0,
+                    self.num_gpus, self.default_gpu_id, answer_end_trainable)
+                answer_end_output, answer_end_output_mask = answer_end_output_layer(answer_end, answer_end_mask)
         
         return answer_start_output, answer_end_output, answer_start_output_mask, answer_end_output_mask
     
@@ -398,12 +404,26 @@ class BiDAF(BaseModel):
         word_embed_pretrained = self.hyperparams.model_representation_word_embed_pretrained
         
         if word_embed_pretrained == True:
-            _, loss, learning_rate, global_step, batch_size, summary = sess.run([self.update_model,
+            (_, start_loss, end_loss, answer_start_result, answer_end_result,
+            answer_start_output, answer_end_output, answer_start_predict, answer_end_predict,
+            loss, learning_rate, global_step, batch_size, summary) = sess.run([self.update_model,
+                self.start_loss, self.end_loss, self.answer_start_result, self.answer_end_result,
+                self.train_answer_start_output, self.train_answer_end_output,
+                self.train_answer_start_predict, self.train_answer_end_predict,
                 self.train_loss, self.decayed_learning_rate, self.global_step, self.batch_size, self.train_summary],
                 feed_dict={self.word_embedding_placeholder: word_embedding})
         else:
             _, loss, learning_rate, global_step, batch_size, summary = sess.run([self.update_model,
                 self.train_loss, self.decayed_learning_rate, self.global_step, self.batch_size, self.train_summary])
+        
+        print(start_loss)
+        print(end_loss)
+        print(answer_start_result)
+        print(answer_start_output)
+        print(answer_start_predict)
+        print(answer_end_result)
+        print(answer_end_output)
+        print(answer_end_predict)
         
         return TrainResult(loss=loss, learning_rate=learning_rate,
             global_step=global_step, batch_size=batch_size, summary=summary)
@@ -425,8 +445,6 @@ class BiDAF(BaseModel):
                     self.infer_answer_start_mask, self.infer_answer_end_mask, self.batch_size, self.infer_summary])
         
         max_length = self.hyperparams.data_max_context_length
-        answer_start = answer_start * answer_start_mask
-        answer_end = answer_end * answer_end_mask
         
         predict = np.full((batch_size, 2), -1)
         for k in range(batch_size):

@@ -75,7 +75,7 @@ def create_dense_layer(num_layer,
                        num_gpus,
                        default_gpu_id,
                        trainable):
-    """create highway layer"""
+    """create dense layer"""
     if num_layer > 1:
         dense_layer = Dense(unit_dim=unit_dim, activation=activation, dropout=dropout,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope="dense")

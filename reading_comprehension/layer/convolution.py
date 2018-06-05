@@ -57,15 +57,20 @@ class Conv1D(Conv):
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     
     def __call__(self,
-                 input_data):
+                 input_data,
+                 input_mask):
         """call 1d convolution layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            input_data = input_data * input_mask
+            output_mask = input_mask
+            
             if self.dropout > 0.0:
                 input_data = tf.nn.dropout(input_data, 1.0-self.dropout)
             
             output_conv = self.conv_layer(input_data)
+            output_conv = output_conv * output_mask
         
-        return output_conv
+        return output_conv, output_mask
 
 class Conv2D(Conv):
     """2d convolution layer"""
@@ -89,9 +94,13 @@ class Conv2D(Conv):
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     
     def __call__(self,
-                 input_data):
+                 input_data,
+                 input_mask):
         """call 2d convolution layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            input_data = input_data * input_mask
+            output_mask = input_mask
+            
             if self.dropout > 0.0:
                 input_data = tf.nn.dropout(input_data, 1.0-self.dropout)
             
@@ -106,5 +115,6 @@ class Conv2D(Conv):
             dim2_length = input_conv_shape[1]
             output_conv = tf.reshape(input_conv,
                 shape=[batch_size, dim1_length, dim2_length, self.num_filter])
+            output_conv = output_conv * output_mask
         
-        return output_conv
+        return output_conv, output_mask
