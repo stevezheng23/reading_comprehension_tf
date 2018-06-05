@@ -15,12 +15,16 @@ __all__ = ["create_embedding_layer", "create_convolution_layer", "create_pooling
 def create_embedding_layer(vocab_size,
                            embed_dim,
                            pretrained,
+                           num_gpus,
+                           default_gpu_id,
                            trainable):
     """create pooling layer"""
     if pretrained == True:
-        embed_layer = PretrainedEmbedding(vocab_size=vocab_size, embed_dim=embed_dim, trainable=trainable)
+        embed_layer = PretrainedEmbedding(vocab_size=vocab_size, embed_dim=embed_dim,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable)
     else:
-        embed_layer = Embedding(vocab_size=vocab_size, embed_dim=embed_dim, trainable=trainable)
+        embed_layer = Embedding(vocab_size=vocab_size, embed_dim=embed_dim,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable)
     
     return embed_layer
 
@@ -32,27 +36,33 @@ def create_convolution_layer(conv_type,
                              padding_type,
                              activation,
                              dropout,
+                             num_gpus,
+                             default_gpu_id,
                              trainable):
     """create convolution layer"""
     scope = "conv/{0}".format(conv_type)
     if conv_type == "1d":
         conv_layer = Conv1D(num_filter=num_filter, window_size=window_size, stride_size=stride_size,
-            padding_type=padding_type, activation=activation, dropout=dropout, trainable=trainable, scope=scope)
+            padding_type=padding_type, activation=activation, dropout=dropout,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif conv_type == "2d":
-        conv_layer = Conv2D(num_channel=num_channel, num_filter=num_filter, window_size=window_size, stride_size=stride_size,
-            padding_type=padding_type, activation=activation, dropout=dropout, trainable=trainable, scope=scope)
+        conv_layer = Conv2D(num_channel=num_channel, num_filter=num_filter, window_size=window_size,
+            stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported convolution type {0}".format(conv_type))
     
     return conv_layer
 
-def create_pooling_layer(pooling_type):
+def create_pooling_layer(pooling_type,
+                         num_gpus,
+                         default_gpu_id):
     """create pooling layer"""
     scope = "pooling/{0}".format(pooling_type)
     if pooling_type == "max":
-        pooling_layer = MaxPooling(scope=scope)
+        pooling_layer = MaxPooling(num_gpus=num_gpus, default_gpu_id=default_gpu_id, scope=scope)
     elif pooling_type == "avg":
-        pooling_layer = AveragePooling(scope=scope)
+        pooling_layer = AveragePooling(num_gpus=num_gpus, default_gpu_id=default_gpu_id, scope=scope)
     else:
         raise ValueError("unsupported pooling type {0}".format(pooling_type))
     
@@ -62,14 +72,16 @@ def create_dense_layer(num_layer,
                        unit_dim,
                        activation,
                        dropout,
+                       num_gpus,
+                       default_gpu_id,
                        trainable):
     """create highway layer"""
     if num_layer > 1:
-        dense_layer = Dense(unit_dim=unit_dim,
-            activation=activation, dropout=dropout, trainable=trainable, scope="dense")
+        dense_layer = Dense(unit_dim=unit_dim, activation=activation, dropout=dropout,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope="dense")
     else:
-        dense_layer = StackedDense(num_layer=num_layer, unit_dim=unit_dim,
-            activation=activation, dropout=dropout, trainable=trainable, scope="stacked_dense")
+        dense_layer = StackedDense(num_layer=num_layer, unit_dim=unit_dim, activation=activation, dropout=dropout,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope="stacked_dense")
     
     return dense_layer
 
@@ -77,14 +89,16 @@ def create_highway_layer(num_layer,
                          unit_dim,
                          activation,
                          dropout,
+                         num_gpus,
+                         default_gpu_id,
                          trainable):
     """create highway layer"""
     if num_layer > 1:
-        highway_layer = Highway(unit_dim=unit_dim,
-            activation=activation, dropout=dropout, trainable=trainable, scope="highway")
+        highway_layer = Highway(unit_dim=unit_dim, activation=activation, dropout=dropout,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope="highway")
     else:
-        highway_layer = StackedHighway(num_layer=num_layer, unit_dim=unit_dim,
-            activation=activation, dropout=dropout, trainable=trainable, scope="stacked_highway")
+        highway_layer = StackedHighway(num_layer=num_layer, unit_dim=unit_dim, activation=activation, dropout=dropout,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope="stacked_highway")
     
     return highway_layer
 
@@ -119,21 +133,23 @@ def create_attention_layer(attention_type,
                            trg_dim,
                            unit_dim,
                            score_type,
+                           num_gpus,
+                           default_gpu_id,
                            trainable):
     """create attention layer"""
     scope = "attention/{0}".format(attention_type)
     if attention_type == "default":
         attention_layer = Attention(src_dim=src_dim, trg_dim=trg_dim, unit_dim=unit_dim,
-            score_type=score_type, trainable=trainable, scope=scope)
+            score_type=score_type, num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif attention_type == "max_att":
         attention_layer = MaxAttention(src_dim=src_dim, trg_dim=trg_dim, unit_dim=unit_dim,
-            score_type=score_type, trainable=trainable, scope=scope)
+            score_type=score_type, num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif attention_type == "self_att":
         if src_dim != trg_dim:
             raise ValueError("source dimension {0} is not equal to target dimension {1} for self-attention".format(src_dim, trg_dim))
         
         attention_layer = SelfAttention(src_dim=src_dim, trg_dim=trg_dim, unit_dim=unit_dim,
-            score_type=score_type, trainable=trainable, scope=scope)
+            score_type=score_type, num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported attention type {0}".format(attention_type))
     

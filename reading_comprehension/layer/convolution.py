@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
+from util.default_util import *
 from util.reading_comprehension_util import *
 
 __all__ = ["Conv1D", "Conv2D"]
@@ -14,6 +15,8 @@ class Conv(object):
                  padding_type,
                  activation,
                  dropout,
+                 num_gpus=1,
+                 default_gpu_id=0,
                  trainable=True,
                  scope="conv"):
         """initialize convolution layer"""
@@ -25,8 +28,9 @@ class Conv(object):
         self.dropout = dropout
         self.trainable = trainable
         self.scope=scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             weight_initializer = create_variable_initializer("glorot_uniform")
             bias_initializer = create_variable_initializer("glorot_uniform")
             conv_activation = create_activation_function(self.activation)
@@ -43,16 +47,19 @@ class Conv1D(Conv):
                  padding_type,
                  activation,
                  dropout,
+                 num_gpus=1,
+                 default_gpu_id=0,
                  trainable=True,
                  scope="conv1d"):
         """initialize 1d convolution layer"""
-        super(Conv1D, self).__init__(num_filter=num_filter, window_size=window_size, stride_size=stride_size,
-            padding_type=padding_type, activation=activation, dropout=dropout, trainable=trainable, scope=scope)
+        super(Conv1D, self).__init__(num_filter=num_filter, window_size=window_size,
+            stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     
     def __call__(self,
                  input_data):
         """call 1d convolution layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if self.dropout > 0.0:
                 input_data = tf.nn.dropout(input_data, 1.0-self.dropout)
             
@@ -70,18 +77,21 @@ class Conv2D(Conv):
                  padding_type,
                  activation,
                  dropout,
+                 num_gpus=1,
+                 default_gpu_id=0,
                  trainable=True,
                  scope="conv2d"):
         """initialize 2d convolution layer"""
         self.num_channel = num_channel
         
-        super(Conv2D, self).__init__(num_filter=num_filter, window_size=window_size, stride_size=stride_size,
-            padding_type=padding_type, activation=activation, dropout=dropout, trainable=trainable, scope=scope)
+        super(Conv2D, self).__init__(num_filter=num_filter, window_size=window_size,
+            stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     
     def __call__(self,
                  input_data):
         """call 2d convolution layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if self.dropout > 0.0:
                 input_data = tf.nn.dropout(input_data, 1.0-self.dropout)
             
