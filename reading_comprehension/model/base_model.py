@@ -63,29 +63,31 @@ class BaseModel(object):
         """build fusion layer for mrc base model"""
         fusion_scope = "fusion" if scope == None else "{0}/fusion".format(scope)
         with tf.variable_scope(fusion_scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            output_fusion_mask = tf.reduce_max(tf.concat(input_mask_list, axis=-1), axis=-1, keep_dims=True)
+            input_mask = tf.reduce_max(tf.concat(input_mask_list, axis=-1), axis=-1, keep_dims=True)
             
             if fusion_type == "concate":
-                output_fusion = tf.concat(input_data_list, axis=-1)
+                input_fusion = tf.concat(input_data_list, axis=-1)
+                input_fusion_mask = input_mask
             elif fusion_type == "dense":
                 input_data = tf.concat(input_data_list, axis=-1)
                 fusion_layer = create_dense_layer(fusion_num_layer, output_unit_dim, fusion_hidden_activation,
                     fusion_dropout, self.num_gpus, self.default_gpu_id, fusion_trainable)
-                output_fusion = fusion_layer(input_data)
+                input_fusion, input_fusion_mask = fusion_layer(input_data, input_mask)
             elif fusion_type == "highway":
                 input_data = tf.concat(input_data_list, axis=-1)
                 
                 if input_unit_dim != output_unit_dim:
-                    convert_layer = tf.layers.Dense(units=output_unit_dim, activation=None, trainable=fusion_trainable)
-                    input_data = convert_layer(input_data)
+                    convert_layer = create_dense_layer(1, output_unit_dim, "", 0.0,
+                        self.num_gpus, self.default_gpu_id, fusion_trainable)
+                    input_data, input_mask = convert_layer(input_data, input_mask)
                 
                 fusion_layer = create_highway_layer(fusion_num_layer, output_unit_dim, fusion_hidden_activation,
                     fusion_dropout, self.num_gpus, self.default_gpu_id, fusion_trainable)
-                output_fusion = fusion_layer(input_data)
+                input_fusion, input_fusion_mask = fusion_layer(input_data, input_mask)
             else:
                 raise ValueError("unsupported fusion type {0}".format(fusion_type))
         
-        return output_fusion, output_fusion_mask
+        return input_fusion, input_fusion_mask
     
     def _build_word_feat(self,
                          input_word,
@@ -106,6 +108,7 @@ class BaseModel(object):
             input_word_embedding = self.word_embedding_layer(input_word)
             input_word_feat = tf.squeeze(input_word_embedding, axis=-2)
             input_word_feat_mask = input_word_mask
+            input_word_feat = input_word_feat * input_word_feat_mask
         
         return input_word_feat, input_word_feat_mask
     
@@ -127,18 +130,21 @@ class BaseModel(object):
                     subword_embed_dim, False, 0, 0, subword_feat_trainable)
             
             input_subword_embedding = self.subword_embedding_layer(input_subword)
+            input_subword_embedding_mask = tf.expand_dims(input_subword_mask, axis=-1)
             
             if self.subword_conv_layer == None:
                 self.subword_conv_layer = create_convolution_layer("2d", subword_embed_dim,
                     subword_embed_dim, subword_window_size, 1, "SAME", subword_hidden_activation, 
                     subword_dropout, self.num_gpus, self.default_gpu_id, subword_feat_trainable)
             
-            input_subword_conv = self.subword_conv_layer(input_subword_embedding)
+            (input_subword_conv,
+                input_subword_conv_mask) = self.subword_conv_layer(input_subword_embedding, input_subword_embedding_mask)
             
             if self.subword_pooling_layer == None:
                 subword_pooling_layer = create_pooling_layer(subword_pooling_type, 0, 0)
             
-            input_subword_pool, input_subword_pool_mask = self.subword_pooling_layer(input_subword_conv, input_subword_mask)
+            (input_subword_pool,
+                input_subword_pool_mask) = self.subword_pooling_layer(input_subword_conv, input_subword_conv_mask)
             input_subword_feat = input_subword_pool
             input_subword_feat_mask = input_subword_pool_mask
         
@@ -162,18 +168,21 @@ class BaseModel(object):
                     char_embed_dim, False, 0, 0, char_feat_trainable)
             
             input_char_embedding = self.char_embedding_layer(input_char)
+            input_char_embedding_mask = tf.expand_dims(input_char_mask, axis=-1)
             
             if self.char_conv_layer == None:
                 self.char_conv_layer = create_convolution_layer("2d", char_embed_dim,
                     char_embed_dim, char_window_size, 1, "SAME", char_hidden_activation,
                     char_dropout, self.num_gpus, self.default_gpu_id, char_feat_trainable)
             
-            input_char_conv = self.char_conv_layer(input_char_embedding)
+            (input_char_conv,
+                input_char_conv_mask) = self.char_conv_layer(input_char_embedding, input_char_embedding_mask)
             
             if self.char_pooling_layer == None:
                 self.char_pooling_layer = create_pooling_layer(char_pooling_type, 0, 0)
             
-            input_char_pool, input_char_pool_mask = self.char_pooling_layer(input_char_conv, input_char_mask)
+            (input_char_pool,
+                input_char_pool_mask) = self.char_pooling_layer(input_char_conv, input_char_conv_mask)
             input_char_feat = input_char_pool
             input_char_feat_mask = input_char_pool_mask
         
@@ -255,6 +264,7 @@ class BaseModel(object):
             input_feat, input_feat_mask = self._build_fusion_result(input_feat_list,
                 input_feat_mask_list, feat_embed_dim, fusion_unit_dim, fusion_type,
                 fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable, scope)
+            input_feat = input_feat * input_feat_mask
         
         return input_feat, input_feat_mask
     

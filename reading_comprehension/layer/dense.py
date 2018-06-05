@@ -32,15 +32,20 @@ class Dense(object):
                 kernel_initializer=weight_initializer, bias_initializer=bias_initializer, trainable=self.trainable)
     
     def __call__(self,
-                 input_data):
+                 input_data,
+                 input_mask):
         """call dense layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            input_data = input_data * input_mask
+            output_mask = input_mask
+            
             if self.dropout > 0.0:
                 input_data = tf.nn.dropout(input_data, 1.0-self.dropout)
             
             output_dense = self.dense_layer(input_data)
+            output_dense = output_dense * output_mask
         
-        return output_dense
+        return output_dense, output_mask
 
 class StackedDense(object):
     """stacked dense layer"""
@@ -72,13 +77,15 @@ class StackedDense(object):
                 self.dense_layer_list.append(dense_layer)
     
     def __call__(self,
-                 input_data):
+                 input_data,
+                 input_mask):
         """call stacked dense layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             input_dense = input_data
             for dense_layer in self.dense_layer_list:
-                input_dense = dense_layer(input_dense)
+                input_dense, input_mask = dense_layer(input_dense, input_mask)
             
             output_dense = input_dense
+            output_mask = input_mask
         
-        return output_dense
+        return output_dense, output_mask
