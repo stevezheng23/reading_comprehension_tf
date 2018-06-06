@@ -145,9 +145,6 @@ def create_attention_layer(attention_type,
         attention_layer = MaxAttention(src_dim=src_dim, trg_dim=trg_dim, unit_dim=unit_dim,
             score_type=score_type, num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif attention_type == "self_att":
-        if src_dim != trg_dim:
-            raise ValueError("source dimension {0} is not equal to target dimension {1} for self-attention".format(src_dim, trg_dim))
-        
         attention_layer = SelfAttention(src_dim=src_dim, trg_dim=trg_dim, unit_dim=unit_dim,
             score_type=score_type, num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     else:

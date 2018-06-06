@@ -161,6 +161,7 @@ class Attention(object):
                 input_attention_mask, axis=-1, keepdims=True)
             output_attention = tf.matmul(input_attention_weight, input_trg_data)
             output_mask = input_src_mask
+            output_attention = output_attention * output_mask
         
         return output_attention, output_mask
     
@@ -211,6 +212,7 @@ class MaxAttention(object):
             trg_max_length = tf.shape(input_trg_data)[1]
             output_attention = tf.tile(output_attention, multiples=[1, trg_max_length, 1])
             output_mask = input_trg_mask
+            output_attention = output_attention * output_mask
         
         return output_attention, output_mask
 
@@ -254,6 +256,7 @@ class SelfAttention(object):
                 input_attention_mask, axis=-1, keepdims=True)
             output_attention = tf.matmul(input_attention_weight, input_trg_data)
             output_mask = input_src_mask
+            output_attention = output_attention * output_mask
         
         return output_attention, output_mask
     
