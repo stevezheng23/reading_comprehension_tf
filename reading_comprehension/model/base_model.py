@@ -200,32 +200,32 @@ class BaseModel(object):
         word_vocab_size = self.hyperparams.data_word_vocab_size
         word_embed_dim = self.hyperparams.model_representation_word_embed_dim
         word_embed_pretrained = self.hyperparams.model_representation_word_embed_pretrained
-        word_feat_trainable = self.hyperparams.model_representation_word_feat_trainable
+        word_feat_trainable = self.hyperparams.model_representation_word_feat_trainable if self.mode == "train" else False
         word_feat_enable = self.hyperparams.model_representation_word_feat_enable
         subword_vocab_size = self.hyperparams.data_subword_vocab_size
         subword_embed_dim = self.hyperparams.model_representation_subword_embed_dim
-        subword_feat_trainable = self.hyperparams.model_representation_subword_feat_trainable
+        subword_feat_trainable = self.hyperparams.model_representation_subword_feat_trainable if self.mode == "train" else False
         subword_max_length = self.hyperparams.data_max_subword_length
         subword_window_size = self.hyperparams.model_representation_subword_window_size
         subword_hidden_activation = self.hyperparams.model_representation_subword_hidden_activation
-        subword_dropout = self.hyperparams.model_representation_subword_dropout
+        subword_dropout = self.hyperparams.model_representation_subword_dropout if self.mode == "train" else 0.0
         subword_pooling_type = self.hyperparams.model_representation_subword_pooling_type
         subword_feat_enable = self.hyperparams.model_representation_subword_feat_enable
         char_vocab_size = self.hyperparams.data_char_vocab_size
         char_embed_dim = self.hyperparams.model_representation_char_embed_dim
-        char_feat_trainable = self.hyperparams.model_representation_char_feat_trainable
+        char_feat_trainable = self.hyperparams.model_representation_char_feat_trainable if self.mode == "train" else False
         char_max_length = self.hyperparams.data_max_char_length
         char_window_size = self.hyperparams.model_representation_char_window_size
         char_hidden_activation = self.hyperparams.model_representation_char_hidden_activation
-        char_dropout = self.hyperparams.model_representation_char_dropout
+        char_dropout = self.hyperparams.model_representation_char_dropout if self.mode == "train" else 0.0
         char_pooling_type = self.hyperparams.model_representation_char_pooling_type
         char_feat_enable = self.hyperparams.model_representation_char_feat_enable
         fusion_type = self.hyperparams.model_representation_fusion_type
         fusion_num_layer = self.hyperparams.model_representation_fusion_num_layer
         fusion_unit_dim = self.hyperparams.model_representation_fusion_unit_dim
         fusion_hidden_activation = self.hyperparams.model_representation_fusion_hidden_activation
-        fusion_dropout = self.hyperparams.model_representation_fusion_dropout
-        fusion_trainable = self.hyperparams.model_representation_fusion_trainable
+        fusion_dropout = self.hyperparams.model_representation_fusion_dropout if self.mode == "train" else 0.0
+        fusion_trainable = self.hyperparams.model_representation_fusion_trainable if self.mode == "train" else False
         
         with tf.variable_scope("representation", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_feat_list = []
