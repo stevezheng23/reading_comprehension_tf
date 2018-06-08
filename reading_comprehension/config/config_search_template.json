@@ -341,7 +341,7 @@
         },
         "window_size": {
             "stype": "discrete",
-            "set": [3, 5, 7],
+            "set": [[3], [5], [3, 5]],
             "dtype": "int"
         },
         "hidden_activation": {

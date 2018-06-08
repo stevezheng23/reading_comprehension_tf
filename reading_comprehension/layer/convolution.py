@@ -4,7 +4,7 @@ import tensorflow as tf
 from util.default_util import *
 from util.reading_comprehension_util import *
 
-__all__ = ["Conv1D", "Conv2D"]
+__all__ = ["Conv1D", "Conv2D", "MultiConv1D", "MultiConv2D"]
 
 class Conv(object):
     """convolution layer"""
@@ -115,6 +115,112 @@ class Conv2D(Conv):
             dim2_length = input_conv_shape[1]
             output_conv = tf.reshape(input_conv,
                 shape=[batch_size, dim1_length, dim2_length, self.num_filter])
+            output_conv = output_conv * output_mask
+        
+        return output_conv, output_mask
+
+class MultiConv1D(object):
+    """multi-window 1d convolution layer"""
+    def __init__(self,
+                 num_filter,
+                 window_size,
+                 stride_size,
+                 padding_type,
+                 activation,
+                 dropout,
+                 num_gpus=1,
+                 default_gpu_id=0,
+                 trainable=True,
+                 scope="multi_conv1d"):
+        """initialize multi-window 1d convolution layer"""
+        self.num_filter = num_filter
+        self.window_size = window_size
+        self.stride_size = stride_size
+        self.padding_type = padding_type
+        self.activation = activation
+        self.dropout = dropout
+        self.num_gpus = num_gpus
+        self.default_gpu_id = default_gpu_id
+        self.trainable = trainable
+        self.scope = scope
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            self.conv_layer_list = []
+            for i in range(len(self.window_size)):
+                layer_scope = "layer_{0}".format(i)
+                conv_layer = Conv1D(num_filter=self.num_filter, window_size=self.window_size[i], stride_size=self.stride_size,
+                    padding_type=self.padding_type, activation=self.activation, dropout=self.dropout, num_gpus=self.num_gpus,
+                    default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
+                self.conv_layer_list.append(conv_layer)
+    
+    def __call__(self,
+                 input_data,
+                 input_mask):
+        """call multi-window 1d convolution layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            input_conv_list = []
+            input_conv_mask_list = []
+            for conv_layer in self.conv_layer_list:
+                input_conv, input_conv_mask = conv_layer(input_data, input_mask)
+                input_conv_list.append(input_conv)
+                input_conv_mask_list.append(input_conv_mask)
+            
+            output_conv = tf.concat(input_conv_list, axis=-1)
+            output_mask = tf.reduce_max(tf.concat(input_conv_mask_list, axis=-1), axis=-1, keep_dims=True)
+            output_conv = output_conv * output_mask
+        
+        return output_conv, output_mask
+
+class MultiConv2D(object):
+    """multi-window 2d convolution layer"""
+    def __init__(self,
+                 num_channel,
+                 num_filter,
+                 window_size,
+                 stride_size,
+                 padding_type,
+                 activation,
+                 dropout,
+                 num_gpus=1,
+                 default_gpu_id=0,
+                 trainable=True,
+                 scope="multi_conv2d"):
+        """initialize multi-window 2d convolution layer"""
+        self.num_channel = num_channel
+        self.num_filter = num_filter
+        self.window_size = window_size
+        self.stride_size = stride_size
+        self.padding_type = padding_type
+        self.activation = activation
+        self.dropout = dropout
+        self.num_gpus = num_gpus
+        self.default_gpu_id = default_gpu_id
+        self.trainable = trainable
+        self.scope = scope
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            self.conv_layer_list = []
+            for i in range(len(self.window_size)):
+                layer_scope = "layer_{0}".format(i)
+                conv_layer = Conv2D(num_channel=self.num_channel, num_filter=self.num_filter, window_size=self.window_size[i],
+                    stride_size=self.stride_size, padding_type=self.padding_type, activation=self.activation, dropout=self.dropout,
+                    num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
+                self.conv_layer_list.append(conv_layer)
+    
+    def __call__(self,
+                 input_data,
+                 input_mask):
+        """call multi-window 2d convolution layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            input_conv_list = []
+            input_conv_mask_list = []
+            for conv_layer in self.conv_layer_list:
+                input_conv, input_conv_mask = conv_layer(input_data, input_mask)
+                input_conv_list.append(input_conv)
+                input_conv_mask_list.append(input_conv_mask)
+            
+            output_conv = tf.concat(input_conv_list, axis=-1)
+            output_mask = tf.reduce_max(tf.concat(input_conv_mask_list, axis=-1), axis=-1, keep_dims=True)
             output_conv = output_conv * output_mask
         
         return output_conv, output_mask
