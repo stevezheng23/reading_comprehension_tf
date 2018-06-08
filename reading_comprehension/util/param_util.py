@@ -166,7 +166,7 @@ def create_default_hyperparams():
         device_log_device_placement=False,
         device_allow_soft_placement=False,
         device_allow_growth=False,
-        device_per_process_gpu_memory_fraction=0.95
+        device_per_process_gpu_memory_fraction=0.8
     )
     
     return hyperparams
