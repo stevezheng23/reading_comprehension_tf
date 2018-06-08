@@ -133,7 +133,7 @@ class BaseModel(object):
             input_subword_embedding_mask = tf.expand_dims(input_subword_mask, axis=-1)
             
             if self.subword_conv_layer == None:
-                self.subword_conv_layer = create_convolution_layer("2d", subword_embed_dim,
+                self.subword_conv_layer = create_convolution_layer("multi_2d", subword_embed_dim,
                     subword_embed_dim, subword_window_size, 1, "SAME", subword_hidden_activation, 
                     subword_dropout, self.num_gpus, self.default_gpu_id, subword_feat_trainable)
             
@@ -171,7 +171,7 @@ class BaseModel(object):
             input_char_embedding_mask = tf.expand_dims(input_char_mask, axis=-1)
             
             if self.char_conv_layer == None:
-                self.char_conv_layer = create_convolution_layer("2d", char_embed_dim,
+                self.char_conv_layer = create_convolution_layer("multi_2d", char_embed_dim,
                     char_embed_dim, char_window_size, 1, "SAME", char_hidden_activation,
                     char_dropout, self.num_gpus, self.default_gpu_id, char_feat_trainable)
             

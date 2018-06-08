@@ -49,6 +49,14 @@ def create_convolution_layer(conv_type,
         conv_layer = Conv2D(num_channel=num_channel, num_filter=num_filter, window_size=window_size,
             stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
+    elif conv_type == "multi_1d":
+        conv_layer = MultiConv1D(num_filter=num_filter, window_size=window_size, stride_size=stride_size,
+            padding_type=padding_type, activation=activation, dropout=dropout,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
+    elif conv_type == "multi_2d":
+        conv_layer = MultiConv2D(num_channel=num_channel, num_filter=num_filter, window_size=window_size,
+            stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported convolution type {0}".format(conv_type))
     
