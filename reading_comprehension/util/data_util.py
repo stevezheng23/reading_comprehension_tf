@@ -195,7 +195,7 @@ def create_data_pipeline(input_question_word_dataset,
         input_context_word_dataset, input_context_subword_dataset, input_context_char_dataset, input_answer_dataset))
     
     if enable_shuffle == True:
-        buffer_size = batch_size * 1000
+        buffer_size = data_size
         dataset = dataset.shuffle(buffer_size, random_seed)
     
     dataset = dataset.batch(batch_size=batch_size)
