@@ -57,6 +57,9 @@ class BiDAF(BaseModel):
             self.answer_end = softmax_with_mask(tf.squeeze(answer_end_output),
                 self.answer_end_mask, axis=-1)
             
+            self.variable_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+            self.variable_lookup = {v.op.name: v for v in self.variable_list}
+            
             if self.mode == "infer":
                 """get infer answer"""
                 self.infer_answer_start_mask = self.answer_start_mask
@@ -89,13 +92,11 @@ class BiDAF(BaseModel):
                 self.logger.log_print("# setup loss minimization mechanism")
                 self.update_model, self.clipped_gradients, self.gradient_norm = self._minimize_loss(self.train_loss)
                 
-                self.trainable_var_list = tf.Graph.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope)
                 if self.hyperparams.train_ema_enable == True:
-                    (self.update_op, self.trainable_var_lookup,
-                        self.ema) = self._apply_ema(self.update_model, self.trainable_var_list)
+                    (self.update_op, self.variable_lookup,
+                        self.ema) = self._apply_ema(self.update_model, self.variable_list)
                 else:
                     self.update_op = self.update_model
-                    self.trainable_var_lookup = {v.op.name: v for v in self.trainable_var_list}
                 
                 """create train summary"""
                 self.train_summary = self._get_train_summary()
@@ -106,7 +107,7 @@ class BiDAF(BaseModel):
             
             self.ckpt_dir = self.hyperparams.train_ckpt_output_dir
             self.ckpt_name = os.path.join(self.ckpt_dir, "model_ckpt")
-            self.ckpt_saver = tf.train.Saver(self.trainable_var_lookup)
+            self.ckpt_saver = tf.train.Saver(self.variable_lookup)
     
     def _apply_ema(self,
                    dependency_op,
@@ -118,7 +119,7 @@ class BiDAF(BaseModel):
         with tf.control_dependencies([dependency_op]):
             ema_op = ema.apply(trainable_var_list)
         
-        trainable_var_lookup = {}
+        ema_var_lookup = {}
         for trainable_var in trainable_var_list:
             ema_var_name = ema.average_name(trainable_var)
             ema_var_lookup[ema_var_name] = trainable_var
@@ -138,7 +139,7 @@ class BiDAF(BaseModel):
         question_understanding_dropout = self.hyperparams.model_understanding_question_dropout if self.mode == "train" else 0.0
         question_understanding_forget_bias = self.hyperparams.model_understanding_question_forget_bias
         question_understanding_residual_connect = self.hyperparams.model_understanding_question_residual_connect
-        question_understanding_trainable = self.hyperparams.model_understanding_question_trainable if self.mode == "train" else False
+        question_understanding_trainable = self.hyperparams.model_understanding_question_trainable
         context_understanding_num_layer = self.hyperparams.model_understanding_context_num_layer
         context_understanding_unit_dim = self.hyperparams.model_understanding_context_unit_dim
         context_understanding_cell_type = self.hyperparams.model_understanding_context_cell_type
@@ -146,7 +147,7 @@ class BiDAF(BaseModel):
         context_understanding_dropout = self.hyperparams.model_understanding_context_dropout if self.mode == "train" else 0.0
         context_understanding_forget_bias = self.hyperparams.model_understanding_context_forget_bias
         context_understanding_residual_connect = self.hyperparams.model_understanding_context_residual_connect
-        context_understanding_trainable = self.hyperparams.model_understanding_context_trainable if self.mode == "train" else False
+        context_understanding_trainable = self.hyperparams.model_understanding_context_trainable
         
         with tf.variable_scope("understanding", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             with tf.variable_scope("question", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
@@ -179,18 +180,18 @@ class BiDAF(BaseModel):
         context_understanding_unit_dim = self.hyperparams.model_understanding_context_unit_dim * 2
         quesiton2context_interaction_attention_dim = self.hyperparams.model_interaction_quesiton2context_attention_dim
         quesiton2context_interaction_score_type = self.hyperparams.model_interaction_quesiton2context_score_type
-        quesiton2context_interaction_trainable = self.hyperparams.model_interaction_quesiton2context_trainable if self.mode == "train" else False
+        quesiton2context_interaction_trainable = self.hyperparams.model_interaction_quesiton2context_trainable
         quesiton2context_interaction_enable = self.hyperparams.model_interaction_quesiton2context_enable
         context2quesiton_interaction_attention_dim = self.hyperparams.model_interaction_context2quesiton_attention_dim
         context2quesiton_interaction_score_type = self.hyperparams.model_interaction_context2quesiton_score_type
-        context2quesiton_interaction_trainable = self.hyperparams.model_interaction_context2quesiton_trainable if self.mode == "train" else False
+        context2quesiton_interaction_trainable = self.hyperparams.model_interaction_context2quesiton_trainable
         context2quesiton_interaction_enable = self.hyperparams.model_interaction_context2quesiton_enable
         fusion_type = self.hyperparams.model_interaction_fusion_type
         fusion_num_layer = self.hyperparams.model_interaction_fusion_num_layer
         fusion_unit_dim = self.hyperparams.model_interaction_fusion_unit_dim
         fusion_hidden_activation = self.hyperparams.model_interaction_fusion_hidden_activation
         fusion_dropout = self.hyperparams.model_interaction_fusion_dropout if self.mode == "train" else 0.0
-        fusion_trainable = self.hyperparams.model_interaction_fusion_trainable if self.mode == "train" else False
+        fusion_trainable = self.hyperparams.model_interaction_fusion_trainable
         
         with tf.variable_scope("interaction", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             answer_intermediate_list = [context_understanding]
@@ -252,13 +253,13 @@ class BiDAF(BaseModel):
         answer_modeling_attention_dim = self.hyperparams.model_modeling_answer_attention_dim
         answer_modeling_score_type = self.hyperparams.model_modeling_answer_score_type
         answer_modeling_attention_enable = self.hyperparams.model_modeling_answer_attention_enable
-        answer_modeling_trainable = self.hyperparams.model_modeling_answer_trainable if self.mode == "train" else False
+        answer_modeling_trainable = self.hyperparams.model_modeling_answer_trainable
         fusion_type = self.hyperparams.model_modeling_fusion_type
         fusion_num_layer = self.hyperparams.model_modeling_fusion_num_layer
         fusion_unit_dim = self.hyperparams.model_modeling_fusion_unit_dim
         fusion_hidden_activation = self.hyperparams.model_modeling_fusion_hidden_activation
         fusion_dropout = self.hyperparams.model_modeling_fusion_dropout if self.mode == "train" else 0.0
-        fusion_trainable = self.hyperparams.model_modeling_fusion_trainable if self.mode == "train" else False
+        fusion_trainable = self.hyperparams.model_modeling_fusion_trainable
         
         with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.logger.log_print("# build answer modeling layer for bidaf model")
@@ -309,7 +310,7 @@ class BiDAF(BaseModel):
         answer_start_dropout = self.hyperparams.model_output_answer_start_dropout if self.mode == "train" else 0.0
         answer_start_forget_bias = self.hyperparams.model_output_answer_start_forget_bias
         answer_start_residual_connect = self.hyperparams.model_output_answer_start_residual_connect
-        answer_start_trainable = self.hyperparams.model_output_answer_start_trainable if self.mode == "train" else False
+        answer_start_trainable = self.hyperparams.model_output_answer_start_trainable
         answer_end_num_layer = self.hyperparams.model_output_answer_end_num_layer
         answer_end_unit_dim = self.hyperparams.model_output_answer_end_unit_dim
         answer_end_cell_type = self.hyperparams.model_output_answer_end_cell_type
@@ -317,7 +318,7 @@ class BiDAF(BaseModel):
         answer_end_dropout = self.hyperparams.model_output_answer_end_dropout if self.mode == "train" else 0.0
         answer_end_forget_bias = self.hyperparams.model_output_answer_end_forget_bias
         answer_end_residual_connect = self.hyperparams.model_output_answer_end_residual_connect
-        answer_end_trainable = self.hyperparams.model_output_answer_end_trainable if self.mode == "train" else False
+        answer_end_trainable = self.hyperparams.model_output_answer_end_trainable
         
         with tf.variable_scope("output", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             answer_intermediate_list = [answer_modeling]
