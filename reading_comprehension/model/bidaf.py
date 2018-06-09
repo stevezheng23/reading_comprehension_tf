@@ -95,6 +95,7 @@ class BiDAF(BaseModel):
                         self.ema) = self._apply_ema(self.update_model, self.trainable_var_list)
                 else:
                     self.update_op = self.update_model
+                    self.trainable_var_lookup = {v.op.name: v for v in self.trainable_var_list}
                 
                 """create train summary"""
                 self.train_summary = self._get_train_summary()
