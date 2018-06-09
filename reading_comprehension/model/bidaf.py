@@ -89,6 +89,13 @@ class BiDAF(BaseModel):
                 self.logger.log_print("# setup loss minimization mechanism")
                 self.update_model, self.clipped_gradients, self.gradient_norm = self._minimize_loss(self.train_loss)
                 
+                self.trainable_var_list = tf.Graph.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope)
+                if self.hyperparams.train_ema_enable == True:
+                    (self.update_op, self.trainable_var_lookup,
+                        self.ema) = self._apply_ema(self.update_model, self.trainable_var_list)
+                else:
+                    self.update_op = self.update_model
+                
                 """create train summary"""
                 self.train_summary = self._get_train_summary()
             
@@ -98,7 +105,24 @@ class BiDAF(BaseModel):
             
             self.ckpt_dir = self.hyperparams.train_ckpt_output_dir
             self.ckpt_name = os.path.join(self.ckpt_dir, "model_ckpt")
-            self.ckpt_saver = tf.train.Saver()
+            self.ckpt_saver = tf.train.Saver(self.trainable_var_lookup)
+    
+    def _apply_ema(self,
+                   dependency_op,
+                   trainable_var_list):
+        """apply exponential moving average"""
+        decay_rate = self.hyperparams.train_ema_decay_rate
+        
+        ema = tf.train.ExponentialMovingAverage(decay=decay_rate)
+        with tf.control_dependencies([dependency_op]):
+            ema_op = ema.apply(trainable_var_list)
+        
+        trainable_var_lookup = {}
+        for trainable_var in trainable_var_list:
+            ema_var_name = ema.average_name(trainable_var)
+            ema_var_lookup[ema_var_name] = trainable_var
+        
+        return ema_op, ema_var_lookup, ema
     
     def _build_understanding_layer(self,
                                    question_feat,
@@ -391,11 +415,11 @@ class BiDAF(BaseModel):
         word_embed_pretrained = self.hyperparams.model_representation_word_embed_pretrained
         
         if word_embed_pretrained == True:
-            (_, loss, learning_rate, global_step, batch_size, summary) = sess.run([self.update_model,
+            (_, loss, learning_rate, global_step, batch_size, summary) = sess.run([self.update_op,
                 self.train_loss, self.decayed_learning_rate, self.global_step, self.batch_size, self.train_summary],
                 feed_dict={self.word_embedding_placeholder: word_embedding})
         else:
-            _, loss, learning_rate, global_step, batch_size, summary = sess.run([self.update_model,
+            _, loss, learning_rate, global_step, batch_size, summary = sess.run([self.update_op,
                 self.train_loss, self.decayed_learning_rate, self.global_step, self.batch_size, self.train_summary])
         
         return TrainResult(loss=loss, learning_rate=learning_rate,

@@ -57,6 +57,8 @@ def create_default_hyperparams():
         train_step_per_ckpt=1000,
         train_step_per_eval=1000,
         train_clip_norm=5.0,
+        train_ema_enable=True,
+        train_ema_decay_rate=0.999,
         train_optimizer_type="adam",
         train_optimizer_learning_rate=0.001,
         train_optimizer_decay_mode="exponential_decay",
