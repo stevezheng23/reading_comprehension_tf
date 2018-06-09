@@ -57,6 +57,9 @@ class BiDAF(BaseModel):
             self.answer_end = softmax_with_mask(tf.squeeze(answer_end_output),
                 self.answer_end_mask, axis=-1)
             
+            self.variable_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+            self.variable_lookup = {v.op.name: v for v in self.variable_list}
+            
             if self.mode == "infer":
                 """get infer answer"""
                 self.infer_answer_start_mask = self.answer_start_mask
@@ -89,13 +92,11 @@ class BiDAF(BaseModel):
                 self.logger.log_print("# setup loss minimization mechanism")
                 self.update_model, self.clipped_gradients, self.gradient_norm = self._minimize_loss(self.train_loss)
                 
-                self.trainable_var_list = tf.Graph.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope)
                 if self.hyperparams.train_ema_enable == True:
-                    (self.update_op, self.trainable_var_lookup,
-                        self.ema) = self._apply_ema(self.update_model, self.trainable_var_list)
+                    (self.update_op, self.variable_lookup,
+                        self.ema) = self._apply_ema(self.update_model, self.variable_list)
                 else:
                     self.update_op = self.update_model
-                    self.trainable_var_lookup = {v.op.name: v for v in self.trainable_var_list}
                 
                 """create train summary"""
                 self.train_summary = self._get_train_summary()
@@ -106,7 +107,7 @@ class BiDAF(BaseModel):
             
             self.ckpt_dir = self.hyperparams.train_ckpt_output_dir
             self.ckpt_name = os.path.join(self.ckpt_dir, "model_ckpt")
-            self.ckpt_saver = tf.train.Saver(self.trainable_var_lookup)
+            self.ckpt_saver = tf.train.Saver(self.variable_lookup)
     
     def _apply_ema(self,
                    dependency_op,
@@ -118,7 +119,7 @@ class BiDAF(BaseModel):
         with tf.control_dependencies([dependency_op]):
             ema_op = ema.apply(trainable_var_list)
         
-        trainable_var_lookup = {}
+        ema_var_lookup = {}
         for trainable_var in trainable_var_list:
             ema_var_name = ema.average_name(trainable_var)
             ema_var_lookup[ema_var_name] = trainable_var
