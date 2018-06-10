@@ -60,12 +60,18 @@ class BiDAF(BaseModel):
             self.variable_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
             self.variable_lookup = {v.op.name: v for v in self.variable_list}
             
+            if self.hyperparams.train_ema_enable == True:
+                self.ema = tf.train.ExponentialMovingAverage(decay=self.hyperparams.train_ema_decay_rate)
+            
             if self.mode == "infer":
                 """get infer answer"""
                 self.infer_answer_start_mask = self.answer_start_mask
                 self.infer_answer_end_mask = self.answer_end_mask
                 self.infer_answer_start = self.answer_start
                 self.infer_answer_end = self.answer_end
+                
+                if self.hyperparams.train_ema_enable == True:
+                    self.variable_lookup = {self.ema.average_name(v): v for v in self.variable_list}
                 
                 """create infer summary"""
                 self.infer_summary = self._get_infer_summary()
@@ -93,8 +99,10 @@ class BiDAF(BaseModel):
                 self.update_model, self.clipped_gradients, self.gradient_norm = self._minimize_loss(self.train_loss)
                 
                 if self.hyperparams.train_ema_enable == True:
-                    (self.update_op, self.variable_lookup,
-                        self.ema) = self._apply_ema(self.update_model, self.variable_list)
+                    with tf.control_dependencies([self.update_model]):
+                        self.update_op = self.ema.apply(self.variable_list)
+                    
+                    self.variable_lookup = {self.ema.average_name(v): self.ema.average(v) for v in self.variable_list}
                 else:
                     self.update_op = self.update_model
                 
@@ -108,23 +116,6 @@ class BiDAF(BaseModel):
             self.ckpt_dir = self.hyperparams.train_ckpt_output_dir
             self.ckpt_name = os.path.join(self.ckpt_dir, "model_ckpt")
             self.ckpt_saver = tf.train.Saver(self.variable_lookup)
-    
-    def _apply_ema(self,
-                   dependency_op,
-                   trainable_var_list):
-        """apply exponential moving average"""
-        decay_rate = self.hyperparams.train_ema_decay_rate
-        
-        ema = tf.train.ExponentialMovingAverage(decay=decay_rate)
-        with tf.control_dependencies([dependency_op]):
-            ema_op = ema.apply(trainable_var_list)
-        
-        ema_var_lookup = {}
-        for trainable_var in trainable_var_list:
-            ema_var_name = ema.average_name(trainable_var)
-            ema_var_lookup[ema_var_name] = trainable_var
-        
-        return ema_op, ema_var_lookup, ema
     
     def _build_understanding_layer(self,
                                    question_feat,
