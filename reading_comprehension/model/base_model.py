@@ -117,6 +117,7 @@ class BaseModel(object):
                             input_subword_mask,
                             subword_vocab_size,
                             subword_embed_dim,
+                            subword_unit_dim,
                             subword_feat_trainable,
                             subword_max_length,
                             subword_window_size,
@@ -134,7 +135,7 @@ class BaseModel(object):
             
             if self.subword_conv_layer == None:
                 self.subword_conv_layer = create_convolution_layer("multi_2d", subword_embed_dim,
-                    subword_embed_dim, subword_window_size, 1, "SAME", subword_hidden_activation, 
+                    subword_unit_dim, subword_window_size, 1, "SAME", subword_hidden_activation, 
                     subword_dropout, self.num_gpus, self.default_gpu_id, subword_feat_trainable)
             
             (input_subword_conv,
@@ -155,6 +156,7 @@ class BaseModel(object):
                          input_char_mask,
                          char_vocab_size,
                          char_embed_dim,
+                         char_unit_dim,
                          char_feat_trainable,
                          char_max_length,
                          char_window_size,
@@ -172,7 +174,7 @@ class BaseModel(object):
             
             if self.char_conv_layer == None:
                 self.char_conv_layer = create_convolution_layer("multi_2d", char_embed_dim,
-                    char_embed_dim, char_window_size, 1, "SAME", char_hidden_activation,
+                    char_unit_dim, char_window_size, 1, "SAME", char_hidden_activation,
                     char_dropout, self.num_gpus, self.default_gpu_id, char_feat_trainable)
             
             (input_char_conv,
@@ -204,6 +206,7 @@ class BaseModel(object):
         word_feat_enable = self.hyperparams.model_representation_word_feat_enable
         subword_vocab_size = self.hyperparams.data_subword_vocab_size
         subword_embed_dim = self.hyperparams.model_representation_subword_embed_dim
+        subword_unit_dim = self.hyperparams.model_representation_subword_unit_dim
         subword_feat_trainable = self.hyperparams.model_representation_subword_feat_trainable
         subword_max_length = self.hyperparams.data_max_subword_length
         subword_window_size = self.hyperparams.model_representation_subword_window_size
@@ -213,6 +216,7 @@ class BaseModel(object):
         subword_feat_enable = self.hyperparams.model_representation_subword_feat_enable
         char_vocab_size = self.hyperparams.data_char_vocab_size
         char_embed_dim = self.hyperparams.model_representation_char_embed_dim
+        char_unit_dim = self.hyperparams.model_representation_char_unit_dim
         char_feat_trainable = self.hyperparams.model_representation_char_feat_trainable
         char_max_length = self.hyperparams.data_max_char_length
         char_window_size = self.hyperparams.model_representation_char_window_size
@@ -232,37 +236,38 @@ class BaseModel(object):
             input_feat_mask_list = []
             if word_feat_enable == True:
                 input_word_feat, input_word_feat_mask = self._build_word_feat(input_word, input_word_mask,
-                        word_vocab_size, word_embed_dim, word_embed_pretrained, word_feat_trainable)
+                    word_vocab_size, word_embed_dim, word_embed_pretrained, word_feat_trainable)
                 input_feat_list.append(input_word_feat)
                 input_feat_mask_list.append(input_word_feat_mask)
+                word_unit_dim = word_embed_dim
             else:
-                word_embed_dim = 0
+                word_unit_dim = 0
                 self.word_embedding_placeholder = None
             
             if subword_feat_enable == True:
                 input_subword_feat, input_subword_feat_mask = self._build_subword_feat(input_subword, input_subword_mask,
-                    subword_vocab_size, subword_embed_dim, subword_feat_trainable, subword_max_length,
+                    subword_vocab_size, subword_embed_dim, subword_unit_dim, subword_feat_trainable, subword_max_length,
                     subword_window_size, subword_hidden_activation, subword_dropout, subword_pooling_type)
                 input_feat_list.append(input_subword_feat)
                 input_feat_mask_list.append(input_subword_feat_mask)
             else:
-                subword_embed_dim = 0
+                subword_unit_dim = 0
             
             if char_feat_enable == True:
                 input_char_feat, input_char_feat_mask = self._build_char_feat(input_char, input_char_mask,
-                    char_vocab_size, char_embed_dim, char_feat_trainable, char_max_length,
+                    char_vocab_size, char_embed_dim, char_unit_dim, char_feat_trainable, char_max_length,
                     char_window_size, char_hidden_activation, char_dropout, char_pooling_type)
                 input_feat_list.append(input_char_feat)
                 input_feat_mask_list.append(input_char_feat_mask)
             else:
-                char_embed_dim = 0
+                char_unit_dim = 0
             
-            feat_embed_dim = word_embed_dim + subword_embed_dim + char_embed_dim
+            feat_unit_dim = word_unit_dim + subword_unit_dim + char_unit_dim
         
         representation_scope = "representation" if scope == None else "{0}/representation".format(scope)
         with tf.variable_scope(representation_scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_feat, input_feat_mask = self._build_fusion_result(input_feat_list,
-                input_feat_mask_list, feat_embed_dim, fusion_unit_dim, fusion_type,
+                input_feat_mask_list, feat_unit_dim, fusion_unit_dim, fusion_type,
                 fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable, scope)
             input_feat = input_feat * input_feat_mask
         
