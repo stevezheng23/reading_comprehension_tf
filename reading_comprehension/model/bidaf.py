@@ -183,6 +183,7 @@ class BiDAF(BaseModel):
         fusion_hidden_activation = self.hyperparams.model_interaction_fusion_hidden_activation
         fusion_dropout = self.hyperparams.model_interaction_fusion_dropout if self.mode == "train" else 0.0
         fusion_trainable = self.hyperparams.model_interaction_fusion_trainable
+        fusion_combo_enable = self.hyperparams.model_interaction_fusion_combo_enable
         
         with tf.variable_scope("interaction", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             answer_intermediate_list = [context_understanding]
@@ -202,6 +203,13 @@ class BiDAF(BaseModel):
                     
                     answer_intermediate_list.append(context2quesiton_interaction)
                     answer_intermediate_mask_list.append(context2quesiton_interaction_mask)
+                    
+                    if fusion_combo_enable == True:
+                        if question_understanding_unit_dim == context_understanding_unit_dim:
+                            context2quesiton_combo = context_understanding * context2quesiton_interaction
+                            context2quesiton_combo_mask = context_understanding_mask * context2quesiton_interaction_mask
+                            answer_intermediate_list.append(context2quesiton_combo)
+                            answer_intermediate_mask_list.append(context2quesiton_combo_mask)
                 else:
                     question_understanding_unit_dim = 0
             
@@ -217,8 +225,14 @@ class BiDAF(BaseModel):
                         quesiton2context_interaction_mask) = quesiton2context_attention_layer(question_understanding,
                             context_understanding, question_understanding_mask, context_understanding_mask)
                     
-                    answer_intermediate_list.append(quesiton2context_interaction)
-                    answer_intermediate_mask_list.append(quesiton2context_interaction_mask)
+                    if fusion_combo_enable == True:
+                        quesiton2context_combo = context_understanding * quesiton2context_interaction
+                        quesiton2context_combo_mask = context_understanding_mask * quesiton2context_interaction_mask
+                        answer_intermediate_list.append(quesiton2context_combo)
+                        answer_intermediate_mask_list.append(quesiton2context_combo_mask)
+                    else:
+                        answer_intermediate_list.append(quesiton2context_interaction)
+                        answer_intermediate_mask_list.append(quesiton2context_interaction_mask)
                 else:
                     context_understanding_unit_dim = 0
             

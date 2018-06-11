@@ -132,6 +132,7 @@ def create_default_hyperparams():
         model_interaction_fusion_hidden_activation="tanh",
         model_interaction_fusion_dropout=0.1,
         model_interaction_fusion_trainable=True,
+        model_interaction_fusion_combo_enable=True,
         model_modeling_answer_num_layer=1,
         model_modeling_answer_unit_dim=100,
         model_modeling_answer_cell_type="lstm",
