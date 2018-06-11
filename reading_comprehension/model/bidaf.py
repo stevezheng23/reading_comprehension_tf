@@ -139,6 +139,7 @@ class BiDAF(BaseModel):
         context_understanding_forget_bias = self.hyperparams.model_understanding_context_forget_bias
         context_understanding_residual_connect = self.hyperparams.model_understanding_context_residual_connect
         context_understanding_trainable = self.hyperparams.model_understanding_context_trainable
+        enable_understanding_sharing = self.hyperparams.model_understanding_enable_sharing
         
         with tf.variable_scope("understanding", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             with tf.variable_scope("question", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
@@ -152,10 +153,13 @@ class BiDAF(BaseModel):
             
             with tf.variable_scope("context", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
                 self.logger.log_print("# build context understanding layer for bidaf model")
-                context_understanding_layer = create_recurrent_layer("bi", context_understanding_num_layer,
-                    context_understanding_unit_dim, context_understanding_cell_type, context_understanding_hidden_activation,
-                    context_understanding_dropout, context_understanding_forget_bias, context_understanding_residual_connect,
-                    self.num_gpus, self.default_gpu_id, context_understanding_trainable)
+                if enable_understanding_sharing == True:
+                    context_understanding_layer = question_understanding_layer
+                else:
+                    context_understanding_layer = create_recurrent_layer("bi", context_understanding_num_layer,
+                        context_understanding_unit_dim, context_understanding_cell_type, context_understanding_hidden_activation,
+                        context_understanding_dropout, context_understanding_forget_bias, context_understanding_residual_connect,
+                        self.num_gpus, self.default_gpu_id, context_understanding_trainable)
                 
                 context_understanding, context_understanding_mask = context_understanding_layer(context_feat, context_feat_mask)
         
@@ -184,18 +188,23 @@ class BiDAF(BaseModel):
         fusion_dropout = self.hyperparams.model_interaction_fusion_dropout if self.mode == "train" else 0.0
         fusion_trainable = self.hyperparams.model_interaction_fusion_trainable
         fusion_combo_enable = self.hyperparams.model_interaction_fusion_combo_enable
+        enable_interaction_sharing = self.hyperparams.model_interaction_enable_sharing
         
         with tf.variable_scope("interaction", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             answer_intermediate_list = [context_understanding]
             answer_intermediate_mask_list = [context_understanding_mask]
             
+            attention_matrix = None
             with tf.variable_scope("context2question", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
                 if context2quesiton_interaction_enable == True:
                     self.logger.log_print("# build context2question interaction layer for bidaf model")
                     context2quesiton_attention_layer = create_attention_layer("default",
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         context2quesiton_interaction_attention_dim, context2quesiton_interaction_score_type,
-                        self.num_gpus, self.default_gpu_id, context2quesiton_interaction_trainable)
+                        attention_matrix, self.num_gpus, self.default_gpu_id, context2quesiton_interaction_trainable)
+                    
+                    if enable_interaction_sharing == True:
+                        attention_matrix = context2quesiton_attention_layer.get_attention_matrix()
                     
                     (context2quesiton_interaction,
                         context2quesiton_interaction_mask) = context2quesiton_attention_layer(context_understanding,
@@ -219,7 +228,7 @@ class BiDAF(BaseModel):
                     quesiton2context_attention_layer = create_attention_layer("max_att",
                         question_understanding_unit_dim, context_understanding_unit_dim,
                         quesiton2context_interaction_attention_dim, quesiton2context_interaction_score_type,
-                        self.num_gpus, self.default_gpu_id, quesiton2context_interaction_trainable)
+                        attention_matrix, self.num_gpus, self.default_gpu_id, quesiton2context_interaction_trainable)
                     
                     (quesiton2context_interaction,
                         quesiton2context_interaction_mask) = quesiton2context_attention_layer(question_understanding,
@@ -284,7 +293,7 @@ class BiDAF(BaseModel):
                 answer_attention_modeling_layer = create_attention_layer("self_att",
                     answer_intermediate_unit_dim, answer_intermediate_unit_dim,
                     answer_modeling_attention_dim, answer_modeling_score_type,
-                    self.num_gpus, self.default_gpu_id, answer_modeling_trainable)
+                    None, self.num_gpus, self.default_gpu_id, answer_modeling_trainable)
 
                 (answer_attention_modeling,
                     answer_attention_modeling_mask) = answer_attention_modeling_layer(answer_sequence_modeling,
