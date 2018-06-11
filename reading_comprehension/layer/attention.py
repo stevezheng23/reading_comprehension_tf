@@ -9,35 +9,119 @@ __all__ = ["Attention", "MaxAttention", "SelfAttention"]
 def _create_attention_matrix(src_unit_dim,
                              trg_unit_dim,
                              attention_unit_dim,
-                             attention_score_type):
+                             attention_score_type,
+                             trainable):
     """create attetnion matrix"""
-    if attention_score_type == "mul":
-        attention_matrix = _create_multiplicative_attention_matrix(src_unit_dim, trg_unit_dim)
-    elif attention_score_type == "add":
-        attention_matrix = _create_additive_attention_matrix(src_unit_dim, trg_unit_dim, attention_unit_dim)
+    if attention_score_type == "dot_product":
+        attention_matrix = []
+    elif attention_score_type == "linear":
+        attention_matrix = _create_linear_attention_matrix(src_unit_dim, trg_unit_dim, trainable)
+    elif attention_score_type == "bilinear":
+        attention_matrix = _create_bilinear_attention_matrix(src_unit_dim, trg_unit_dim, trainable)
+    elif attention_score_type == "nonlinear":
+        attention_matrix = _create_nonlinear_attention_matrix(src_unit_dim, trg_unit_dim, attention_unit_dim, trainable)
+    elif attention_score_type == "linear_plus":
+        attention_matrix = _create_linear_plus_attention_matrix(src_unit_dim, trg_unit_dim, trainable)
+    elif attention_score_type == "nonlinear_plus":
+        attention_matrix = _create_nonlinear_plus_attention_matrix(src_unit_dim, trg_unit_dim, attention_unit_dim, trainable)
     else:
         raise ValueError("unsupported attention score type {0}".format(attention_score_type))
     
     return attention_matrix
 
-def _create_multiplicative_attention_matrix(src_unit_dim,
-                                            trg_unit_dim):
-    """create multiplicative attetnion matrix"""
-    attention_matrix = tf.get_variable("mul_att_mat",
-        shape=[src_unit_dim, trg_unit_dim], dtype=tf.float32)
-    attention_matrix = [attention_matrix]
+def _create_linear_attention_matrix(src_unit_dim,
+                                    trg_unit_dim,
+                                    trainable):
+    """create linear attetnion matrix"""
+    weight_initializer = create_variable_initializer("glorot_uniform")
+    
+    linear_src_weight = tf.get_variable("linear_src_weight", shape=[1, src_unit_dim],
+        initializer=weight_initializer, trainable=trainable, dtype=tf.float32)
+    linear_trg_weight = tf.get_variable("linear_trg_weight", shape=[1, trg_unit_dim],
+        initializer=weight_initializer, trainable=trainable, dtype=tf.float32)
+    attention_matrix = [linear_src_weight, linear_trg_weight]
     
     return attention_matrix
 
-def _create_additive_attention_matrix(src_unit_dim,
+def _create_bilinear_attention_matrix(src_unit_dim,
                                       trg_unit_dim,
-                                      attention_unit_dim):
-    """create additive attetnion matrix"""
-    pre_activation_matrix = tf.get_variable("add_att_mat_pre",
-        shape=[attention_unit_dim, src_unit_dim + trg_unit_dim], dtype=tf.float32)
-    post_activation_matrix = tf.get_variable("add_att_mat_post",
-        shape=[1, attention_unit_dim], dtype=tf.float32)
-    attention_matrix = [pre_activation_matrix, post_activation_matrix]
+                                      trainable):
+    """create bilinear attetnion matrix"""
+    weight_initializer = create_variable_initializer("glorot_uniform")
+    
+    bilinear_weight = tf.get_variable("bilinear_weight", shape=[src_unit_dim, trg_unit_dim],
+        initializer=weight_initializer, trainable=trainable, dtype=tf.float32)
+    attention_matrix = [bilinear_weight]
+    
+    return attention_matrix
+
+def _create_nonlinear_attention_matrix(src_unit_dim,
+                                       trg_unit_dim,
+                                       attention_unit_dim,
+                                       trainable):
+    """create nonlinear attetnion matrix"""
+    weight_initializer = create_variable_initializer("glorot_uniform")
+    bias_initializer = create_variable_initializer("glorot_uniform")
+    
+    pre_nonlinear_src_weight = tf.get_variable("pre_nonlinear_src_weight", shape=[attention_unit_dim, src_unit_dim],
+        initializer=weight_initializer, trainable=trainable, dtype=tf.float32)
+    pre_nonlinear_trg_weight = tf.get_variable("pre_nonlinear_trg_weight", shape=[attention_unit_dim, trg_unit_dim],
+        initializer=weight_initializer, trainable=trainable, dtype=tf.float32)
+    pre_nonlinear_bias = tf.get_variable("pre_nonlinear_bias", shape=[attention_unit_dim],
+        initializer=bias_initializer, trainable=trainable, dtype=tf.float32)
+    post_nonlinear_weight = tf.get_variable("post_nonlinear_weight", shape=[1, attention_unit_dim],
+        initializer=weight_initializer, trainable=trainable, dtype=tf.float32)
+    attention_matrix = [pre_nonlinear_src_weight, pre_nonlinear_trg_weight,
+        pre_nonlinear_bias, post_nonlinear_weight]
+    
+    return attention_matrix
+
+def _create_linear_plus_attention_matrix(src_unit_dim,
+                                         trg_unit_dim,
+                                         trainable):
+    """create linear plus attetnion matrix"""
+    weight_initializer = create_variable_initializer("glorot_uniform")
+    
+    if src_unit_dim != trg_unit_dim:
+        raise ValueError("src dim {0} and trg dim must be the same for linear plus attention".format(src_unit_dim, trg_unit_dim))
+    else:
+        mul_unit_dim = src_unit_dim
+    
+    linear_plus_src_weight = tf.get_variable("linear_plus_src_weight", shape=[1, src_unit_dim],
+        initializer=weight_initializer, trainable=trainable, dtype=tf.float32)
+    linear_plus_trg_weight = tf.get_variable("linear_plus_trg_weight", shape=[1, trg_unit_dim],
+        initializer=weight_initializer, trainable=trainable, dtype=tf.float32)
+    linear_plus_mul_weight = tf.get_variable("linear_plus_mul_weight", shape=[1, mul_unit_dim],
+        initializer=weight_initializer, trainable=trainable, dtype=tf.float32)
+    attention_matrix = [linear_plus_src_weight, linear_plus_trg_weight, linear_plus_mul_weight]
+    
+    return attention_matrix
+
+def _create_nonlinear_plus_attention_matrix(src_unit_dim,
+                                            trg_unit_dim,
+                                            attention_unit_dim,
+                                            trainable):
+    """create nonlinear plus attetnion matrix"""
+    weight_initializer = create_variable_initializer("glorot_uniform")
+    bias_initializer = create_variable_initializer("glorot_uniform")
+    
+    if src_unit_dim != trg_unit_dim:
+        raise ValueError("src dim {0} and trg dim must be the same for nonlinear plus attention".format(src_unit_dim, trg_unit_dim))
+    else:
+        mul_unit_dim = src_unit_dim
+    
+    pre_nonlinear_plus_src_weight = tf.get_variable("pre_nonlinear_plus_src_weight", shape=[attention_unit_dim, src_unit_dim],
+        initializer=weight_initializer, trainable=trainable, dtype=tf.float32)
+    pre_nonlinear_plus_trg_weight = tf.get_variable("pre_nonlinear_plus_trg_weight", shape=[attention_unit_dim, trg_unit_dim],
+        initializer=weight_initializer, trainable=trainable, dtype=tf.float32)
+    pre_nonlinear_plus_mul_weight = tf.get_variable("pre_nonlinear_plus_mul_weight", shape=[attention_unit_dim, mul_unit_dim],
+        initializer=weight_initializer, trainable=trainable, dtype=tf.float32)
+    pre_nonlinear_plus_bias = tf.get_variable("pre_nonlinear_plus_bias", shape=[attention_unit_dim],
+        initializer=bias_initializer, trainable=trainable, dtype=tf.float32)
+    post_nonlinear_plus_weight = tf.get_variable("post_nonlinear_plus_weight", shape=[1, attention_unit_dim],
+        initializer=weight_initializer, trainable=trainable, dtype=tf.float32)
+    attention_matrix = [pre_nonlinear_plus_src_weight, pre_nonlinear_plus_trg_weight,
+        pre_nonlinear_plus_mul_weight, pre_nonlinear_plus_bias, post_nonlinear_plus_weight]
     
     return attention_matrix
 
@@ -46,57 +130,187 @@ def _generate_attention_score(input_src_data,
                               attention_matrix,
                               attention_score_type):
     """generate attention score"""
-    if attention_score_type == "mul":
-        input_attention_score = _generate_multiplicative_attention_score(input_src_data,
+    if attention_score_type == "dot_product":
+        input_attention_score = _generate_dot_product_attention_score(input_src_data, input_trg_data)
+    elif attention_score_type == "linear":
+        input_attention_score = _generate_linear_attention_score(input_src_data,
             input_trg_data, attention_matrix)
-    elif attention_score_type == "add":
-        input_attention_score = _generate_additive_attention_score(input_src_data,
+    elif attention_score_type == "bilinear":
+        input_attention_score = _generate_bilinear_attention_score(input_src_data,
+            input_trg_data, attention_matrix)
+    elif attention_score_type == "nonlinear":
+        input_attention_score = _generate_nonlinear_attention_score(input_src_data,
+            input_trg_data, attention_matrix)
+    elif attention_score_type == "linear_plus":
+        input_attention_score = _generate_linear_plus_attention_score(input_src_data,
+            input_trg_data, attention_matrix)
+    elif attention_score_type == "nonlinear_plus":
+        input_attention_score = _generate_nonlinear_plus_attention_score(input_src_data,
             input_trg_data, attention_matrix)
     else:
         raise ValueError("unsupported attention score type {0}".format(attention_score_type))
     
     return input_attention_score
 
-def _generate_multiplicative_attention_score(input_src_data,
-                                             input_trg_data,
-                                             attention_matrix):
-    """generate multiplicative attention score"""
+def _generate_dot_product_attention_score(input_src_data,
+                                          input_trg_data):
+    """generate dot product attention score"""
     input_src_shape = tf.shape(input_src_data)
     input_trg_shape = tf.shape(input_trg_data)
     batch_size = input_src_shape[0]
     src_max_length = input_src_shape[1]
-    trg_max_length = input_trg_shape[1]
-    src_dim = input_src_shape[-1]
-    pre_activation_matrix = attention_matrix[0]
+    src_unit_dim = input_src_shape[2]
     input_trg_data = tf.transpose(input_trg_data, perm=[0, 2, 1])
-    input_attention = tf.reshape(input_src_data, shape=[-1, src_dim])
-    input_attention = tf.matmul(input_attention, pre_activation_matrix)
-    input_attention = tf.reshape(input_src_data, shape=[batch_size, src_max_length, -1])
-    input_attention = tf.matmul(input_attention, input_trg_data)
+    input_attention = tf.matmul(input_src_data, input_trg_data)
     
     return input_attention
 
-def _generate_additive_attention_score(input_src_data,
-                                       input_trg_data,
-                                       attention_matrix):
-    """generate additive attention score"""
+def _generate_linear_attention_score(input_src_data,
+                                     input_trg_data,
+                                     attention_matrix):
+    """generate linear attention score"""
     input_src_shape = tf.shape(input_src_data)
     input_trg_shape = tf.shape(input_trg_data)
     batch_size = input_src_shape[0]
     src_max_length = input_src_shape[1]
     trg_max_length = input_trg_shape[1]
+    src_unit_dim = input_src_shape[2]
+    trg_unit_dim = input_trg_shape[2]
+    linear_src_weight = tf.transpose(attention_matrix[0], perm=[1, 0])
+    linear_trg_weight = tf.transpose(attention_matrix[1], perm=[1, 0])
+    input_src_data = tf.reshape(input_src_data, shape=[-1, src_unit_dim])
+    input_src_data = tf.matmul(input_src_data, linear_src_weight)
+    input_src_data = tf.reshape(input_src_data, shape=[batch_size, src_max_length, 1, -1])
+    input_trg_data = tf.reshape(input_trg_data, shape=[-1, trg_unit_dim])
+    input_trg_data = tf.matmul(input_trg_data, linear_trg_weight)
+    input_trg_data = tf.reshape(input_trg_data, shape=[batch_size, 1, trg_max_length, -1])
+    input_src_data = tf.tile(input_src_data, multiples=[1, 1, trg_max_length, 1])
+    input_trg_data = tf.tile(input_trg_data, multiples=[1, src_max_length, 1, 1])
+    input_attention = input_src_data + input_trg_data
+    input_attention = tf.reshape(input_attention, shape=[batch_size, src_max_length, trg_max_length])
+    
+    return input_attention
+
+def _generate_bilinear_attention_score(input_src_data,
+                                       input_trg_data,
+                                       attention_matrix):
+    """generate bilinear attention score"""
+    input_src_shape = tf.shape(input_src_data)
+    input_trg_shape = tf.shape(input_trg_data)
+    batch_size = input_src_shape[0]
+    src_max_length = input_src_shape[1]
+    src_unit_dim = input_src_shape[2]
+    bilinear_weight = attention_matrix[0]
+    input_src_data = tf.reshape(input_src_data, shape=[-1, src_unit_dim])
+    input_src_data = tf.matmul(input_src_data, bilinear_weight)
+    input_src_data = tf.reshape(input_src_data, shape=[batch_size, src_max_length, -1])
+    input_trg_data = tf.transpose(input_trg_data, perm=[0, 2, 1])
+    input_attention = tf.matmul(input_src_data, input_trg_data)
+    
+    return input_attention
+
+def _generate_nonlinear_attention_score(input_src_data,
+                                        input_trg_data,
+                                        attention_matrix):
+    """generate linear attention score"""
+    input_src_shape = tf.shape(input_src_data)
+    input_trg_shape = tf.shape(input_trg_data)
+    batch_size = input_src_shape[0]
+    src_max_length = input_src_shape[1]
+    trg_max_length = input_trg_shape[1]
+    src_unit_dim = input_src_shape[2]
+    trg_unit_dim = input_trg_shape[2]
+    pre_nonlinear_src_weight = tf.transpose(attention_matrix[0], perm=[1, 0])
+    pre_nonlinear_trg_weight = tf.transpose(attention_matrix[1], perm=[1, 0])
+    pre_nonlinear_bias = tf.reshape(attention_matrix[2], shape=[1, 1, 1, -1])
+    post_nonlinear_weight = tf.transpose(attention_matrix[3], perm=[1, 0])
+    input_src_data = tf.reshape(input_src_data, shape=[-1, src_unit_dim])
+    input_src_data = tf.matmul(input_src_data, pre_nonlinear_src_weight)
+    input_src_data = tf.reshape(input_src_data, shape=[batch_size, src_max_length, 1, -1])
+    input_trg_data = tf.reshape(input_trg_data, shape=[-1, trg_unit_dim])
+    input_trg_data = tf.matmul(input_trg_data, pre_nonlinear_trg_weight)
+    input_trg_data = tf.reshape(input_trg_data, shape=[batch_size, 1, trg_max_length, -1])
+    input_src_data = tf.tile(input_src_data, multiples=[1, 1, trg_max_length, 1])
+    input_trg_data = tf.tile(input_trg_data, multiples=[1, src_max_length, 1, 1])
+    input_attention = input_src_data + input_trg_data
+    input_attention = tf.nn.tanh(input_attention + pre_nonlinear_bias)
+    attention_dim = tf.shape(input_attention)[-1]
+    input_attention = tf.reshape(input_attention, shape=[-1, attention_dim])
+    input_attention = tf.matmul(input_attention, post_nonlinear_weight)
+    input_attention = tf.reshape(input_attention, shape=[batch_size, src_max_length, trg_max_length])
+    
+    return input_attention
+
+def _generate_linear_plus_attention_score(input_src_data,
+                                          input_trg_data,
+                                          attention_matrix):
+    """generate linear plus attention score"""
+    input_src_shape = tf.shape(input_src_data)
+    input_trg_shape = tf.shape(input_trg_data)
+    batch_size = input_src_shape[0]
+    src_max_length = input_src_shape[1]
+    trg_max_length = input_trg_shape[1]
+    src_unit_dim = input_src_shape[2]
+    trg_unit_dim = input_trg_shape[2]
+    mul_unit_dim = src_unit_dim
+    linear_plus_src_weight = tf.transpose(attention_matrix[0], perm=[1, 0])
+    linear_plus_trg_weight = tf.transpose(attention_matrix[1], perm=[1, 0])
+    linear_plus_mul_weight = tf.transpose(attention_matrix[2], perm=[1, 0])
     input_src_data = tf.expand_dims(input_src_data, axis=2)
     input_trg_data = tf.expand_dims(input_trg_data, axis=1)
     input_src_data = tf.tile(input_src_data, multiples=[1, 1, trg_max_length, 1])
     input_trg_data = tf.tile(input_trg_data, multiples=[1, src_max_length, 1, 1])
-    pre_activation_matrix = tf.transpose(attention_matrix[0], perm=[1, 0])
-    post_activation_matrix = tf.transpose(attention_matrix[1], perm=[1, 0])
-    input_concat = tf.concat([input_src_data, input_trg_data], axis=-1)
-    concat_dim = tf.shape(input_concat)[-1]
-    input_attention = tf.reshape(input_concat, shape=[-1, concat_dim])
-    input_attention = tf.matmul(input_attention, pre_activation_matrix)
-    input_attention = tf.nn.tanh(input_attention)
-    input_attention = tf.matmul(input_attention, post_activation_matrix)
+    input_mul_data = input_src_data * input_trg_data
+    input_src_data = tf.reshape(input_src_data, shape=[-1, src_unit_dim])
+    input_src_data = tf.matmul(input_src_data, linear_plus_src_weight)
+    input_src_data = tf.reshape(input_src_data, shape=[batch_size, src_max_length, trg_max_length, -1])
+    input_trg_data = tf.reshape(input_trg_data, shape=[-1, trg_unit_dim])
+    input_trg_data = tf.matmul(input_trg_data, linear_plus_trg_weight)
+    input_trg_data = tf.reshape(input_trg_data, shape=[batch_size, src_max_length, trg_max_length, -1])
+    input_mul_data = tf.reshape(input_mul_data, shape=[-1, mul_unit_dim])
+    input_mul_data = tf.matmul(input_mul_data, linear_plus_mul_weight)
+    input_mul_data = tf.reshape(input_mul_data, shape=[batch_size, src_max_length, trg_max_length, -1])
+    input_attention = input_src_data + input_trg_data + input_mul_data
+    input_attention = tf.reshape(input_attention, shape=[batch_size, src_max_length, trg_max_length])
+    
+    return input_attention
+
+def _generate_nonlinear_plus_attention_score(input_src_data,
+                                             input_trg_data,
+                                             attention_matrix):
+    """generate nonlinear plus attention score"""
+    input_src_shape = tf.shape(input_src_data)
+    input_trg_shape = tf.shape(input_trg_data)
+    batch_size = input_src_shape[0]
+    src_max_length = input_src_shape[1]
+    trg_max_length = input_trg_shape[1]
+    src_unit_dim = input_src_shape[2]
+    trg_unit_dim = input_trg_shape[2]
+    mul_unit_dim = src_unit_dim
+    pre_nonlinear_plus_src_weight = tf.transpose(attention_matrix[0], perm=[1, 0])
+    pre_nonlinear_plus_trg_weight = tf.transpose(attention_matrix[1], perm=[1, 0])
+    pre_nonlinear_plus_mul_weight = tf.transpose(attention_matrix[2], perm=[1, 0])
+    pre_nonlinear_plus_bias = tf.reshape(attention_matrix[3], shape=[1, 1, 1, -1])
+    post_nonlinear_plus_weight = tf.transpose(attention_matrix[4], perm=[1, 0])
+    input_src_data = tf.reshape(input_src_data, shape=[batch_size, src_max_length, 1, -1])
+    input_trg_data = tf.reshape(input_trg_data, shape=[batch_size, 1, trg_max_length, -1])
+    input_src_data = tf.tile(input_src_data, multiples=[1, 1, trg_max_length, 1])
+    input_trg_data = tf.tile(input_trg_data, multiples=[1, src_max_length, 1, 1])
+    input_mul_data = input_src_data * input_trg_data
+    input_src_data = tf.reshape(input_src_data, shape=[-1, src_unit_dim])
+    input_src_data = tf.matmul(input_src_data, pre_nonlinear_plus_src_weight)
+    input_src_data = tf.reshape(input_src_data, shape=[batch_size, src_max_length, trg_max_length, -1])
+    input_trg_data = tf.reshape(input_trg_data, shape=[-1, trg_unit_dim])
+    input_trg_data = tf.matmul(input_trg_data, pre_nonlinear_plus_trg_weight)
+    input_trg_data = tf.reshape(input_trg_data, shape=[batch_size, src_max_length, trg_max_length, -1])
+    input_mul_data = tf.reshape(input_mul_data, shape=[-1, mul_unit_dim])
+    input_mul_data = tf.matmul(input_mul_data, pre_nonlinear_plus_mul_weight)
+    input_mul_data = tf.reshape(input_mul_data, shape=[batch_size, src_max_length, trg_max_length, -1])
+    input_attention = input_src_data + input_trg_data + input_mul_data
+    input_attention = tf.nn.tanh(input_attention + pre_nonlinear_plus_bias)
+    attention_dim = tf.shape(input_attention)[-1]
+    input_attention = tf.reshape(input_attention, shape=[-1, attention_dim])
+    input_attention = tf.matmul(input_attention, post_nonlinear_plus_weight)
     input_attention = tf.reshape(input_attention, shape=[batch_size, src_max_length, trg_max_length])
     
     return input_attention
@@ -110,12 +324,12 @@ def _generate_attention_mask(input_src_mask,
     batch_size = input_src_shape[0]
     src_max_length = input_src_shape[1]
     trg_max_length = input_trg_shape[1]
-    input_src_mask = tf.expand_dims(input_src_mask, axis=2)
-    input_trg_mask = tf.expand_dims(input_trg_mask, axis=1)
+    input_src_mask = tf.reshape(input_src_mask, shape=[batch_size, src_max_length, 1, -1])
+    input_trg_mask = tf.reshape(input_trg_mask, shape=[batch_size, 1, trg_max_length, -1])
     input_src_mask = tf.tile(input_src_mask, multiples=[1, 1, trg_max_length, 1])
     input_trg_mask = tf.tile(input_trg_mask, multiples=[1, src_max_length, 1, 1])
     input_mask = input_src_mask * input_trg_mask
-    input_mask = tf.squeeze(input_mask, axis=-1)
+    input_mask = tf.reshape(input_mask, shape=[batch_size, src_max_length, trg_max_length])
     if remove_diag == True:
         input_mask = input_mask * (1 - tf.eye(src_max_length, trg_max_length))
     
@@ -143,7 +357,7 @@ class Attention(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.attention_matrix = _create_attention_matrix(self.src_dim,
-                self.trg_dim, self.unit_dim, self.score_type)
+                self.trg_dim, self.unit_dim, self.score_type, self.trainable)
     
     def __call__(self,
                  input_src_data,
@@ -190,7 +404,7 @@ class MaxAttention(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.attention_matrix = _create_attention_matrix(self.src_dim,
-                self.trg_dim, self.unit_dim, self.score_type)
+                self.trg_dim, self.unit_dim, self.score_type, self.trainable)
     
     def __call__(self,
                  input_src_data,
@@ -238,7 +452,7 @@ class SelfAttention(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.attention_matrix = _create_attention_matrix(self.src_dim,
-                self.trg_dim, self.unit_dim, self.score_type)
+                self.trg_dim, self.unit_dim, self.score_type, self.trainable)
     
     def __call__(self,
                  input_src_data,

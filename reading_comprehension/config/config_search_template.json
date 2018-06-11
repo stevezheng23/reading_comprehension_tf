@@ -376,7 +376,7 @@
         },
         "score_type": {
             "stype": "discrete",
-            "set": ["mul"],
+            "set": ["dot_product", "linear", "bilinear"],
             "dtype": "string"
         }
     }
