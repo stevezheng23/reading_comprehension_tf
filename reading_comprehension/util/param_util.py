@@ -214,7 +214,8 @@ def generate_search_lookup(search,
             raise ValueError("unsupported data type {0}".format(data_type))
     elif search_type == "discrete":
         search_set = search["set"]
-        search_sample = np.random.choice(search_set)
+        search_index = np.random.choice(len(search_set))
+        search_sample = search_set[search_index]
     elif search_type == "lookup":
         search_key = search["key"]
         if search_key in search_lookup:
@@ -234,7 +235,9 @@ def generate_search_lookup(search,
     elif data_type == "string":
         search_sample = str(search_sample)
     elif data_type == "boolean":
-        search_sample = bool(search_sample) 
+        search_sample = bool(search_sample)
+    elif data_type == "list":
+        search_sample = list(search_sample)
     else:
         raise ValueError("unsupported data type {0}".format(data_type))
     
