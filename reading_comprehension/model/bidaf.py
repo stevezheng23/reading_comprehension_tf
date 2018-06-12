@@ -337,6 +337,7 @@ class BiDAF(BaseModel):
         answer_end_trainable = self.hyperparams.model_output_answer_end_trainable
         
         with tf.variable_scope("output", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            self.logger.log_print("# build answer output layer for bidaf model")
             answer_intermediate_list = [answer_modeling]
             answer_intermediate_mask_list = [answer_modeling_mask]
             answer_intermediate_unit_dim = answer_modeling_unit_dim
