@@ -2,7 +2,7 @@
     "hyperparams": {
         "data_max_question_length": {
             "stype": "discrete",
-            "set": [30],
+            "set": [40],
             "dtype": "int"
         },
         "data_max_context_length": {
@@ -12,7 +12,7 @@
         },
         "data_max_answer_length": {
             "stype": "discrete",
-            "set": [20],
+            "set": [30],
             "dtype": "int"
         },
         "data_max_subword_length": {
@@ -27,12 +27,12 @@
         },
         "train_batch_size": {
             "stype": "discrete",
-            "set": [32, 64],
+            "set": [32],
             "dtype": "int"
         },
         "train_optimizer_type": {
             "stype": "discrete",
-            "set": ["sgd", "adadelta", "adam"],
+            "set": ["adam", "adadelta"],
             "dtype": "string"
         },
         "train_optimizer_learning_rate": {
@@ -50,6 +50,13 @@
             "key": "embed_dim",
             "dtype": "int"
         },
+        "model_representation_subword_unit_dim": {
+            "stype": "lookup",
+            "key": "unit_dim",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "int"
+        },
         "model_representation_subword_window_size": {
             "stype": "lookup",
             "key": "window_size",
@@ -63,6 +70,8 @@
         "model_representation_subword_dropout": {
             "stype": "lookup",
             "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
             "dtype": "float"
         },
         "model_representation_subword_pooling_type": {
@@ -73,6 +82,13 @@
         "model_representation_char_embed_dim": {
             "stype": "lookup",
             "key": "embed_dim",
+            "dtype": "int"
+        },
+        "model_representation_char_unit_dim": {
+            "stype": "lookup",
+            "key": "unit_dim",
+            "scale": 1.0,
+            "shift": 0.0,
             "dtype": "int"
         },
         "model_representation_char_window_size": {
@@ -88,11 +104,18 @@
         "model_representation_char_dropout": {
             "stype": "lookup",
             "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
             "dtype": "float"
         },
         "model_representation_char_pooling_type": {
             "stype": "lookup",
             "key": "pooling_type",
+            "dtype": "string"
+        },
+        "model_representation_fusion_type": {
+            "stype": "discrete",
+            "set": ["highway"],
             "dtype": "string"
         },
         "model_representation_fusion_num_layer": {
@@ -103,7 +126,7 @@
         "model_representation_fusion_unit_dim": {
             "stype": "lookup",
             "key": "unit_dim",
-            "scale": 1.0,
+            "scale": 2.0,
             "shift": 0.0,
             "dtype": "int"
         },
@@ -115,6 +138,8 @@
         "model_representation_fusion_dropout": {
             "stype": "lookup",
             "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
             "dtype": "float"
         },
         "model_understanding_question_num_layer": {
@@ -142,6 +167,8 @@
         "model_understanding_question_dropout": {
             "stype": "lookup",
             "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
             "dtype": "float"
         },
         "model_understanding_context_num_layer": {
@@ -169,6 +196,8 @@
         "model_understanding_context_dropout": {
             "stype": "lookup",
             "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
             "dtype": "float"
         },
         "model_interaction_context2quesiton_attention_dim": {
@@ -195,6 +224,11 @@
             "key": "score_type",
             "dtype": "string"
         },
+        "model_interaction_fusion_type": {
+            "stype": "discrete",
+            "set": ["highway"],
+            "dtype": "string"
+        },
         "model_interaction_fusion_num_layer": {
             "stype": "discrete",
             "set": [1],
@@ -203,7 +237,7 @@
         "model_interaction_fusion_unit_dim": {
             "stype": "lookup",
             "key": "unit_dim",
-            "scale": 1.0,
+            "scale": 2.0,
             "shift": 0.0,
             "dtype": "int"
         },
@@ -215,7 +249,14 @@
         "model_interaction_fusion_dropout": {
             "stype": "lookup",
             "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
             "dtype": "float"
+        },
+        "model_interaction_fusion_combo_enable": {
+            "stype": "discrete",
+            "set": [true, false],
+            "dtype": "boolean"
         },
         "model_modeling_answer_num_layer": {
             "stype": "lookup",
@@ -242,6 +283,8 @@
         "model_modeling_answer_dropout": {
             "stype": "lookup",
             "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
             "dtype": "float"
         },
         "model_modeling_answer_score_type": {
@@ -256,6 +299,11 @@
             "shift": 0.0,
             "dtype": "int"
         },
+        "model_modeling_fusion_type": {
+            "stype": "discrete",
+            "set": ["highway"],
+            "dtype": "string"
+        },
         "model_modeling_fusion_num_layer": {
             "stype": "discrete",
             "set": [1],
@@ -264,7 +312,7 @@
         "model_modeling_fusion_unit_dim": {
             "stype": "lookup",
             "key": "unit_dim",
-            "scale": 1.0,
+            "scale": 2.0,
             "shift": 0.0,
             "dtype": "int"
         },
@@ -276,6 +324,8 @@
         "model_modeling_fusion_dropout": {
             "stype": "lookup",
             "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
             "dtype": "float"
         },
         "model_output_answer_start_num_layer": {
@@ -303,6 +353,8 @@
         "model_output_answer_start_dropout": {
             "stype": "lookup",
             "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
             "dtype": "float"
         },
         "model_output_answer_end_num_layer": {
@@ -330,18 +382,20 @@
         "model_output_answer_end_dropout": {
             "stype": "lookup",
             "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
             "dtype": "float"
         }
     },
     "variables": {
         "embed_dim": {
             "stype": "uniform",
-            "range": [20, 200],
+            "range": [5, 50],
             "dtype": "int"
         },
         "window_size": {
             "stype": "discrete",
-            "set": [[3], [5], [3, 5]],
+            "set": [[3], [5], [7]],
             "dtype": "int"
         },
         "hidden_activation": {
@@ -351,7 +405,7 @@
         },
         "pooling_type": {
             "stype": "discrete",
-            "set": ["max", "avg"],
+            "set": ["max"],
             "dtype": "string"
         },
         "num_layer": {
@@ -361,7 +415,7 @@
         },
         "unit_dim": {
             "stype": "uniform",
-            "range": [50, 500],
+            "range": [20, 200],
             "dtype": "int"
         },
         "cell_type": {
@@ -371,12 +425,12 @@
         },
         "dropout": {
             "stype": "uniform",
-            "range": [0.0, 1.0],
+            "range": [0.1, 0.7],
             "dtype": "float"
         },
         "score_type": {
             "stype": "discrete",
-            "set": ["dot_product", "linear", "bilinear"],
+            "set": ["linear", "nonlinear", "linear_plus", "nonlinear_plus"],
             "dtype": "string"
         }
     }
