@@ -60,7 +60,7 @@
         "model_representation_subword_window_size": {
             "stype": "lookup",
             "key": "window_size",
-            "dtype": "int"
+            "dtype": "list"
         },
         "model_representation_subword_hidden_activation": {
             "stype": "lookup",
@@ -94,7 +94,7 @@
         "model_representation_char_window_size": {
             "stype": "lookup",
             "key": "window_size",
-            "dtype": "int"
+            "dtype": "list"
         },
         "model_representation_char_hidden_activation": {
             "stype": "lookup",
@@ -396,7 +396,7 @@
         "window_size": {
             "stype": "discrete",
             "set": [[3], [5], [7]],
-            "dtype": "int"
+            "dtype": "list"
         },
         "hidden_activation": {
             "stype": "discrete",
