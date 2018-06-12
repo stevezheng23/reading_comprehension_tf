@@ -48,44 +48,50 @@ class BaseModel(object):
         self.char_embedding_layer = None
         self.char_conv_layer = None
         self.char_pooling_layer = None
+        self.feat_fusion_layer = None
     
-    def _build_fusion_result(self,
-                             input_data_list,
-                             input_mask_list,
+    def _create_fusion_layer(self,
                              input_unit_dim,
                              output_unit_dim,
                              fusion_type,
                              fusion_num_layer,
                              fusion_hidden_activation,
                              fusion_dropout,
-                             fusion_trainable,
-                             scope=None):
-        """build fusion layer for mrc base model"""
-        fusion_scope = "fusion" if scope == None else "{0}/fusion".format(scope)
-        with tf.variable_scope(fusion_scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_mask = tf.reduce_max(tf.concat(input_mask_list, axis=-1), axis=-1, keep_dims=True)
-            
+                             fusion_trainable):
+        """create fusion layer for mrc base model"""
+        with tf.variable_scope("fusion", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if fusion_type == "concate":
-                input_fusion = tf.concat(input_data_list, axis=-1)
-                input_fusion_mask = input_mask
+                fusion_layer_list = []
             elif fusion_type == "dense":
-                input_data = tf.concat(input_data_list, axis=-1)
                 fusion_layer = create_dense_layer(fusion_num_layer, output_unit_dim, fusion_hidden_activation,
                     fusion_dropout, self.num_gpus, self.default_gpu_id, fusion_trainable)
-                input_fusion, input_fusion_mask = fusion_layer(input_data, input_mask)
+                fusion_layer_list = [fusion_layer]
             elif fusion_type == "highway":
-                input_data = tf.concat(input_data_list, axis=-1)
-                
+                fusion_layer_list = []
                 if input_unit_dim != output_unit_dim:
                     convert_layer = create_dense_layer(1, output_unit_dim, "", 0.0,
                         self.num_gpus, self.default_gpu_id, fusion_trainable)
-                    input_data, input_mask = convert_layer(input_data, input_mask)
+                    fusion_layer_list.append(convert_layer)
                 
                 fusion_layer = create_highway_layer(fusion_num_layer, output_unit_dim, fusion_hidden_activation,
                     fusion_dropout, self.num_gpus, self.default_gpu_id, fusion_trainable)
-                input_fusion, input_fusion_mask = fusion_layer(input_data, input_mask)
+                fusion_layer_list.append(fusion_layer)
             else:
                 raise ValueError("unsupported fusion type {0}".format(fusion_type))
+        
+        return fusion_layer_list
+    
+    def _build_fusion_result(self,
+                             input_data_list,
+                             input_mask_list,
+                             fusion_layer_list):
+        """build fusion result for mrc base model"""
+        input_fusion = tf.concat(input_data_list, axis=-1)
+        input_fusion_mask = tf.reduce_max(tf.concat(input_mask_list, axis=-1), axis=-1, keep_dims=True)
+        
+        if fusion_layer_list != None:
+            for fusion_layer in fusion_layer_list:
+                input_fusion, input_fusion_mask = fusion_layer(input_fusion, input_fusion_mask)
         
         return input_fusion, input_fusion_mask
     
@@ -196,8 +202,7 @@ class BaseModel(object):
                                     input_subword,
                                     input_subword_mask,
                                     input_char,
-                                    input_char_mask,
-                                    scope=None):
+                                    input_char_mask):
         """build representation layer for mrc base model"""
         word_vocab_size = self.hyperparams.data_word_vocab_size
         word_embed_dim = self.hyperparams.model_representation_word_embed_dim
@@ -263,12 +268,12 @@ class BaseModel(object):
                 char_unit_dim = 0
             
             feat_unit_dim = word_unit_dim + subword_unit_dim + char_unit_dim
-        
-        representation_scope = "representation" if scope == None else "{0}/representation".format(scope)
-        with tf.variable_scope(representation_scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            if self.feat_fusion_layer == None:
+                self.feat_fusion_layer = self._create_fusion_layer(feat_unit_dim, fusion_unit_dim,
+                    fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable)
+            
             input_feat, input_feat_mask = self._build_fusion_result(input_feat_list,
-                input_feat_mask_list, feat_unit_dim, fusion_unit_dim, fusion_type,
-                fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable, scope)
+                input_feat_mask_list, self.feat_fusion_layer)
             input_feat = input_feat * input_feat_mask
         
         return input_feat, input_feat_mask

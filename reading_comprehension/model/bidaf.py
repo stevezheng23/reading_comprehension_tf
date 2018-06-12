@@ -246,9 +246,10 @@ class BiDAF(BaseModel):
                     context_understanding_unit_dim = 0
             
             answer_intermediate_unit_dim = question_understanding_unit_dim + context_understanding_unit_dim * 2
+            answer_interaction_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim, fusion_unit_dim,
+                fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable)
             answer_interaction, answer_interaction_mask = self._build_fusion_result(answer_intermediate_list,
-                answer_intermediate_mask_list, answer_intermediate_unit_dim, fusion_unit_dim, fusion_type,
-                fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable)
+                answer_intermediate_mask_list, answer_interaction_fusion_layer)
         
         return answer_interaction, answer_interaction_mask
     
@@ -306,9 +307,10 @@ class BiDAF(BaseModel):
                 answer_intermediate_mask_list.append(answer_sequence_modeling_mask)
             
             answer_intermediate_unit_dim = answer_interaction_unit_dim + answer_modeling_unit_dim * 2
+            answer_modeling_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim, fusion_unit_dim,
+                fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable)
             answer_modeling, answer_modeling_mask = self._build_fusion_result(answer_intermediate_list,
-                answer_intermediate_mask_list, answer_intermediate_unit_dim, fusion_unit_dim, fusion_type,
-                fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable)
+                answer_intermediate_mask_list, answer_modeling_fusion_layer)
         
         return answer_modeling, answer_modeling_mask
     
@@ -357,7 +359,7 @@ class BiDAF(BaseModel):
             
             with tf.variable_scope("end", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
                 answer_intermediate, answer_intermediate_mask = self._build_fusion_result(answer_intermediate_list,
-                    answer_intermediate_mask_list, 0, 0, "concate", 0, None, 0.0, False)
+                    answer_intermediate_mask_list, None)
                 
                 answer_end_layer = create_recurrent_layer("bi", answer_end_num_layer,
                     answer_end_unit_dim, answer_end_cell_type, answer_end_hidden_activation,
@@ -390,10 +392,11 @@ class BiDAF(BaseModel):
             """build representation layer for bidaf model"""
             self.logger.log_print("# build question representation layer for bidaf model")
             question_feat, question_feat_mask = self._build_representation_layer(question_word, question_word_mask,
-                    question_subword, question_subword_mask, question_char, question_char_mask, "question")
+                question_subword, question_subword_mask, question_char, question_char_mask)
+            
             self.logger.log_print("# build context representation layer for bidaf model")
             context_feat, context_feat_mask = self._build_representation_layer(context_word, context_word_mask,
-                    context_subword, context_subword_mask, context_char, context_char_mask, "context")
+                context_subword, context_subword_mask, context_char, context_char_mask)
             
             """build understanding layer for bidaf model"""
             (question_understanding, context_understanding, question_understanding_mask,
