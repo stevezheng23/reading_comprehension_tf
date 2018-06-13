@@ -139,7 +139,7 @@ def create_recurrent_layer(recurrent_type,
 def create_attention_layer(attention_type,
                            src_dim,
                            trg_dim,
-                           unit_dim,
+                           att_dim,
                            score_type,
                            attention_matrix,
                            num_gpus,
@@ -148,13 +148,13 @@ def create_attention_layer(attention_type,
     """create attention layer"""
     scope = "attention/{0}".format(attention_type)
     if attention_type == "default":
-        attention_layer = Attention(src_dim=src_dim, trg_dim=trg_dim, unit_dim=unit_dim, score_type=score_type,
+        attention_layer = Attention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim, score_type=score_type,
             attention_matrix=attention_matrix, num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif attention_type == "max_att":
-        attention_layer = MaxAttention(src_dim=src_dim, trg_dim=trg_dim, unit_dim=unit_dim, score_type=score_type,
+        attention_layer = MaxAttention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim, score_type=score_type,
             attention_matrix=attention_matrix, num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif attention_type == "self_att":
-        attention_layer = SelfAttention(src_dim=src_dim, trg_dim=trg_dim, unit_dim=unit_dim, score_type=score_type,
+        attention_layer = SelfAttention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim, score_type=score_type,
             attention_matrix=attention_matrix, num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported attention type {0}".format(attention_type))
