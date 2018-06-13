@@ -17,12 +17,12 @@
         },
         "data_max_subword_length": {
             "stype": "discrete",
-            "set": [25],
+            "set": [50],
             "dtype": "int"
         },
         "data_max_char_length": {
             "stype": "discrete",
-            "set": [25],
+            "set": [50],
             "dtype": "int"
         },
         "train_batch_size": {
@@ -32,12 +32,12 @@
         },
         "train_optimizer_type": {
             "stype": "discrete",
-            "set": ["adam", "adadelta"],
+            "set": ["adam"],
             "dtype": "string"
         },
         "train_optimizer_learning_rate": {
             "stype": "log",
-            "range": [0.00001, 1.0],
+            "range": [0.0001, 0.001],
             "dtype": "float"
         },
         "model_representation_word_embed_dim": {
@@ -255,7 +255,7 @@
         },
         "model_interaction_fusion_combo_enable": {
             "stype": "discrete",
-            "set": [true, false],
+            "set": [true],
             "dtype": "boolean"
         },
         "model_modeling_answer_num_layer": {
@@ -287,17 +287,22 @@
             "shift": 0.0,
             "dtype": "float"
         },
-        "model_modeling_answer_score_type": {
-            "stype": "lookup",
-            "key": "score_type",
-            "dtype": "string"
-        },
         "model_modeling_answer_attention_dim": {
             "stype": "lookup",
             "key": "unit_dim",
             "scale": 2.0,
             "shift": 0.0,
             "dtype": "int"
+        },
+        "model_modeling_answer_score_type": {
+            "stype": "lookup",
+            "key": "score_type",
+            "dtype": "string"
+        },
+        "model_modeling_answer_attention_enable": {
+            "stype": "discrete",
+            "set": [true],
+            "dtype": "boolean"
         },
         "model_modeling_fusion_type": {
             "stype": "discrete",
@@ -390,17 +395,17 @@
     "variables": {
         "embed_dim": {
             "stype": "uniform",
-            "range": [5, 50],
+            "range": [15, 30],
             "dtype": "int"
         },
         "window_size": {
             "stype": "discrete",
-            "set": [[3], [5], [7]],
+            "set": [[5]],
             "dtype": "list"
         },
         "hidden_activation": {
             "stype": "discrete",
-            "set": ["tanh", "relu"],
+            "set": ["tanh"],
             "dtype": "string"
         },
         "pooling_type": {
@@ -410,12 +415,12 @@
         },
         "num_layer": {
             "stype": "discrete",
-            "set": [1, 2],
+            "set": [1],
             "dtype": "int"
         },
         "unit_dim": {
             "stype": "uniform",
-            "range": [20, 200],
+            "range": [100, 250],
             "dtype": "int"
         },
         "cell_type": {
@@ -425,12 +430,12 @@
         },
         "dropout": {
             "stype": "uniform",
-            "range": [0.1, 0.7],
+            "range": [0.1, 0.5],
             "dtype": "float"
         },
         "score_type": {
             "stype": "discrete",
-            "set": ["linear", "nonlinear", "linear_plus", "nonlinear_plus"],
+            "set": ["dot_product", "bilinear"],
             "dtype": "string"
         }
     }
