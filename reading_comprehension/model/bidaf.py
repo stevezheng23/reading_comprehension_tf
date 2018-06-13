@@ -226,13 +226,13 @@ class BiDAF(BaseModel):
                 if quesiton2context_interaction_enable == True:
                     self.logger.log_print("# build question2context interaction layer for bidaf model")
                     quesiton2context_attention_layer = create_attention_layer("max_att",
-                        question_understanding_unit_dim, context_understanding_unit_dim,
+                        context_understanding_unit_dim, question_understanding_unit_dim,
                         quesiton2context_interaction_attention_dim, quesiton2context_interaction_score_type,
                         attention_matrix, self.num_gpus, self.default_gpu_id, quesiton2context_interaction_trainable)
                     
                     (quesiton2context_interaction,
-                        quesiton2context_interaction_mask) = quesiton2context_attention_layer(question_understanding,
-                            context_understanding, question_understanding_mask, context_understanding_mask)
+                        quesiton2context_interaction_mask) = quesiton2context_attention_layer(context_understanding,
+                            question_understanding, context_understanding_mask, question_understanding_mask)
                     
                     if fusion_combo_enable == True:
                         quesiton2context_combo = context_understanding * quesiton2context_interaction
