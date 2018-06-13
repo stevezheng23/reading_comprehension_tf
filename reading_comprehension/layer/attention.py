@@ -12,7 +12,9 @@ def _create_attention_matrix(src_unit_dim,
                              attention_score_type,
                              trainable):
     """create attetnion matrix"""
-    if attention_score_type == "dot_product":
+    if attention_score_type == "dot":
+        attention_matrix = []
+    if attention_score_type == "scaled_dot":
         attention_matrix = []
     elif attention_score_type == "linear":
         attention_matrix = _create_linear_attention_matrix(src_unit_dim, trg_unit_dim, trainable)
@@ -130,8 +132,10 @@ def _generate_attention_score(input_src_data,
                               attention_matrix,
                               attention_score_type):
     """generate attention score"""
-    if attention_score_type == "dot_product":
-        input_attention_score = _generate_dot_product_attention_score(input_src_data, input_trg_data)
+    if attention_score_type == "dot":
+        input_attention_score = _generate_dot_attention_score(input_src_data, input_trg_data)
+    elif attention_score_type == "scaled_dot":
+        input_attention_score = _generate_scaled_dot_attention_score(input_src_data, input_trg_data)
     elif attention_score_type == "linear":
         input_attention_score = _generate_linear_attention_score(input_src_data,
             input_trg_data, attention_matrix)
@@ -152,9 +156,9 @@ def _generate_attention_score(input_src_data,
     
     return input_attention_score
 
-def _generate_dot_product_attention_score(input_src_data,
-                                          input_trg_data):
-    """generate dot product attention score"""
+def _generate_dot_attention_score(input_src_data,
+                                  input_trg_data):
+    """generate dot-product attention score"""
     input_src_shape = tf.shape(input_src_data)
     input_trg_shape = tf.shape(input_trg_data)
     batch_size = input_src_shape[0]
@@ -162,6 +166,20 @@ def _generate_dot_product_attention_score(input_src_data,
     src_unit_dim = input_src_shape[2]
     input_trg_data = tf.transpose(input_trg_data, perm=[0, 2, 1])
     input_attention = tf.matmul(input_src_data, input_trg_data)
+    
+    return input_attention
+
+def _generate_scaled_dot_attention_score(input_src_data,
+                                         input_trg_data):
+    """generate scaled dot-product attention score"""
+    input_src_shape = tf.shape(input_src_data)
+    input_trg_shape = tf.shape(input_trg_data)
+    batch_size = input_src_shape[0]
+    src_max_length = input_src_shape[1]
+    src_unit_dim = input_src_shape[2]
+    input_trg_data = tf.transpose(input_trg_data, perm=[0, 2, 1])
+    input_attention = tf.matmul(input_src_data, input_trg_data)
+    input_attention = input_attention / tf.sqrt(tf.cast(src_unit_dim, dtype=tf.float32))
     
     return input_attention
 
