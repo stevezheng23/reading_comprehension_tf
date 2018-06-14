@@ -157,6 +157,9 @@ def create_attention_layer(attention_type,
     elif attention_type == "head_att":
         attention_layer = HeadAttention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim, score_type=score_type, is_self=is_self,
             external_matrix=external_matrix, num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
+    elif attention_type == "multi_head_att":
+        attention_layer = MultiHeadAttention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim, score_type=score_type, is_self=is_self,
+            external_matrix=external_matrix, num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported attention type {0}".format(attention_type))
     
