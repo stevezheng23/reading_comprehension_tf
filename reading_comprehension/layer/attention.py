@@ -4,7 +4,7 @@ import tensorflow as tf
 from util.default_util import *
 from util.reading_comprehension_util import *
 
-__all__ = ["Attention", "MaxAttention", "SelfAttention"]
+__all__ = ["Attention", "MaxAttention", "HeadAttention"]
 
 def _create_attention_matrix(src_unit_dim,
                              trg_unit_dim,
@@ -14,7 +14,7 @@ def _create_attention_matrix(src_unit_dim,
     """create attetnion matrix"""
     if attention_score_type == "dot":
         attention_matrix = []
-    if attention_score_type == "scaled_dot":
+    elif attention_score_type == "scaled_dot":
         attention_matrix = []
     elif attention_score_type == "linear":
         attention_matrix = _create_linear_attention_matrix(src_unit_dim, trg_unit_dim, trainable)
@@ -126,6 +126,16 @@ def _create_nonlinear_plus_attention_matrix(src_unit_dim,
         pre_nonlinear_plus_mul_weight, pre_nonlinear_plus_bias, post_nonlinear_plus_weight]
     
     return attention_matrix
+
+def _create_projection_matrix(input_unit_dim,
+                              projection_unit_dim,
+                              trainable):
+    """create projection matrix"""
+    weight_initializer = create_variable_initializer("glorot_uniform")
+    projection_weight = tf.get_variable("projection_weight", shape=[input_unit_dim, projection_unit_dim],
+        initializer=weight_initializer, trainable=trainable, dtype=tf.float32)
+    
+    return projection_weight
 
 def _generate_attention_score(input_src_data,
                               input_trg_data,
@@ -353,6 +363,19 @@ def _generate_attention_mask(input_src_mask,
     
     return input_mask
 
+def _generate_projection_data(input_data,
+                              projection_matrix):
+    """generate projection data"""
+    input_shape = tf.shape(input_data)
+    batch_size = input_shape[0]
+    max_length = input_shape[1]
+    unit_dim = input_shape[2]
+    input_projection = tf.reshape(input_data, shape=[-1, unit_dim])
+    input_projection = tf.matmul(input_projection, projection_matrix)
+    input_projection = tf.reshape(input_projection, shape=[batch_size, max_length, -1])
+    
+    return input_projection
+
 class Attention(object):
     """attention layer"""
     def __init__(self,
@@ -360,7 +383,8 @@ class Attention(object):
                  trg_dim,
                  att_dim,
                  score_type,
-                 attention_matrix=None,
+                 is_self,
+                 external_matrix=None,
                  num_gpus=1,
                  default_gpu_id=0,
                  trainable=True,
@@ -370,16 +394,17 @@ class Attention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.is_self = is_self
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            if attention_matrix == None:
+            if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim,
                     self.trg_dim, self.att_dim, self.score_type, self.trainable)
             else:
-                self.attention_matrix = attention_matrix
+                self.attention_matrix = external_matrix
     
     def __call__(self,
                  input_src_data,
@@ -392,7 +417,7 @@ class Attention(object):
             input_trg_data = input_trg_data * input_trg_mask
             input_attention_score = _generate_attention_score(input_src_data,
                 input_trg_data, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_mask, input_trg_mask, False)
+            input_attention_mask = _generate_attention_mask(input_src_mask, input_trg_mask, self.is_self)
             input_attention_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True)
             output_attention = tf.matmul(input_attention_weight, input_trg_data)
@@ -411,7 +436,8 @@ class MaxAttention(object):
                  trg_dim,
                  att_dim,
                  score_type,
-                 attention_matrix=None,
+                 is_self,
+                 external_matrix=None,
                  num_gpus=1,
                  default_gpu_id=0,
                  trainable=True,
@@ -421,16 +447,17 @@ class MaxAttention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.is_self = is_self
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            if attention_matrix == None:
+            if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim,
                     self.trg_dim, self.att_dim, self.score_type, self.trainable)
             else:
-                self.attention_matrix = attention_matrix
+                self.attention_matrix = external_matrix
     
     def __call__(self,
                  input_src_data,
@@ -443,7 +470,7 @@ class MaxAttention(object):
             input_trg_data = input_trg_data * input_trg_mask
             input_attention_score = _generate_attention_score(input_src_data,
                 input_trg_data, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_mask, input_trg_mask, False)
+            input_attention_mask = _generate_attention_mask(input_src_mask, input_trg_mask, self.is_self)
             input_attention_score = tf.reduce_max(input_attention_score, axis=-1, keep_dims=True)
             input_attention_mask = tf.reduce_max(input_attention_mask, axis=-1, keep_dims=True)
             input_attention_weight = softmax_with_mask(input_attention_score,
@@ -460,53 +487,68 @@ class MaxAttention(object):
     def get_attention_matrix(self):
         return self.attention_matrix
 
-class SelfAttention(object):
-    """self-attention layer"""
+class HeadAttention(object):
+    """head-attention layer"""
     def __init__(self,
                  src_dim,
                  trg_dim,
                  att_dim,
                  score_type,
-                 attention_matrix=None,
+                 is_self,
+                 external_matrix=None,
                  num_gpus=1,
                  default_gpu_id=0,
                  trainable=True,
-                 scope="self_att"):
-        """initialize self-attention layer"""
+                 scope="head_att"):
+        """initialize head-attention layer"""
         self.src_dim = src_dim
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.is_self = is_self
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            if attention_matrix == None:
-                self.attention_matrix = _create_attention_matrix(self.src_dim,
-                    self.trg_dim, self.att_dim, self.score_type, self.trainable)
+            if external_matrix == None:
+                (q_att_dim, k_att_dim, v_att_dim) = tuple(self.att_dim)
+                self.projection_matrix = [
+                    _create_projection_matrix(self.src_dim, q_att_dim, self.trainable),
+                    _create_projection_matrix(self.trg_dim, k_att_dim, self.trainable),
+                    _create_projection_matrix(self.trg_dim, v_att_dim, self.trainable)
+                ]
+                self.attention_matrix = _create_attention_matrix(q_att_dim,
+                    k_att_dim, k_att_dim, self.score_type, self.trainable)
             else:
-                self.attention_matrix = attention_matrix
+                self.projection_matrix = external_matrix["projection"]
+                self.attention_matrix = external_matrix["attention"]
     
     def __call__(self,
                  input_src_data,
                  input_trg_data,
                  input_src_mask,
                  input_trg_mask):
-        """call self-attention layer"""
+        """call head-attention layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_src_data = input_src_data * input_src_mask
             input_trg_data = input_trg_data * input_trg_mask
-            input_attention_score = _generate_attention_score(input_src_data,
-                input_trg_data, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_mask, input_trg_mask, True)
+            input_query_data = _generate_projection_data(input_src_data, self.projection_matrix[0])
+            input_key_data = _generate_projection_data(input_trg_data, self.projection_matrix[1])
+            input_value_data = _generate_projection_data(input_trg_data, self.projection_matrix[2])
+            input_attention_score = _generate_attention_score(input_query_data,
+                input_key_data, self.attention_matrix, self.score_type)
+            input_attention_mask = _generate_attention_mask(input_src_mask, input_trg_mask, self.is_self)
             input_attention_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True)
-            output_attention = tf.matmul(input_attention_weight, input_trg_data)
+            output_attention = tf.matmul(input_attention_weight, input_value_data)
             output_mask = input_src_mask
             output_attention = output_attention * output_mask
         
         return output_attention, output_mask
+    
+    def get_projection_matrix(self):
+        return self.projection_matrix
     
     def get_attention_matrix(self):
         return self.attention_matrix

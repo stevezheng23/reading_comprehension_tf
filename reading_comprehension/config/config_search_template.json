@@ -37,7 +37,7 @@
         },
         "train_optimizer_learning_rate": {
             "stype": "log",
-            "range": [0.0001, 0.001],
+            "range": [0.0003, 0.0008],
             "dtype": "float"
         },
         "model_representation_word_embed_dim": {
@@ -420,22 +420,22 @@
         },
         "unit_dim": {
             "stype": "uniform",
-            "range": [100, 250],
+            "range": [75, 150],
             "dtype": "int"
         },
         "cell_type": {
             "stype": "discrete",
-            "set": ["lstm", "gru"],
+            "set": ["lstm"],
             "dtype": "string"
         },
         "dropout": {
             "stype": "uniform",
-            "range": [0.1, 0.5],
+            "range": [0.1, 0.4],
             "dtype": "float"
         },
         "score_type": {
             "stype": "discrete",
-            "set": ["dot_product", "bilinear"],
+            "set": ["dot", "scaled_dot"],
             "dtype": "string"
         }
     }
