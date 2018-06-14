@@ -4,7 +4,7 @@ import tensorflow as tf
 from util.default_util import *
 from util.reading_comprehension_util import *
 
-__all__ = ["Attention", "MaxAttention", "HeadAttention"]
+__all__ = ["Attention", "MaxAttention", "HeadAttention", "MultiHeadAttention"]
 
 def _create_attention_matrix(src_unit_dim,
                              trg_unit_dim,
@@ -552,3 +552,55 @@ class HeadAttention(object):
     
     def get_attention_matrix(self):
         return self.attention_matrix
+
+class MultiHeadAttention(object):
+    """multi-head attention layer"""
+    def __init__(self,
+                 src_dim,
+                 trg_dim,
+                 att_dim,
+                 score_type,
+                 is_self,
+                 external_matrix=None,
+                 num_gpus=1,
+                 default_gpu_id=0,
+                 trainable=True,
+                 scope="multi_head_att"):
+        """initialize multi-head attention layer"""
+        self.src_dim = src_dim
+        self.trg_dim = trg_dim
+        self.att_dim = att_dim
+        self.score_type = score_type
+        self.is_self = is_self
+        self.external_matrix=external_matrix
+        self.num_gpus = num_gpus
+        self.default_gpu_id = default_gpu_id
+        self.trainable = trainable
+        self.scope = scope
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            self.attention_layer_list = []
+            for i in range(len(self.att_dim)):
+                layer_scope = "layer_{0}".format(i)
+                attention_layer = HeadAttention(src_dim=self.src_dim, trg_dim=self.trg_dim, att_dim=self.att_dim[i],
+                    score_type=self.score_type, is_self=self.is_self, external_matrix=self.external_matrix[i],
+                    num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
+                self.attention_layer_list.append(attention_layer)
+    
+    def __call__(self,
+                 input_data,
+                 input_mask):
+        """call multi-head attention layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            input_attention_list = []
+            input_attention_mask_list = []
+            for attention_layer in self.attention_layer_list:
+                input_attention, input_attention_mask = conv_layer(input_data, input_mask)
+                input_attention_list.append(input_attention)
+                input_attention_mask_list.append(input_attention_mask)
+            
+            output_attehtion = tf.concat(input_attention_list, axis=-1)
+            output_mask = tf.reduce_max(tf.concat(input_attention_mask_list, axis=-1), axis=-1, keep_dims=True)
+            output_attehtion = output_attehtion * output_mask
+        
+        return output_attehtion, output_mask
