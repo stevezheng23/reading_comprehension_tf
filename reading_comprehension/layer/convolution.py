@@ -106,15 +106,12 @@ class Conv2D(Conv):
             
             input_data_shape = tf.shape(input_data)
             batch_size = input_data_shape[0]
-            dim1_length = input_data_shape[1]
-            dim2_length = input_data_shape[2]
-            input_data = tf.reshape(input_data,
-                shape=[batch_size * dim1_length, dim2_length, self.num_channel])
+            max_length = input_data_shape[-2]
+            input_data = tf.reshape(input_data, shape=[-1, max_length, self.num_channel])
             input_conv = self.conv_layer(input_data)
             input_conv_shape = tf.shape(input_conv)
-            dim2_length = input_conv_shape[1]
-            output_conv = tf.reshape(input_conv,
-                shape=[batch_size, dim1_length, dim2_length, self.num_filter])
+            max_length = input_conv_shape[-2]
+            output_conv = tf.reshape(input_conv, shape=[batch_size, -1, max_length, self.num_filter])
             output_conv = output_conv * output_mask
         
         return output_conv, output_mask
