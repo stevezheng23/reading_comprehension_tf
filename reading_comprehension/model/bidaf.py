@@ -198,9 +198,9 @@ class BiDAF(BaseModel):
             with tf.variable_scope("context2question", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
                 if context2quesiton_interaction_enable == True:
                     self.logger.log_print("# build context2question interaction layer for bidaf model")
-                    context2quesiton_attention_layer = create_attention_layer("default",
+                    context2quesiton_attention_layer = create_attention_layer("att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
-                        context2quesiton_interaction_attention_dim, context2quesiton_interaction_score_type,
+                        context2quesiton_interaction_attention_dim, context2quesiton_interaction_score_type, False,
                         attention_matrix, self.num_gpus, self.default_gpu_id, context2quesiton_interaction_trainable)
                     
                     if enable_interaction_sharing == True:
@@ -227,7 +227,7 @@ class BiDAF(BaseModel):
                     self.logger.log_print("# build question2context interaction layer for bidaf model")
                     quesiton2context_attention_layer = create_attention_layer("max_att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
-                        quesiton2context_interaction_attention_dim, quesiton2context_interaction_score_type,
+                        quesiton2context_interaction_attention_dim, quesiton2context_interaction_score_type, False,
                         attention_matrix, self.num_gpus, self.default_gpu_id, quesiton2context_interaction_trainable)
                     
                     (quesiton2context_interaction,
@@ -291,9 +291,9 @@ class BiDAF(BaseModel):
             
             if answer_modeling_attention_enable == True:
                 answer_intermediate_unit_dim = answer_modeling_unit_dim * 2
-                answer_attention_modeling_layer = create_attention_layer("self_att",
+                answer_attention_modeling_layer = create_attention_layer("att",
                     answer_intermediate_unit_dim, answer_intermediate_unit_dim,
-                    answer_modeling_attention_dim, answer_modeling_score_type,
+                    answer_modeling_attention_dim, answer_modeling_score_type, True,
                     None, self.num_gpus, self.default_gpu_id, answer_modeling_trainable)
 
                 (answer_attention_modeling,
