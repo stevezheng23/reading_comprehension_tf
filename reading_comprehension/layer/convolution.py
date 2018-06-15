@@ -32,7 +32,7 @@ class Conv(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             weight_initializer = create_variable_initializer("glorot_uniform")
-            bias_initializer = create_variable_initializer("glorot_uniform")
+            bias_initializer = create_variable_initializer("zero")
             conv_activation = create_activation_function(self.activation)
             self.conv_layer = tf.layers.Conv1D(filters=self.num_filter, kernel_size=window_size,
                 strides=stride_size, padding=self.padding_type, activation=conv_activation, use_bias=True,

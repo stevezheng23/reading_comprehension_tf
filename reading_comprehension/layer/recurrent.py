@@ -15,7 +15,7 @@ def _create_single_reccurent_cell(unit_dim,
                                   device_spec):
     """create single recurrent cell"""
     weight_initializer = create_variable_initializer("glorot_uniform")
-    bias_initializer = create_variable_initializer("glorot_uniform")
+    bias_initializer = create_variable_initializer("zero")
     recurrent_activation = create_activation_function(activation)
 
     if cell_type == "lstm":

@@ -26,7 +26,7 @@ class Dense(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             weight_initializer = create_variable_initializer("glorot_uniform")
-            bias_initializer = create_variable_initializer("glorot_uniform")
+            bias_initializer = create_variable_initializer("zero")
             dense_activation = create_activation_function(self.activation)
             self.dense_layer = tf.layers.Dense(units=self.unit_dim, activation=dense_activation, use_bias=True,
                 kernel_initializer=weight_initializer, bias_initializer=bias_initializer, trainable=self.trainable)

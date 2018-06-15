@@ -63,7 +63,7 @@ def _create_nonlinear_attention_matrix(src_unit_dim,
                                        trainable):
     """create nonlinear attetnion matrix"""
     weight_initializer = create_variable_initializer("glorot_uniform")
-    bias_initializer = create_variable_initializer("glorot_uniform")
+    bias_initializer = create_variable_initializer("zero")
     
     pre_nonlinear_src_weight = tf.get_variable("pre_nonlinear_src_weight", shape=[attention_unit_dim, src_unit_dim],
         initializer=weight_initializer, trainable=trainable, dtype=tf.float32)
@@ -105,7 +105,7 @@ def _create_nonlinear_plus_attention_matrix(src_unit_dim,
                                             trainable):
     """create nonlinear plus attetnion matrix"""
     weight_initializer = create_variable_initializer("glorot_uniform")
-    bias_initializer = create_variable_initializer("glorot_uniform")
+    bias_initializer = create_variable_initializer("zero")
     
     if src_unit_dim != trg_unit_dim:
         raise ValueError("src dim {0} and trg dim must be the same for nonlinear plus attention".format(src_unit_dim, trg_unit_dim))
