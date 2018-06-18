@@ -4,6 +4,8 @@ import tensorflow as tf
 from util.default_util import *
 from util.reading_comprehension_util import *
 
+from layer.basic import *
+
 __all__ = ["Conv1D", "Conv2D", "MultiConv1D", "MultiConv2D"]
 
 class Conv(object):
@@ -37,6 +39,10 @@ class Conv(object):
             self.conv_layer = tf.layers.Conv1D(filters=self.num_filter, kernel_size=window_size,
                 strides=stride_size, padding=self.padding_type, activation=conv_activation, use_bias=True,
                 kernel_initializer=weight_initializer, bias_initializer=bias_initializer, trainable=trainable)
+            
+            if self.dropout > 0.0:
+                self.dropout_layer = Dropout(keep_prob=1.0-self.dropout,
+                    num_gpus=num_gpus, default_gpu_id=default_gpu_id)
 
 class Conv1D(Conv):
     """1d convolution layer"""
@@ -62,12 +68,12 @@ class Conv1D(Conv):
         """call 1d convolution layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_data = input_data * input_mask
-            output_mask = input_mask
             
             if self.dropout > 0.0:
-                input_data = tf.nn.dropout(input_data, 1.0-self.dropout)
+                input_data, input_mask = self.dropout_layer(input_data, input_mask)
             
             output_conv = self.conv_layer(input_data)
+            output_mask = input_mask
             output_conv = output_conv * output_mask
         
         return output_conv, output_mask
@@ -99,10 +105,9 @@ class Conv2D(Conv):
         """call 2d convolution layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_data = input_data * input_mask
-            output_mask = input_mask
             
             if self.dropout > 0.0:
-                input_data = tf.nn.dropout(input_data, 1.0-self.dropout)
+                input_data, input_mask = self.dropout_layer(input_data, input_mask)
             
             input_data_shape = tf.shape(input_data)
             batch_size = input_data_shape[0]
@@ -111,7 +116,9 @@ class Conv2D(Conv):
             input_conv = self.conv_layer(input_data)
             input_conv_shape = tf.shape(input_conv)
             max_length = input_conv_shape[-2]
+            
             output_conv = tf.reshape(input_conv, shape=[batch_size, -1, max_length, self.num_filter])
+            output_mask = input_mask
             output_conv = output_conv * output_mask
         
         return output_conv, output_mask

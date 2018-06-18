@@ -4,6 +4,8 @@ import tensorflow as tf
 from util.default_util import *
 from util.reading_comprehension_util import *
 
+from layer.basic import *
+
 __all__ = ["Dense", "StackedDense"]
 
 class Dense(object):
@@ -30,6 +32,10 @@ class Dense(object):
             dense_activation = create_activation_function(self.activation)
             self.dense_layer = tf.layers.Dense(units=self.unit_dim, activation=dense_activation, use_bias=True,
                 kernel_initializer=weight_initializer, bias_initializer=bias_initializer, trainable=self.trainable)
+            
+            if self.dropout > 0.0:
+                self.dropout_layer = Dropout(keep_prob=1.0-self.dropout,
+                    num_gpus=num_gpus, default_gpu_id=default_gpu_id)
     
     def __call__(self,
                  input_data,
@@ -37,12 +43,12 @@ class Dense(object):
         """call dense layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_data = input_data * input_mask
-            output_mask = input_mask
             
             if self.dropout > 0.0:
-                input_data = tf.nn.dropout(input_data, 1.0-self.dropout)
+                input_data, input_mask = self.dropout_layer(input_data, input_mask)
             
             output_dense = self.dense_layer(input_data)
+            output_mask = input_mask
             output_dense = output_dense * output_mask
         
         return output_dense, output_mask
