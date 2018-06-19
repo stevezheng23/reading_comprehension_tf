@@ -62,6 +62,10 @@ class BaseModel(object):
         with tf.variable_scope("fusion", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if fusion_type == "concate":
                 fusion_layer_list = []
+                if input_unit_dim != output_unit_dim:
+                    convert_layer = create_dense_layer(1, output_unit_dim, "", 0.0,
+                        self.num_gpus, self.default_gpu_id, fusion_trainable)
+                    fusion_layer_list.append(convert_layer)
             elif fusion_type == "dense":
                 fusion_layer = create_dense_layer(fusion_num_layer, output_unit_dim, fusion_hidden_activation,
                     fusion_dropout, self.num_gpus, self.default_gpu_id, fusion_trainable)
