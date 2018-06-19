@@ -11,23 +11,29 @@ __all__ = ["Conv1D", "Conv2D", "MultiConv1D", "MultiConv2D"]
 class Conv(object):
     """convolution layer"""
     def __init__(self,
+                 num_channel,
                  num_filter,
                  window_size,
                  stride_size,
                  padding_type,
                  activation,
                  dropout,
+                 layer_norm=False,
+                 residual_connect=False,
                  num_gpus=1,
                  default_gpu_id=0,
                  trainable=True,
                  scope="conv"):
         """initialize convolution layer"""
+        self.num_channel = num_channel
         self.num_filter = num_filter
         self.window_size = window_size
         self.stride_size = stride_size
         self.padding_type = padding_type
         self.activation = activation
         self.dropout = dropout
+        self.layer_norm = layer_norm
+        self.residual_connect = residual_connect
         self.trainable = trainable
         self.scope=scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -43,24 +49,31 @@ class Conv(object):
             if self.dropout > 0.0:
                 self.dropout_layer = Dropout(keep_prob=1.0-self.dropout,
                     num_gpus=num_gpus, default_gpu_id=default_gpu_id)
+            
+            if self.layer_norm == True:
+                self.norm_layer = LayerNorm(layer_dim=self.num_channel,
+                    num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=self.trainable)
 
 class Conv1D(Conv):
     """1d convolution layer"""
     def __init__(self,
+                 num_channel,
                  num_filter,
                  window_size,
                  stride_size,
                  padding_type,
                  activation,
                  dropout,
+                 layer_norm=False,
+                 residual_connect=False,
                  num_gpus=1,
                  default_gpu_id=0,
                  trainable=True,
                  scope="conv1d"):
         """initialize 1d convolution layer"""
-        super(Conv1D, self).__init__(num_filter=num_filter, window_size=window_size,
-            stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout,
-            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
+        super(Conv1D, self).__init__(num_channel=num_channel, num_filter=num_filter, window_size=window_size,
+            stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout, layer_norm=layer_norm,
+            residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     
     def __call__(self,
                  input_data,
@@ -68,12 +81,24 @@ class Conv1D(Conv):
         """call 1d convolution layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_data = input_data * input_mask
+            input_conv = input_data
+            input_conv_mask = input_mask
             
             if self.dropout > 0.0:
-                input_data, input_mask = self.dropout_layer(input_data, input_mask)
+                input_conv, input_conv_mask = self.dropout_layer(input_conv, input_conv_mask)
             
-            output_conv = self.conv_layer(input_data)
-            output_mask = input_mask
+            if self.layer_norm == True:
+                input_conv, input_conv_mask = self.norm_layer(input_conv, input_conv_mask)
+            
+            input_conv = self.conv_layer(input_conv)
+            
+            if self.residual_connect == True:
+                output_conv = input_conv + input_data
+                output_mask = input_conv_mask * input_mask
+            else:
+                output_conv = input_conv
+                output_mask = input_mask
+            
             output_conv = output_conv * output_mask
         
         return output_conv, output_mask
@@ -88,16 +113,16 @@ class Conv2D(Conv):
                  padding_type,
                  activation,
                  dropout,
+                 layer_norm=False,
+                 residual_connect=False,
                  num_gpus=1,
                  default_gpu_id=0,
                  trainable=True,
                  scope="conv2d"):
         """initialize 2d convolution layer"""
-        self.num_channel = num_channel
-        
-        super(Conv2D, self).__init__(num_filter=num_filter, window_size=window_size,
-            stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout,
-            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
+        super(Conv2D, self).__init__(num_channel=num_channel, num_filter=num_filter, window_size=window_size,
+            stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout, layer_norm=layer_norm,
+            residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     
     def __call__(self,
                  input_data,
@@ -105,20 +130,31 @@ class Conv2D(Conv):
         """call 2d convolution layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_data = input_data * input_mask
+            input_conv = input_data
+            input_conv_mask = input_mask
             
             if self.dropout > 0.0:
-                input_data, input_mask = self.dropout_layer(input_data, input_mask)
+                input_conv, input_conv_mask = self.dropout_layer(input_conv, input_conv_mask)
             
-            input_data_shape = tf.shape(input_data)
-            batch_size = input_data_shape[0]
-            max_length = input_data_shape[-2]
-            input_data = tf.reshape(input_data, shape=[-1, max_length, self.num_channel])
-            input_conv = self.conv_layer(input_data)
+            if self.layer_norm == True:
+                input_conv, input_conv_mask = self.norm_layer(input_conv, input_conv_mask)
+            
+            input_conv_shape = tf.shape(input_conv)
+            batch_size = input_conv_shape[0]
+            max_length = input_conv_shape[-2]
+            input_conv = tf.reshape(input_conv, shape=[-1, max_length, self.num_channel])
+            input_conv = self.conv_layer(input_conv)
             input_conv_shape = tf.shape(input_conv)
             max_length = input_conv_shape[-2]
+            input_conv = tf.reshape(input_conv, shape=[batch_size, -1, max_length, self.num_filter])
             
-            output_conv = tf.reshape(input_conv, shape=[batch_size, -1, max_length, self.num_filter])
-            output_mask = input_mask
+            if self.residual_connect == True:
+                output_conv = input_conv + input_data
+                output_mask = input_conv_mask * input_mask
+            else:
+                output_conv = input_conv
+                output_mask = input_mask
+            
             output_conv = output_conv * output_mask
         
         return output_conv, output_mask
@@ -126,23 +162,29 @@ class Conv2D(Conv):
 class MultiConv1D(object):
     """multi-window 1d convolution layer"""
     def __init__(self,
+                 num_channel,
                  num_filter,
                  window_size,
                  stride_size,
                  padding_type,
                  activation,
                  dropout,
+                 layer_norm=False,
+                 residual_connect=False,
                  num_gpus=1,
                  default_gpu_id=0,
                  trainable=True,
                  scope="multi_conv1d"):
         """initialize multi-window 1d convolution layer"""
+        self.num_channel = num_channel
         self.num_filter = num_filter
         self.window_size = window_size
         self.stride_size = stride_size
         self.padding_type = padding_type
         self.activation = activation
         self.dropout = dropout
+        self.layer_norm = layer_norm
+        self.residual_connect = residual_connect
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.trainable = trainable
@@ -152,9 +194,10 @@ class MultiConv1D(object):
             self.conv_layer_list = []
             for i in range(len(self.window_size)):
                 layer_scope = "layer_{0}".format(i)
-                conv_layer = Conv1D(num_filter=self.num_filter, window_size=self.window_size[i], stride_size=self.stride_size,
-                    padding_type=self.padding_type, activation=self.activation, dropout=self.dropout, num_gpus=self.num_gpus,
-                    default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
+                conv_layer = Conv1D(num_channel=self.num_channel, num_filter=self.num_filter,
+                    window_size=self.window_size[i], stride_size=self.stride_size, padding_type=self.padding_type,
+                    activation=self.activation, dropout=self.dropout, layer_norm=self.layer_norm, residual_connect=self.residual_connect,
+                    num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     
     def __call__(self,
@@ -185,6 +228,8 @@ class MultiConv2D(object):
                  padding_type,
                  activation,
                  dropout,
+                 layer_norm=False,
+                 residual_connect=False,
                  num_gpus=1,
                  default_gpu_id=0,
                  trainable=True,
@@ -197,6 +242,8 @@ class MultiConv2D(object):
         self.padding_type = padding_type
         self.activation = activation
         self.dropout = dropout
+        self.layer_norm = layer_norm
+        self.residual_connect = residual_connect
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.trainable = trainable
@@ -206,8 +253,9 @@ class MultiConv2D(object):
             self.conv_layer_list = []
             for i in range(len(self.window_size)):
                 layer_scope = "layer_{0}".format(i)
-                conv_layer = Conv2D(num_channel=self.num_channel, num_filter=self.num_filter, window_size=self.window_size[i],
-                    stride_size=self.stride_size, padding_type=self.padding_type, activation=self.activation, dropout=self.dropout,
+                conv_layer = Conv2D(num_channel=self.num_channel, num_filter=self.num_filter,
+                    window_size=self.window_size[i], stride_size=self.stride_size, padding_type=self.padding_type,
+                    activation=self.activation, dropout=self.dropout, layer_norm=self.layer_norm, residual_connect=self.residual_connect,
                     num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     

@@ -36,26 +36,28 @@ def create_convolution_layer(conv_type,
                              padding_type,
                              activation,
                              dropout,
+                             layer_norm,
+                             residual_connect,
                              num_gpus,
                              default_gpu_id,
                              trainable):
     """create convolution layer"""
     scope = "conv/{0}".format(conv_type)
     if conv_type == "1d":
-        conv_layer = Conv1D(num_filter=num_filter, window_size=window_size, stride_size=stride_size,
-            padding_type=padding_type, activation=activation, dropout=dropout,
+        conv_layer = Conv1D(num_channel=num_channel, num_filter=num_filter, window_size=window_size, stride_size=stride_size,
+            padding_type=padding_type, activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif conv_type == "2d":
-        conv_layer = Conv2D(num_channel=num_channel, num_filter=num_filter, window_size=window_size,
-            stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout,
+        conv_layer = Conv2D(num_channel=num_channel, num_filter=num_filter, window_size=window_size, stride_size=stride_size,
+            padding_type=padding_type, activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif conv_type == "multi_1d":
-        conv_layer = MultiConv1D(num_filter=num_filter, window_size=window_size, stride_size=stride_size,
-            padding_type=padding_type, activation=activation, dropout=dropout,
+        conv_layer = MultiConv1D(num_channel=num_channel, num_filter=num_filter, window_size=window_size, stride_size=stride_size,
+            padding_type=padding_type, activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif conv_type == "multi_2d":
-        conv_layer = MultiConv2D(num_channel=num_channel, num_filter=num_filter, window_size=window_size,
-            stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout,
+        conv_layer = MultiConv2D(num_channel=num_channel, num_filter=num_filter, window_size=window_size, stride_size=stride_size,
+            padding_type=padding_type, activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported convolution type {0}".format(conv_type))
