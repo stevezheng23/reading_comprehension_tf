@@ -86,10 +86,10 @@ class BiDAF(BaseModel):
                 self.train_loss = start_loss + end_loss
                 
                 """apply learning rate decay"""
-                self.logger.log_print("# setup learning rate decay mechanism")
                 self.learning_rate = tf.constant(self.hyperparams.train_optimizer_learning_rate)
                 
                 if self.hyperparams.train_optimizer_decay_enable == True:
+                    self.logger.log_print("# setup learning rate decay mechanism")
                     self.decayed_learning_rate = self._apply_learning_rate_decay(self.learning_rate)
                 else:
                     self.decayed_learning_rate = self.learning_rate
