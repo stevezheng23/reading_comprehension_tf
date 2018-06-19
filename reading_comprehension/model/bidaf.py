@@ -197,6 +197,7 @@ class BiDAF(BaseModel):
         with tf.variable_scope("interaction", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             answer_intermediate_list = [context_understanding]
             answer_intermediate_mask_list = [context_understanding_mask]
+            answer_intermediate_unit_dim = context_understanding_unit_dim
             
             attention_matrix = None
             with tf.variable_scope("context2question", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
@@ -216,6 +217,7 @@ class BiDAF(BaseModel):
                     
                     answer_intermediate_list.append(context2quesiton_interaction)
                     answer_intermediate_mask_list.append(context2quesiton_interaction_mask)
+                    answer_intermediate_unit_dim = answer_intermediate_unit_dim + question_understanding_unit_dim
                     
                     if fusion_combo_enable == True:
                         if question_understanding_unit_dim == context_understanding_unit_dim:
@@ -223,8 +225,7 @@ class BiDAF(BaseModel):
                             context2quesiton_combo_mask = context_understanding_mask * context2quesiton_interaction_mask
                             answer_intermediate_list.append(context2quesiton_combo)
                             answer_intermediate_mask_list.append(context2quesiton_combo_mask)
-                else:
-                    question_understanding_unit_dim = 0
+                            answer_intermediate_unit_dim = answer_intermediate_unit_dim + question_understanding_unit_dim
             
             with tf.variable_scope("question2context", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
                 if quesiton2context_interaction_enable == True:
@@ -243,13 +244,12 @@ class BiDAF(BaseModel):
                         quesiton2context_combo_mask = context_understanding_mask * quesiton2context_interaction_mask
                         answer_intermediate_list.append(quesiton2context_combo)
                         answer_intermediate_mask_list.append(quesiton2context_combo_mask)
+                        answer_intermediate_unit_dim = answer_intermediate_unit_dim + context_understanding_unit_dim
                     else:
                         answer_intermediate_list.append(quesiton2context_interaction)
                         answer_intermediate_mask_list.append(quesiton2context_interaction_mask)
-                else:
-                    context_understanding_unit_dim = 0
+                        answer_intermediate_unit_dim = answer_intermediate_unit_dim + context_understanding_unit_dim
             
-            answer_intermediate_unit_dim = question_understanding_unit_dim + context_understanding_unit_dim * 2
             answer_interaction_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim, fusion_unit_dim,
                 fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable)
             answer_interaction, answer_interaction_mask = self._build_fusion_result(answer_intermediate_list,
@@ -282,35 +282,41 @@ class BiDAF(BaseModel):
         
         with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.logger.log_print("# build answer modeling layer for bidaf model")
-            answer_intermediate_list = [answer_interaction]
-            answer_intermediate_mask_list = [answer_interaction_mask]
+            answer_intermediate_list = []
+            answer_intermediate_mask_list = []
+            answer_intermediate_unit_dim = 0
             
-            answer_sequence_modeling_layer = create_recurrent_layer("bi", answer_modeling_num_layer,
+            answer_modeling_sequence_layer = create_recurrent_layer("bi", answer_modeling_num_layer,
                 answer_modeling_unit_dim, answer_modeling_cell_type, answer_modeling_hidden_activation,
                 answer_modeling_dropout, answer_modeling_forget_bias, answer_modeling_residual_connect,
                 self.num_gpus, self.default_gpu_id, answer_modeling_trainable)
             
-            (answer_sequence_modeling,
-                answer_sequence_modeling_mask) = answer_sequence_modeling_layer(answer_interaction, answer_interaction_mask)
+            (answer_modeling_sequence,
+                answer_modeling_sequence_mask) = answer_modeling_sequence_layer(answer_interaction, answer_interaction_mask)
+            answer_modeling_sequence_unit_dim = answer_modeling_unit_dim * 2
             
             if answer_modeling_attention_enable == True:
-                answer_intermediate_unit_dim = answer_modeling_unit_dim * 2
-                answer_attention_modeling_layer = create_attention_layer("att",
-                    answer_intermediate_unit_dim, answer_intermediate_unit_dim,
+                answer_modeling_attention_layer = create_attention_layer("att",
+                    answer_modeling_sequence_unit_dim, answer_modeling_sequence_unit_dim,
                     answer_modeling_attention_dim, answer_modeling_score_type, True,
                     None, self.num_gpus, self.default_gpu_id, answer_modeling_trainable)
 
-                (answer_attention_modeling,
-                    answer_attention_modeling_mask) = answer_attention_modeling_layer(answer_sequence_modeling,
-                        answer_sequence_modeling, answer_sequence_modeling_mask, answer_sequence_modeling_mask)
-
-                answer_intermediate_list.append(answer_attention_modeling)
-                answer_intermediate_mask_list.append(answer_attention_modeling_mask)
+                (answer_modeling_attention,
+                    answer_modeling_attention_mask) = answer_modeling_attention_layer(answer_modeling_sequence,
+                        answer_modeling_sequence, answer_modeling_sequence_mask, answer_modeling_sequence_mask)
+                answer_modeling_attention_unit_dim = answer_modeling_sequence_unit_dim
+                
+                answer_intermediate_list.append(answer_interaction)
+                answer_intermediate_mask_list.append(answer_interaction_mask)
+                answer_intermediate_unit_dim = answer_intermediate_unit_dim + answer_interaction_unit_dim
+                answer_intermediate_list.append(answer_modeling_attention)
+                answer_intermediate_mask_list.append(answer_modeling_attention_mask)
+                answer_intermediate_unit_dim = answer_intermediate_unit_dim + answer_modeling_attention_unit_dim
             else:
-                answer_intermediate_list.append(answer_sequence_modeling)
-                answer_intermediate_mask_list.append(answer_sequence_modeling_mask)
+                answer_intermediate_list.append(answer_modeling_sequence)
+                answer_intermediate_mask_list.append(answer_modeling_sequence_mask)
+                answer_intermediate_unit_dim = answer_intermediate_unit_dim + answer_modeling_sequence_unit_dim
             
-            answer_intermediate_unit_dim = answer_interaction_unit_dim + answer_modeling_unit_dim * 2
             answer_modeling_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim, fusion_unit_dim,
                 fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable)
             answer_modeling, answer_modeling_mask = self._build_fusion_result(answer_intermediate_list,
@@ -361,11 +367,10 @@ class BiDAF(BaseModel):
             answer_intermediate_list.append(answer_start)
             answer_intermediate_mask_list.append(answer_start_mask)
             answer_intermediate_unit_dim = answer_intermediate_unit_dim + answer_start_unit_dim * 2
+            answer_intermediate, answer_intermediate_mask = self._build_fusion_result(answer_intermediate_list,
+                answer_intermediate_mask_list, None)
             
             with tf.variable_scope("end", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-                answer_intermediate, answer_intermediate_mask = self._build_fusion_result(answer_intermediate_list,
-                    answer_intermediate_mask_list, None)
-                
                 answer_end_layer = create_recurrent_layer("bi", answer_end_num_layer,
                     answer_end_unit_dim, answer_end_cell_type, answer_end_hidden_activation,
                     answer_end_dropout, answer_end_forget_bias, answer_end_residual_connect,
