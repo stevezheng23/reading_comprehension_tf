@@ -61,6 +61,7 @@ def create_default_hyperparams():
         train_ema_decay_rate=0.999,
         train_optimizer_type="adam",
         train_optimizer_learning_rate=0.001,
+        train_optimizer_decay_enable=True,
         train_optimizer_decay_mode="exponential_decay",
         train_optimizer_decay_rate=0.95,
         train_optimizer_decay_step=1000,
