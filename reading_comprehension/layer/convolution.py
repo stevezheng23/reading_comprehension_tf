@@ -6,7 +6,8 @@ from util.reading_comprehension_util import *
 
 from layer.basic import *
 
-__all__ = ["Conv1D", "Conv2D", "MultiConv1D", "MultiConv2D"]
+__all__ = ["Conv1D", "Conv2D", "MultiConv1D", "MultiConv2D",
+           "SeparableConv1D", "SeparableConv2D", "MultiSeparableConv1D", "MultiSeparableConv2D"]
 
 class Conv(object):
     """convolution layer"""

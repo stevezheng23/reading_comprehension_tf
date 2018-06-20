@@ -145,7 +145,7 @@ class BaseModel(object):
             
             if self.subword_conv_layer == None:
                 self.subword_conv_layer = create_convolution_layer("multi_2d", subword_embed_dim,
-                    subword_unit_dim, subword_window_size, 1, "SAME", subword_hidden_activation, subword_dropout,
+                    subword_unit_dim, 1, subword_window_size, 1, "SAME", subword_hidden_activation, subword_dropout,
                     False, False, self.num_gpus, self.default_gpu_id, subword_feat_trainable)
             
             (input_subword_conv,
@@ -184,7 +184,7 @@ class BaseModel(object):
             
             if self.char_conv_layer == None:
                 self.char_conv_layer = create_convolution_layer("multi_2d", char_embed_dim,
-                    char_unit_dim, char_window_size, 1, "SAME", char_hidden_activation, char_dropout,
+                    char_unit_dim, 1, char_window_size, 1, "SAME", char_hidden_activation, char_dropout,
                     False, False, self.num_gpus, self.default_gpu_id, char_feat_trainable)
             
             (input_char_conv,

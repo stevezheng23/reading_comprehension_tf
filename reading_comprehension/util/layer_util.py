@@ -9,7 +9,7 @@ from layer.highway import *
 from layer.recurrent import *
 from layer.attention import *
 
-__all__ = ["create_embedding_layer", "create_convolution_layer", "create_separable_convolution_layer", "create_pooling_layer",
+__all__ = ["create_embedding_layer", "create_convolution_layer", "create_pooling_layer",
            "create_dense_layer", "create_highway_layer", "create_recurrent_layer", "create_attention_layer"]
 
 def create_embedding_layer(vocab_size,
@@ -31,6 +31,7 @@ def create_embedding_layer(vocab_size,
 def create_convolution_layer(conv_type,
                              num_channel,
                              num_filter,
+                             num_multiplier,
                              window_size,
                              stride_size,
                              padding_type,
@@ -59,28 +60,7 @@ def create_convolution_layer(conv_type,
         conv_layer = MultiConv2D(num_channel=num_channel, num_filter=num_filter, window_size=window_size, stride_size=stride_size,
             padding_type=padding_type, activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
-    else:
-        raise ValueError("unsupported convolution type {0}".format(conv_type))
-    
-    return conv_layer
-
-def create_separable_convolution_layer(conv_type,
-                                       num_channel,
-                                       num_filter,
-                                       num_multiplier,
-                                       window_size,
-                                       stride_size,
-                                       padding_type,
-                                       activation,
-                                       dropout,
-                                       layer_norm,
-                                       residual_connect,
-                                       num_gpus,
-                                       default_gpu_id,
-                                       trainable):
-    """create depthwise-separable convolution layer"""
-    scope = "conv/{0}".format(conv_type)
-    if conv_type == "sep_1d":
+    elif conv_type == "sep_1d":
         conv_layer = SeparableConv1D(num_channel=num_channel, num_filter=num_filter, num_multiplier=num_multiplier,
             window_size=window_size, stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout,
             layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
