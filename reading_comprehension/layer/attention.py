@@ -4,6 +4,8 @@ import tensorflow as tf
 from util.default_util import *
 from util.reading_comprehension_util import *
 
+from layer.basic import *
+
 __all__ = ["Attention", "MaxAttention", "HeadAttention", "MultiHeadAttention"]
 
 def _create_attention_matrix(src_unit_dim,
@@ -383,7 +385,9 @@ class Attention(object):
                  trg_dim,
                  att_dim,
                  score_type,
-                 is_self,
+                 layer_norm=False,
+                 residual_connect=False,
+                 is_self=False,
                  external_matrix=None,
                  num_gpus=1,
                  default_gpu_id=0,
@@ -394,6 +398,8 @@ class Attention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.layer_norm = layer_norm
+        self.residual_connect = residual_connect
         self.is_self = is_self
         self.trainable = trainable
         self.scope = scope
@@ -405,6 +411,16 @@ class Attention(object):
                     self.trg_dim, self.att_dim, self.score_type, self.trainable)
             else:
                 self.attention_matrix = external_matrix
+            
+            if self.layer_norm == True:
+                self.src_norm_layer = LayerNorm(layer_dim=self.src_dim,
+                    num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=self.trainable, scope="src_layer_norm")
+                
+                if self.is_self == True:
+                    self.trg_norm_layer = self.src_norm_layer
+                else:
+                    self.trg_norm_layer = LayerNorm(layer_dim=self.trg_dim,
+                        num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=self.trainable, scope="trg_layer_norm")
     
     def __call__(self,
                  input_src_data,
@@ -415,13 +431,30 @@ class Attention(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_src_data = input_src_data * input_src_mask
             input_trg_data = input_trg_data * input_trg_mask
-            input_attention_score = _generate_attention_score(input_src_data,
-                input_trg_data, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_mask, input_trg_mask, self.is_self)
+            input_src_attention = input_src_data
+            input_trg_attention = input_trg_data
+            input_src_attention_mask = input_src_mask
+            input_trg_attention_mask = input_trg_mask
+            
+            if self.layer_norm == True:
+                input_src_attention, input_src_attention_mask = self.src_norm_layer(input_src_attention, input_src_attention_mask)
+                input_trg_attention, input_trg_attention_mask = self.trg_norm_layer(input_trg_attention, input_trg_attention_mask)
+            
+            input_attention_score = _generate_attention_score(input_src_attention,
+                input_trg_attention, self.attention_matrix, self.score_type)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
             input_attention_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True)
-            output_attention = tf.matmul(input_attention_weight, input_trg_data)
-            output_mask = input_src_mask
+            input_attention = tf.matmul(input_attention_weight, input_trg_attention)
+            input_mask = input_src_attention_mask
+            
+            if self.residual_connect == True and self.is_self == True:
+                output_attention = input_attention + input_src_data
+                output_mask = input_mask * input_src_mask
+            else:
+                output_attention = input_attention
+                output_mask = input_mask
+            
             output_attention = output_attention * output_mask
         
         return output_attention, output_mask
@@ -436,7 +469,9 @@ class MaxAttention(object):
                  trg_dim,
                  att_dim,
                  score_type,
-                 is_self,
+                 layer_norm=False,
+                 residual_connect=False,
+                 is_self=False,
                  external_matrix=None,
                  num_gpus=1,
                  default_gpu_id=0,
@@ -447,6 +482,8 @@ class MaxAttention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.layer_norm = layer_norm
+        self.residual_connect = residual_connect
         self.is_self = is_self
         self.trainable = trainable
         self.scope = scope
@@ -458,6 +495,16 @@ class MaxAttention(object):
                     self.trg_dim, self.att_dim, self.score_type, self.trainable)
             else:
                 self.attention_matrix = external_matrix
+            
+            if self.layer_norm == True:
+                self.src_norm_layer = LayerNorm(layer_dim=self.src_dim,
+                    num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=self.trainable, scope="src_layer_norm")
+                
+                if self.is_self == True:
+                    self.trg_norm_layer = self.src_norm_layer
+                else:
+                    self.trg_norm_layer = LayerNorm(layer_dim=self.trg_dim,
+                        num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=self.trainable, scope="trg_layer_norm")
     
     def __call__(self,
                  input_src_data,
@@ -468,18 +515,35 @@ class MaxAttention(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_src_data = input_src_data * input_src_mask
             input_trg_data = input_trg_data * input_trg_mask
-            input_attention_score = _generate_attention_score(input_src_data,
-                input_trg_data, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_mask, input_trg_mask, self.is_self)
+            input_src_attention = input_src_data
+            input_trg_attention = input_trg_data
+            input_src_attention_mask = input_src_mask
+            input_trg_attention_mask = input_trg_mask
+            
+            if self.layer_norm == True:
+                input_src_attention, input_src_attention_mask = self.src_norm_layer(input_src_attention, input_src_attention_mask)
+                input_trg_attention, input_trg_attention_mask = self.trg_norm_layer(input_trg_attention, input_trg_attention_mask)
+            
+            input_attention_score = _generate_attention_score(input_src_attention,
+                input_trg_attention, self.attention_matrix, self.score_type)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
             input_attention_score = tf.reduce_max(input_attention_score, axis=-1, keep_dims=True)
             input_attention_mask = tf.reduce_max(input_attention_mask, axis=-1, keep_dims=True)
             input_attention_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-2, keepdims=True)
             input_attention_weight = tf.transpose(input_attention_weight, perm=[0, 2, 1])
-            output_attention = tf.matmul(input_attention_weight, input_src_data)
-            src_max_length = tf.shape(input_src_data)[1]
-            output_attention = tf.tile(output_attention, multiples=[1, src_max_length, 1])
-            output_mask = input_src_mask
+            input_attention = tf.matmul(input_attention_weight, input_src_attention)
+            src_max_length = tf.shape(input_src_attention)[1]
+            input_attention = tf.tile(input_attention, multiples=[1, src_max_length, 1])
+            input_mask = input_src_attention_mask
+            
+            if self.residual_connect == True and self.is_self == True:
+                output_attention = input_attention + input_src_data
+                output_mask = input_mask * input_src_mask
+            else:
+                output_attention = input_attention
+                output_mask = input_mask
+            
             output_attention = output_attention * output_mask
         
         return output_attention, output_mask
@@ -494,7 +558,9 @@ class HeadAttention(object):
                  trg_dim,
                  att_dim,
                  score_type,
-                 is_self,
+                 layer_norm=False,
+                 residual_connect=False,
+                 is_self=False,
                  external_matrix=None,
                  num_gpus=1,
                  default_gpu_id=0,
@@ -505,6 +571,8 @@ class HeadAttention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.layer_norm = layer_norm
+        self.residual_connect = residual_connect
         self.is_self = is_self
         self.trainable = trainable
         self.scope = scope
@@ -523,6 +591,16 @@ class HeadAttention(object):
             else:
                 self.projection_matrix = external_matrix["projection"]
                 self.attention_matrix = external_matrix["attention"]
+            
+            if self.layer_norm == True:
+                self.src_norm_layer = LayerNorm(layer_dim=self.src_dim,
+                    num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=self.trainable, scope="src_layer_norm")
+                
+                if self.is_self == True:
+                    self.trg_norm_layer = self.src_norm_layer
+                else:
+                    self.trg_norm_layer = LayerNorm(layer_dim=self.trg_dim,
+                        num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=self.trainable, scope="trg_layer_norm")
     
     def __call__(self,
                  input_src_data,
@@ -533,16 +611,33 @@ class HeadAttention(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_src_data = input_src_data * input_src_mask
             input_trg_data = input_trg_data * input_trg_mask
-            input_query_data = _generate_projection_data(input_src_data, self.projection_matrix[0])
-            input_key_data = _generate_projection_data(input_trg_data, self.projection_matrix[1])
-            input_value_data = _generate_projection_data(input_trg_data, self.projection_matrix[2])
-            input_attention_score = _generate_attention_score(input_query_data,
-                input_key_data, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_mask, input_trg_mask, self.is_self)
+            input_src_attention = input_src_data
+            input_trg_attention = input_trg_data
+            input_src_attention_mask = input_src_mask
+            input_trg_attention_mask = input_trg_mask
+            
+            if self.layer_norm == True:
+                input_src_attention, input_src_attention_mask = self.src_norm_layer(input_src_attention, input_src_attention_mask)
+                input_trg_attention, input_trg_attention_mask = self.trg_norm_layer(input_trg_attention, input_trg_attention_mask)
+            
+            input_query_attention = _generate_projection_data(input_src_attention, self.projection_matrix[0])
+            input_key_attention = _generate_projection_data(input_trg_attention, self.projection_matrix[1])
+            input_value_attention = _generate_projection_data(input_trg_attention, self.projection_matrix[2])
+            input_attention_score = _generate_attention_score(input_query_attention,
+                input_key_attention, self.attention_matrix, self.score_type)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
             input_attention_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True)
-            output_attention = tf.matmul(input_attention_weight, input_value_data)
-            output_mask = input_src_mask
+            input_attention = tf.matmul(input_attention_weight, input_value_attention)
+            input_mask = input_src_attention_mask
+            
+            if self.residual_connect == True and self.is_self == True:
+                output_attention = input_attention + input_src_data
+                output_mask = input_mask * input_src_mask
+            else:
+                output_attention = input_attention
+                output_mask = input_mask
+            
             output_attention = output_attention * output_mask
         
         return output_attention, output_mask
@@ -560,7 +655,9 @@ class MultiHeadAttention(object):
                  trg_dim,
                  att_dim,
                  score_type,
-                 is_self,
+                 layer_norm=False,
+                 residual_connect=False,
+                 is_self=False,
                  external_matrix=None,
                  num_gpus=1,
                  default_gpu_id=0,
@@ -571,6 +668,8 @@ class MultiHeadAttention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.layer_norm = layer_norm
+        self.residual_connect = residual_connect
         self.is_self = is_self
         self.external_matrix=external_matrix
         self.num_gpus = num_gpus
@@ -583,8 +682,9 @@ class MultiHeadAttention(object):
             for i in range(len(self.att_dim)):
                 layer_scope = "layer_{0}".format(i)
                 attention_layer = HeadAttention(src_dim=self.src_dim, trg_dim=self.trg_dim, att_dim=self.att_dim[i],
-                    score_type=self.score_type, is_self=self.is_self, external_matrix=self.external_matrix[i],
-                    num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
+                    score_type=self.score_type, layer_norm=self.layer_norm, residual_connect=self.residual_connect,
+                    is_self=self.is_self, external_matrix=self.external_matrix[i], num_gpus=self.num_gpus,
+                    default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
                 self.attention_layer_list.append(attention_layer)
     
     def __call__(self,
