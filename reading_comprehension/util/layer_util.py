@@ -181,6 +181,10 @@ def create_attention_layer(attention_type,
         attention_layer = MaxAttention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim, score_type=score_type,
             layer_norm=layer_norm, residual_connect=residual_connect, is_self=is_self, external_matrix=external_matrix,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
+    elif attention_type == "co_att":
+        attention_layer = CoAttention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim, score_type=score_type,
+            layer_norm=layer_norm, residual_connect=residual_connect, is_self=is_self, external_matrix=external_matrix,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif attention_type == "head_att":
         attention_layer = HeadAttention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim, score_type=score_type,
             layer_norm=layer_norm, residual_connect=residual_connect, is_self=is_self, external_matrix=external_matrix,
