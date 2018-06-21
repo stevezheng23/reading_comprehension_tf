@@ -313,7 +313,6 @@ class SeparableConv(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             weight_initializer = create_variable_initializer("glorot_uniform")
             bias_initializer = create_variable_initializer("zero")
-            
             self.depthwise_filter = tf.get_variable("depthwise_filter",
                 shape=[1, self.window_size, self.num_channel, self.num_multiplier],
                 initializer=weight_initializer, trainable=self.trainable, dtype=tf.float32)
@@ -378,7 +377,8 @@ class SeparableConv1D(SeparableConv):
             input_conv = tf.squeeze(input_conv, axis=1)
             
             input_conv = input_conv + self.separable_bias
-            input_conv = self.conv_activation(input_conv)
+            if self.conv_activation != None:
+                input_conv = self.conv_activation(input_conv)
             
             if self.residual_connect == True:
                 output_conv = input_conv + input_data

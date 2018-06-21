@@ -103,16 +103,20 @@ def create_dense_layer(num_layer,
                        unit_dim,
                        activation,
                        dropout,
+                       layer_norm,
+                       residual_connect,
                        num_gpus,
                        default_gpu_id,
                        trainable):
     """create dense layer"""
     if num_layer > 1:
         dense_layer = Dense(unit_dim=unit_dim, activation=activation, dropout=dropout,
-            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope="dense")
+            layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus,
+            default_gpu_id=default_gpu_id, trainable=trainable, scope="dense")
     else:
-        dense_layer = StackedDense(num_layer=num_layer, unit_dim=unit_dim, activation=activation, dropout=dropout,
-            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope="stacked_dense")
+        dense_layer = StackedDense(num_layer=num_layer, unit_dim=unit_dim, activation=activation,
+            dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus,
+            default_gpu_id=default_gpu_id, trainable=trainable, scope="stacked_dense")
     
     return dense_layer
 

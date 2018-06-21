@@ -360,7 +360,7 @@ class BiDAF(BaseModel):
                 answer_start, answer_start_mask = answer_start_layer(answer_modeling, answer_modeling_mask)
                 
                 answer_start = tf.nn.dropout(answer_start, 1.0-answer_start_dropout)
-                answer_start_output_layer = create_dense_layer(1, 1, "", 0.0,
+                answer_start_output_layer = create_dense_layer(1, 1, "", 0.0, False, False,
                     self.num_gpus, self.default_gpu_id, answer_start_trainable)
                 answer_start_output, answer_start_output_mask = answer_start_output_layer(answer_start, answer_start_mask)
             
@@ -378,7 +378,7 @@ class BiDAF(BaseModel):
                 answer_end, answer_end_mask = answer_end_layer(answer_intermediate, answer_intermediate_mask)
                 
                 answer_end = tf.nn.dropout(answer_end, 1.0-answer_end_dropout)
-                answer_end_output_layer = create_dense_layer(1, 1, "", 0.0,
+                answer_end_output_layer = create_dense_layer(1, 1, "", 0.0, False, False,
                     self.num_gpus, self.default_gpu_id, answer_end_trainable)
                 answer_end_output, answer_end_output_mask = answer_end_output_layer(answer_end, answer_end_mask)
         
