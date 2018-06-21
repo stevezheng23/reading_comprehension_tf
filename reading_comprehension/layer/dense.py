@@ -63,7 +63,8 @@ class Dense(object):
             if self.layer_norm == True:
                 input_dense, input_dense_mask = self.norm_layer(input_dense, input_dense_mask)
             
-            input_dense = self.dense_activation(input_dense)
+            if self.dense_activation != None:
+                input_dense = self.dense_activation(input_dense)
             
             if self.residual_connect == True:
                 output_dense = input_dense + input_data

@@ -63,17 +63,17 @@ class BaseModel(object):
             if fusion_type == "concate":
                 fusion_layer_list = []
                 if input_unit_dim != output_unit_dim:
-                    convert_layer = create_dense_layer(1, output_unit_dim, "", 0.0,
+                    convert_layer = create_dense_layer(1, output_unit_dim, "", 0.0, False, False,
                         self.num_gpus, self.default_gpu_id, fusion_trainable)
                     fusion_layer_list.append(convert_layer)
             elif fusion_type == "dense":
                 fusion_layer = create_dense_layer(fusion_num_layer, output_unit_dim, fusion_hidden_activation,
-                    fusion_dropout, self.num_gpus, self.default_gpu_id, fusion_trainable)
+                    fusion_dropout, False, False, self.num_gpus, self.default_gpu_id, fusion_trainable)
                 fusion_layer_list = [fusion_layer]
             elif fusion_type == "highway":
                 fusion_layer_list = []
                 if input_unit_dim != output_unit_dim:
-                    convert_layer = create_dense_layer(1, output_unit_dim, "", 0.0,
+                    convert_layer = create_dense_layer(1, output_unit_dim, "", 0.0, False, False,
                         self.num_gpus, self.default_gpu_id, fusion_trainable)
                     fusion_layer_list.append(convert_layer)
                 

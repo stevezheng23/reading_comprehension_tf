@@ -377,7 +377,8 @@ class SeparableConv1D(SeparableConv):
             input_conv = tf.squeeze(input_conv, axis=1)
             
             input_conv = input_conv + self.separable_bias
-            input_conv = self.conv_activation(input_conv)
+            if self.conv_activation != None:
+                input_conv = self.conv_activation(input_conv)
             
             if self.residual_connect == True:
                 output_conv = input_conv + input_data
