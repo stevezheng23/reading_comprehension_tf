@@ -32,7 +32,7 @@
     "data_result_output_dir": "output/result",
     "train_random_seed": 100,
     "train_enable_shuffle": true,
-    "train_batch_size": 45,
+    "train_batch_size": 60,
     "train_eval_batch_size": 100,
     "train_eval_metric": ["exact", "f1"],
     "train_decoding_sample_size": 3,
