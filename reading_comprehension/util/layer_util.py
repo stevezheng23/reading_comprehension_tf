@@ -29,6 +29,7 @@ def create_embedding_layer(vocab_size,
     return embed_layer
 
 def create_convolution_layer(conv_type,
+                             num_layer,
                              num_channel,
                              num_filter,
                              num_multiplier,
@@ -45,41 +46,45 @@ def create_convolution_layer(conv_type,
     """create convolution layer"""
     scope = "conv/{0}".format(conv_type)
     if conv_type == "1d":
-        conv_layer = Conv1D(num_channel=num_channel, num_filter=num_filter, window_size=window_size, stride_size=stride_size,
-            padding_type=padding_type, activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
+        conv_layer = StackedConv(layer_creator=Conv1D, num_layer=num_layer, num_channel=num_channel,
+            num_filter=num_filter, window_size=window_size, stride_size=stride_size, padding_type=padding_type,
+            activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif conv_type == "2d":
-        conv_layer = Conv2D(num_channel=num_channel, num_filter=num_filter, window_size=window_size, stride_size=stride_size,
-            padding_type=padding_type, activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
+        conv_layer = StackedConv(layer_creator=Conv2D, num_layer=num_layer, num_channel=num_channel,
+            num_filter=num_filter, window_size=window_size, stride_size=stride_size, padding_type=padding_type,
+            activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif conv_type == "multi_1d":
-        conv_layer = MultiConv1D(num_channel=num_channel, num_filter=num_filter, window_size=window_size, stride_size=stride_size,
-            padding_type=padding_type, activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
+        conv_layer = StackedConv(layer_creator=MultiConv1D, num_layer=num_layer, num_channel=num_channel,
+            num_filter=num_filter, window_size=window_size, stride_size=stride_size, padding_type=padding_type,
+            activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif conv_type == "multi_2d":
-        conv_layer = MultiConv2D(num_channel=num_channel, num_filter=num_filter, window_size=window_size, stride_size=stride_size,
-            padding_type=padding_type, activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
+        conv_layer = StackedConv(layer_creator=MultiConv2D, num_layer=num_layer, num_channel=num_channel,
+            num_filter=num_filter, window_size=window_size, stride_size=stride_size, padding_type=padding_type,
+            activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif conv_type == "sep_1d":
-        conv_layer = SeparableConv1D(num_channel=num_channel, num_filter=num_filter, num_multiplier=num_multiplier,
-            window_size=window_size, stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout,
-            layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            trainable=trainable, scope=scope)
+        conv_layer = StackedSeparableConv(layer_creator=SeparableConv1D, num_layer=num_layer, num_channel=num_channel,
+            num_filter=num_filter, num_multiplier=num_multiplier, window_size=window_size, stride_size=stride_size,
+            padding_type=padding_type, activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif conv_type == "sep_2d":
-        conv_layer = SeparableConv2D(num_channel=num_channel, num_filter=num_filter, num_multiplier=num_multiplier,
-            window_size=window_size, stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout,
-            layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            trainable=trainable, scope=scope)
+        conv_layer = StackedSeparableConv(layer_creator=SeparableConv2D, num_layer=num_layer, num_channel=num_channel,
+            num_filter=num_filter, num_multiplier=num_multiplier, window_size=window_size, stride_size=stride_size,
+            padding_type=padding_type, activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif conv_type == "multi_sep_1d":
-        conv_layer = MultiSeparableConv1D(num_channel=num_channel, num_filter=num_filter, num_multiplier=num_multiplier,
-            window_size=window_size, stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout,
-            layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            trainable=trainable, scope=scope)
+        conv_layer = StackedSeparableConv(layer_creator=MultiSeparableConv1D, num_layer=num_layer, num_channel=num_channel,
+            num_filter=num_filter, num_multiplier=num_multiplier, window_size=window_size, stride_size=stride_size,
+            padding_type=padding_type, activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     elif conv_type == "multi_sep_2d":
-        conv_layer = MultiSeparableConv2D(num_channel=num_channel, num_filter=num_filter, num_multiplier=num_multiplier,
-            window_size=window_size, stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout,
-            layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            trainable=trainable, scope=scope)
+        conv_layer = StackedSeparableConv(layer_creator=MultiSeparableConv2D, num_layer=num_layer, num_channel=num_channel,
+            num_filter=num_filter, num_multiplier=num_multiplier, window_size=window_size, stride_size=stride_size,
+            padding_type=padding_type, activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported convolution type {0}".format(conv_type))
     
@@ -109,14 +114,9 @@ def create_dense_layer(num_layer,
                        default_gpu_id,
                        trainable):
     """create dense layer"""
-    if num_layer > 1:
-        dense_layer = Dense(unit_dim=unit_dim, activation=activation, dropout=dropout,
-            layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus,
-            default_gpu_id=default_gpu_id, trainable=trainable, scope="dense")
-    else:
-        dense_layer = StackedDense(num_layer=num_layer, unit_dim=unit_dim, activation=activation,
-            dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus,
-            default_gpu_id=default_gpu_id, trainable=trainable, scope="stacked_dense")
+    dense_layer = StackedDense(num_layer=num_layer, unit_dim=unit_dim, activation=activation,
+        dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
+        num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable)
     
     return dense_layer
 
@@ -128,12 +128,8 @@ def create_highway_layer(num_layer,
                          default_gpu_id,
                          trainable):
     """create highway layer"""
-    if num_layer > 1:
-        highway_layer = Highway(unit_dim=unit_dim, activation=activation, dropout=dropout,
-            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope="highway")
-    else:
-        highway_layer = StackedHighway(num_layer=num_layer, unit_dim=unit_dim, activation=activation, dropout=dropout,
-            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope="stacked_highway")
+    highway_layer = StackedHighway(num_layer=num_layer, unit_dim=unit_dim, activation=activation,
+        dropout=dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable)
     
     return highway_layer
 
