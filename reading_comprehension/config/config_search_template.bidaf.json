@@ -17,17 +17,17 @@
         },
         "data_max_subword_length": {
             "stype": "discrete",
-            "set": [25],
+            "set": [16],
             "dtype": "int"
         },
         "data_max_char_length": {
             "stype": "discrete",
-            "set": [25],
+            "set": [16],
             "dtype": "int"
         },
         "train_batch_size": {
             "stype": "discrete",
-            "set": [64],
+            "set": [60],
             "dtype": "int"
         },
         "train_optimizer_type": {
@@ -243,7 +243,7 @@
         },
         "model_interaction_fusion_hidden_activation": {
             "stype": "discrete",
-            "set": ["tanh"],
+            "set": ["relu"],
             "dtype": "string"
         },
         "model_interaction_fusion_dropout": {
@@ -323,7 +323,7 @@
         },
         "model_modeling_fusion_hidden_activation": {
             "stype": "discrete",
-            "set": ["tanh"],
+            "set": ["relu"],
             "dtype": "string"
         },
         "model_modeling_fusion_dropout": {
@@ -400,12 +400,12 @@
         },
         "window_size": {
             "stype": "discrete",
-            "set": [[5]],
+            "set": [[3], [5]],
             "dtype": "list"
         },
         "hidden_activation": {
             "stype": "discrete",
-            "set": ["tanh"],
+            "set": ["tanh", "relu"],
             "dtype": "string"
         },
         "pooling_type": {
@@ -415,22 +415,22 @@
         },
         "num_layer": {
             "stype": "discrete",
-            "set": [1],
+            "set": [1, 2],
             "dtype": "int"
         },
         "unit_dim": {
             "stype": "uniform",
-            "range": [75, 150],
+            "range": [50, 150],
             "dtype": "int"
         },
         "cell_type": {
             "stype": "discrete",
-            "set": ["lstm"],
+            "set": ["lstm", "gru"],
             "dtype": "string"
         },
         "dropout": {
             "stype": "uniform",
-            "range": [0.1, 0.4],
+            "range": [0.1, 0.5],
             "dtype": "float"
         },
         "score_type": {
