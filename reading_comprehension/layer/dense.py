@@ -104,7 +104,7 @@ class StackedDense(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.dense_layer_list = []
-            for i in range(num_layer):
+            for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
                 dense_layer = Dense(unit_dim=self.unit_dim, activation=self.activation, dropout=self.dropout,
                     layer_norm=self.layer_norm, residual_connect=self.residual_connect, num_gpus=self.num_gpus,
@@ -117,10 +117,12 @@ class StackedDense(object):
         """call stacked dense layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             input_dense = input_data
+            input_dense_mask = input_mask
+            
             for dense_layer in self.dense_layer_list:
-                input_dense, input_mask = dense_layer(input_dense, input_mask)
+                input_dense, input_dense_mask = dense_layer(input_dense, input_dense_mask)
             
             output_dense = input_dense
-            output_mask = input_mask
+            output_mask = input_dense_mask
         
         return output_dense, output_mask

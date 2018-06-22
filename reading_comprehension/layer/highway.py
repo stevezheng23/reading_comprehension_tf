@@ -81,7 +81,7 @@ class StackedHighway(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.highway_layer_list = []
-            for i in range(num_layer):
+            for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
                 highway_layer = Highway(unit_dim=self.unit_dim, activation=self.activation, dropout=self.dropout,
                     num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
@@ -93,10 +93,12 @@ class StackedHighway(object):
         """call stacked highway layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             input_highway = input_data
+            input_highway_mask = input_mask
+            
             for highway_layer in self.highway_layer_list:
-                input_highway, input_mask = highway_layer(input_highway, input_mask)
+                input_highway, input_highway_mask = highway_layer(input_highway, input_highway_mask)
             
             output_highway = input_highway
-            output_mask = input_mask
+            output_mask = input_highway_mask
         
         return output_highway, output_mask

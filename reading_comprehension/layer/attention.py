@@ -768,7 +768,7 @@ class MultiHeadAttention(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.attention_layer_list = []
             for i in range(len(self.att_dim)):
-                layer_scope = "layer_{0}".format(i)
+                layer_scope = "head_{0}".format(i)
                 attention_layer = HeadAttention(src_dim=self.src_dim, trg_dim=self.trg_dim, att_dim=self.att_dim[i],
                     score_type=self.score_type, layer_norm=self.layer_norm, residual_connect=self.residual_connect,
                     is_self=self.is_self, external_matrix=self.external_matrix[i], num_gpus=self.num_gpus,

@@ -7,7 +7,8 @@ from util.reading_comprehension_util import *
 from layer.basic import *
 
 __all__ = ["Conv1D", "Conv2D", "MultiConv1D", "MultiConv2D",
-           "SeparableConv1D", "SeparableConv2D", "MultiSeparableConv1D", "MultiSeparableConv2D"]
+           "SeparableConv1D", "SeparableConv2D", "MultiSeparableConv1D", "MultiSeparableConv2D",
+           "StackedConv", "StackedSeparableConv"]
 
 class Conv(object):
     """convolution layer"""
@@ -194,7 +195,7 @@ class MultiConv1D(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.conv_layer_list = []
             for i in range(len(self.window_size)):
-                layer_scope = "layer_{0}".format(i)
+                layer_scope = "window_{0}".format(i)
                 conv_layer = Conv1D(num_channel=self.num_channel, num_filter=self.num_filter,
                     window_size=self.window_size[i], stride_size=self.stride_size, padding_type=self.padding_type,
                     activation=self.activation, dropout=self.dropout, layer_norm=self.layer_norm, residual_connect=self.residual_connect,
@@ -253,7 +254,7 @@ class MultiConv2D(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.conv_layer_list = []
             for i in range(len(self.window_size)):
-                layer_scope = "layer_{0}".format(i)
+                layer_scope = "window_{0}".format(i)
                 conv_layer = Conv2D(num_channel=self.num_channel, num_filter=self.num_filter,
                     window_size=self.window_size[i], stride_size=self.stride_size, padding_type=self.padding_type,
                     activation=self.activation, dropout=self.dropout, layer_norm=self.layer_norm, residual_connect=self.residual_connect,
@@ -489,7 +490,7 @@ class MultiSeparableConv1D(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.conv_layer_list = []
             for i in range(len(self.window_size)):
-                layer_scope = "layer_{0}".format(i)
+                layer_scope = "window_{0}".format(i)
                 conv_layer = SeparableConv1D(num_channel=self.num_channel, num_filter=self.num_filter, num_multiplier=self.num_multiplier,
                     window_size=self.window_size[i], stride_size=self.stride_size, padding_type=self.padding_type,
                     activation=self.activation, dropout=self.dropout, layer_norm=self.layer_norm, residual_connect=self.residual_connect,
@@ -550,7 +551,7 @@ class MultiSeparableConv2D(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.conv_layer_list = []
             for i in range(len(self.window_size)):
-                layer_scope = "layer_{0}".format(i)
+                layer_scope = "window_{0}".format(i)
                 conv_layer = SeparableConv2D(num_channel=self.num_channel, num_filter=self.num_filter, num_multiplier=self.num_multiplier,
                     window_size=self.window_size[i], stride_size=self.stride_size, padding_type=self.padding_type,
                     activation=self.activation, dropout=self.dropout, layer_norm=self.layer_norm, residual_connect=self.residual_connect,
@@ -572,5 +573,130 @@ class MultiSeparableConv2D(object):
             output_conv = tf.concat(input_conv_list, axis=-1)
             output_mask = tf.reduce_max(tf.concat(input_conv_mask_list, axis=-1), axis=-1, keep_dims=True)
             output_conv = output_conv * output_mask
+        
+        return output_conv, output_mask
+
+class StackedConv(object):
+    """stacked convolution layer"""
+    def __init__(self,
+                 layer_creator,
+                 num_layer,
+                 num_channel,
+                 num_filter,
+                 window_size,
+                 stride_size,
+                 padding_type,
+                 activation,
+                 dropout,
+                 layer_norm=False,
+                 residual_connect=False,
+                 num_gpus=1,
+                 default_gpu_id=0,
+                 trainable=True,
+                 scope="stacked_conv"):
+        """initialize stacked convolution layer"""
+        self.layer_creator = layer_creator
+        self.num_layer = num_layer
+        self.num_channel = num_channel
+        self.num_filter = num_filter
+        self.window_size = window_size
+        self.stride_size = stride_size
+        self.padding_type = padding_type
+        self.activation = activation
+        self.dropout = dropout
+        self.layer_norm = layer_norm
+        self.residual_connect = residual_connect
+        self.num_gpus = num_gpus
+        self.default_gpu_id = default_gpu_id
+        self.trainable = trainable
+        self.scope = scope
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            self.conv_layer_list = []
+            for i in range(self.num_layer):
+                layer_scope = "layer_{0}".format(i)
+                conv_layer = self.layer_creator(num_channel=self.num_channel, num_filter=self.num_filter,
+                    window_size=self.window_size, stride_size=self.stride_size, padding_type=self.padding_type,
+                    activation=self.activation, dropout=self.dropout, layer_norm=self.layer_norm, residual_connect=self.residual_connect,
+                    num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
+                self.conv_layer_list.append(conv_layer)
+    
+    def __call__(self,
+                 input_data,
+                 input_mask):
+        """call stacked convolution layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            input_conv = input_data
+            input_conv_mask = input_mask
+            
+            for conv_layer in self.conv_layer_list:
+                input_conv, input_conv_mask = conv_layer(input_conv, input_conv_mask)
+            
+            output_conv = input_conv
+            output_mask = input_conv_mask
+        
+        return output_conv, output_mask
+
+class StackedSeparableConv(object):
+    """stacked depthwise-separable convolution layer"""
+    def __init__(self,
+                 layer_creator,
+                 num_layer,
+                 num_channel,
+                 num_filter,
+                 num_multiplier,
+                 window_size,
+                 stride_size,
+                 padding_type,
+                 activation,
+                 dropout,
+                 layer_norm=False,
+                 residual_connect=False,
+                 num_gpus=1,
+                 default_gpu_id=0,
+                 trainable=True,
+                 scope="stacked_sep_conv"):
+        """initialize stacked depthwise-separable convolution layer"""
+        self.layer_creator = layer_creator
+        self.num_layer = num_layer
+        self.num_channel = num_channel
+        self.num_filter = num_filter
+        self.num_multiplier = num_multiplier
+        self.window_size = window_size
+        self.stride_size = stride_size
+        self.padding_type = padding_type
+        self.activation = activation
+        self.dropout = dropout
+        self.layer_norm = layer_norm
+        self.residual_connect = residual_connect
+        self.num_gpus = num_gpus
+        self.default_gpu_id = default_gpu_id
+        self.trainable = trainable
+        self.scope = scope
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            self.conv_layer_list = []
+            for i in range(self.num_layer):
+                layer_scope = "layer_{0}".format(i)
+                conv_layer = self.layer_creator(num_channel=self.num_channel, num_filter=self.num_filter,
+                    num_multiplier=self.num_multiplier, window_size=self.window_size, stride_size=self.stride_size,
+                    padding_type=self.padding_type, activation=self.activation, dropout=self.dropout,
+                    layer_norm=self.layer_norm, residual_connect=self.residual_connect, num_gpus=self.num_gpus,
+                    default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
+                self.conv_layer_list.append(conv_layer)
+    
+    def __call__(self,
+                 input_data,
+                 input_mask):
+        """call stacked depthwise-separable convolution layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            input_conv = input_data
+            input_conv_mask = input_mask
+            
+            for conv_layer in self.conv_layer_list:
+                input_conv, input_conv_mask = conv_layer(input_conv, input_conv_mask)
+            
+            output_conv = input_conv
+            output_mask = input_conv_mask
         
         return output_conv, output_mask
