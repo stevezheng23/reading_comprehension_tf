@@ -4,11 +4,40 @@ import json
 import os.path
 import string
 import re
+import nltk
 
 def add_arguments(parser):
     parser.add_argument("--format", help="format to generate", required=True)
     parser.add_argument("--input_file", help="path to input file", required=True)
     parser.add_argument("--output_file", help="path to output file", required=True)
+
+def normalize_text(text):
+    def process_token(tokens):
+        special = ("-", "\u2212", "\u2014", "\u2013", "/", "~", '"', "'", "\u201C", "\u2019", "\u201D", "\u2018", "\u00B0")
+        pattern = "([{}])".format("".join(special))
+        processed_tokens = []
+        for token in tokens:
+            processed_tokens.extend(re.split(pattern, token))
+        
+        return processed_tokens
+    
+    def remove_punc(tokens):
+        exclude = set(string.punctuation)
+        return [token for token in tokens if token not in exclude]
+    
+    text = re.sub(r'\b(a|an|the)\b', ' ', text.strip())
+    sents = nltk.sent_tokenize(text)
+    norm_sents = []
+    for sent in sents:
+        words = nltk.word_tokenize(sent)
+        words = process_token(words)
+        words = remove_punc(words)
+        norm_sents.append(' '.join(words))
+    
+    norm_text = ' '.join(norm_sents)
+    norm_text = norm_text.lower()
+    
+    return norm_text
 
 def normalize_answer(s):
     """Lower text and remove punctuation, articles and extra whitespace."""
@@ -45,11 +74,11 @@ def preprocess(file_name):
         for article in json_content["data"]:
             for paragraph in article["paragraphs"]:
                 context = paragraph["context"].strip()
-                norm_context = normalize_answer(context)
+                norm_context = normalize_text(context)
                 for qa in paragraph["qas"]:
                     qa_id = qa["id"]
                     question = qa["question"].strip()
-                    norm_question = normalize_answer(question)
+                    norm_question = normalize_text(question)
                     
                     processed_data = {
                         "id": qa_id,
@@ -60,10 +89,10 @@ def preprocess(file_name):
                     
                     for answer in qa["answers"]:
                         answer_text = answer["text"].strip()
-                        norm_answer_text = normalize_answer(answer_text)
+                        norm_answer_text = normalize_text(answer_text)
                         
                         answer_start = answer["answer_start"]
-                        norm_answer_start = len(normalize_answer(context[:answer_start]))
+                        norm_answer_start = len(normalize_text(context[:answer_start]))
                         norm_answer_start = norm_answer_start + 1 if norm_answer_start > 0 else norm_answer_start 
                         
                         norm_answer_word_start, norm_answer_word_end = get_word_span(norm_context,
