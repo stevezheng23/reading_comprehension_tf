@@ -17,6 +17,7 @@ def normalize_text(text):
         pattern = "([{}])".format("".join(special))
         processed_tokens = []
         for token in tokens:
+            token = token.replace("''", '"').replace("``", '"')
             processed_tokens.extend(re.split(pattern, token))
         
         return processed_tokens
