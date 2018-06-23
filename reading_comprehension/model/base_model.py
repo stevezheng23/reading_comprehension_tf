@@ -152,7 +152,7 @@ class BaseModel(object):
                 input_subword_conv_mask) = self.subword_conv_layer(input_subword_embedding, input_subword_embedding_mask)
             
             if self.subword_pooling_layer == None:
-                subword_pooling_layer = create_pooling_layer(subword_pooling_type, 0, 0)
+                self.subword_pooling_layer = create_pooling_layer(subword_pooling_type, 0, 0)
             
             (input_subword_pool,
                 input_subword_pool_mask) = self.subword_pooling_layer(input_subword_conv, input_subword_conv_mask)
