@@ -13,14 +13,14 @@ from model.base_model import *
 __all__ = ["QANet"]
 
 class QANet(BaseModel):
-    """qa-net model"""
+    """qanet model"""
     def __init__(self,
                  logger,
                  hyperparams,
                  data_pipeline,
                  mode="train",
-                 scope="qa_net"):
-        """initialize qa-net model"""        
+                 scope="qanet"):
+        """initialize qanet model"""        
         super(QANet, self).__init__(logger=logger, hyperparams=hyperparams,
             data_pipeline=data_pipeline, mode=mode, scope=scope)
         
@@ -44,8 +44,8 @@ class QANet(BaseModel):
             answer_result = self.data_pipeline.input_answer
             answer_result_mask = self.data_pipeline.input_answer_mask
             
-            """build graph for qa-net model"""
-            self.logger.log_print("# build graph for qa-net model")
+            """build graph for qanet model"""
+            self.logger.log_print("# build graph")
             (answer_start_output, answer_end_output, answer_start_output_mask,
                 answer_end_output_mask) = self._build_graph(question_word, question_word_mask,
                     question_subword, question_subword_mask, question_char, question_char_mask,
@@ -126,7 +126,7 @@ class QANet(BaseModel):
                                    context_feat,
                                    question_feat_mask,
                                    context_feat_mask):
-        """build understanding layer for qa-net model"""
+        """build understanding layer for qanet model"""
         question_understanding_num_layer = self.hyperparams.model_understanding_question_num_layer
         question_understanding_num_conv = self.hyperparams.model_understanding_question_num_conv
         question_understanding_num_head = self.hyperparams.model_understanding_question_num_head
@@ -147,7 +147,7 @@ class QANet(BaseModel):
         
         with tf.variable_scope("understanding", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             with tf.variable_scope("question", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-                self.logger.log_print("# build question understanding layer for qa-net model")
+                self.logger.log_print("# build question understanding layer")
                 question_understanding_layer = StackedEncoderBlock(num_layer=question_understanding_num_layer,
                     num_conv=question_understanding_num_conv, num_head=question_understanding_num_head,
                     unit_dim=question_understanding_unit_dim, window_size=question_understanding_window_size,
@@ -157,7 +157,7 @@ class QANet(BaseModel):
                 question_understanding, question_understanding_mask = question_understanding_layer(question_feat, question_feat_mask)
             
             with tf.variable_scope("context", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-                self.logger.log_print("# build context understanding layer for qa-net model")
+                self.logger.log_print("# build context understanding layer")
                 if enable_understanding_sharing == True:
                     context_understanding_layer = question_understanding_layer
                 else:
@@ -176,7 +176,7 @@ class QANet(BaseModel):
                                  context_understanding,
                                  question_understanding_mask,
                                  context_understanding_mask):
-        """build interaction layer for qa-net model"""
+        """build interaction layer for qanet model"""
         question_understanding_unit_dim = self.hyperparams.model_understanding_question_unit_dim
         context_understanding_unit_dim = self.hyperparams.model_understanding_context_unit_dim
         quesiton2context_interaction_attention_dim = self.hyperparams.model_interaction_quesiton2context_attention_dim
@@ -204,7 +204,7 @@ class QANet(BaseModel):
             attention_matrix = None
             with tf.variable_scope("context2question", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
                 if context2quesiton_interaction_enable == True:
-                    self.logger.log_print("# build context2question interaction layer for qa-net model")
+                    self.logger.log_print("# build context2question interaction layer")
                     context2quesiton_interaction_layer = create_attention_layer("att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         context2quesiton_interaction_attention_dim, context2quesiton_interaction_score_type, False, False, False,
@@ -231,7 +231,7 @@ class QANet(BaseModel):
             
             with tf.variable_scope("question2context", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
                 if quesiton2context_interaction_enable == True:
-                    self.logger.log_print("# build question2context interaction layer for qa-net model")
+                    self.logger.log_print("# build question2context interaction layer")
                     quesiton2context_interaction_layer = create_attention_layer("co_att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         quesiton2context_interaction_attention_dim, quesiton2context_interaction_score_type, False, False, False,
@@ -262,7 +262,7 @@ class QANet(BaseModel):
     def _build_modeling_layer(self,
                               answer_interaction,
                               answer_interaction_mask):
-        """build modeling layer for qa-net model"""
+        """build modeling layer for qanet model"""
         answer_interaction_unit_dim = self.hyperparams.model_interaction_fusion_unit_dim
         answer_modeling_num_layer = self.hyperparams.model_modeling_answer_num_layer
         answer_modeling_num_conv = self.hyperparams.model_modeling_answer_num_conv
@@ -275,7 +275,7 @@ class QANet(BaseModel):
         answer_modeling_enable_sharing = self.hyperparams.model_modeling_enable_sharing
         
         with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            self.logger.log_print("# build answer modeling layer for qa-net model")
+            self.logger.log_print("# build answer modeling layer")
             answer_modeling_list = []
             answer_modeling_mask_list = []
             
@@ -326,14 +326,14 @@ class QANet(BaseModel):
     def _build_output_layer(self,
                             answer_modeling,
                             answer_modeling_mask):
-        """build output layer for qa-net model"""
+        """build output layer for qanet model"""
         answer_start_dropout = self.hyperparams.model_output_answer_start_dropout if self.mode == "train" else 0.0
         answer_start_trainable = self.hyperparams.model_output_answer_start_trainable
         answer_end_dropout = self.hyperparams.model_output_answer_end_dropout if self.mode == "train" else 0.0
         answer_end_trainable = self.hyperparams.model_output_answer_end_trainable
         
         with tf.variable_scope("output", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            self.logger.log_print("# build answer output layer for qa-net model")
+            self.logger.log_print("# build answer output layer")
             answer_output_list = []
             answer_output_mask_list = []
             
@@ -378,30 +378,27 @@ class QANet(BaseModel):
                      context_subword_mask,
                      context_char,
                      context_char_mask):
-        """build graph for qa-net model"""
+        """build graph for qanet model"""
         with tf.variable_scope("graph", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            """build representation layer for qa-net model"""
-            self.logger.log_print("# build question representation layer for qa-net model")
-            question_feat, question_feat_mask = self._build_representation_layer(question_word, question_word_mask,
-                question_subword, question_subword_mask, question_char, question_char_mask)
+            """build representation layer for qanet model"""
+            (question_feat, question_feat_mask, context_feat,
+                context_feat_mask) = self._build_representation_layer(question_word, question_word_mask,
+                    question_subword, question_subword_mask, question_char, question_char_mask, context_word,
+                    context_word_mask, context_subword, context_subword_mask, context_char, context_char_mask)
             
-            self.logger.log_print("# build context representation layer for qa-net model")
-            context_feat, context_feat_mask = self._build_representation_layer(context_word, context_word_mask,
-                context_subword, context_subword_mask, context_char, context_char_mask)
-            
-            """build understanding layer for qa-net model"""
+            """build understanding layer for qanet model"""
             (question_understanding, context_understanding, question_understanding_mask,
                 context_understanding_mask) = self._build_understanding_layer(question_feat,
                     context_feat, question_feat_mask, context_feat_mask)
             
-            """build interaction layer for qa-net model"""
+            """build interaction layer for qanet model"""
             answer_interaction, answer_interaction_mask = self._build_interaction_layer(question_understanding,
                 context_understanding, question_understanding_mask, context_understanding_mask)
             
-            """build modeling layer for qa-net model"""
+            """build modeling layer for qanet model"""
             answer_modeling, answer_modeling_mask = self._build_modeling_layer(answer_interaction, answer_interaction_mask)
             
-            """build output layer for qa-net model"""
+            """build output layer for qanet model"""
             answer_output_list, answer_output_mask_list = self._build_output_layer(answer_modeling, answer_modeling_mask)
             answer_start_output = answer_output_list[0]
             answer_end_output = answer_output_list[1]
@@ -424,7 +421,7 @@ class QANet(BaseModel):
     def train(self,
               sess,
               word_embedding):
-        """train qa-net model"""
+        """train qanet model"""
         word_embed_pretrained = self.hyperparams.model_representation_word_embed_pretrained
         
         if word_embed_pretrained == True:
@@ -441,7 +438,7 @@ class QANet(BaseModel):
     def infer(self,
               sess,
               word_embedding):
-        """infer qa-net model"""
+        """infer qanet model"""
         word_embed_pretrained = self.hyperparams.model_representation_word_embed_pretrained
         
         if word_embed_pretrained == True:
@@ -491,12 +488,12 @@ class QANet(BaseModel):
     def save(self,
              sess,
              global_step):
-        """save checkpoint for qa-net model"""
+        """save checkpoint for qanet model"""
         self.ckpt_saver.save(sess, self.ckpt_name, global_step=global_step)
     
     def restore(self,
                 sess):
-        """restore qa-net model from checkpoint"""
+        """restore qanet model from checkpoint"""
         ckpt_file = tf.train.latest_checkpoint(self.ckpt_dir)
         if ckpt_file is not None:
             self.ckpt_saver.restore(sess, ckpt_file)
@@ -523,11 +520,12 @@ class EncoderBlock(object):
         self.window_size = window_size
         self.activation = activation
         self.dropout = dropout
+        self.num_gpus = num_gpus
+        self.default_gpu_id = default_gpu_id
         self.trainable = trainable
         self.scope = scope
-        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.conv_layer = create_convolution_layer("multi_sep_1d", self.num_conv, self.unit_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.activation, self.dropout,
                 True, True, self.num_gpus, self.default_gpu_id, self.trainable)
@@ -543,7 +541,7 @@ class EncoderBlock(object):
             
             self.attention_layer = create_attention_layer("multi_head_att",
                 self.unit_dim, self.unit_dim, att_dim_list, "scaled_dot", True, True, True, None,
-                self.num_gpus, self.default_gpu_id, answer_modeling_trainable)
+                self.num_gpus, self.default_gpu_id, self.trainable)
             
             self.dense_layer = create_dense_layer(1, self.unit_dim, self.activation,
                 self.dropout, True, True, num_gpus, default_gpu_id, self.trainable)
@@ -552,13 +550,13 @@ class EncoderBlock(object):
                  input_data,
                  input_mask):
         """call encoder-block layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             input_data = input_data * input_mask
             input_block = input_data
             input_block_mask = input_mask
             
             input_conv, input_conv_mask = self.conv_layer(input_block, input_block_mask)
-            input_attention, input_attention_mask = self.attention_layer(input_conv, input_conv_mask)
+            input_attention, input_attention_mask = self.attention_layer(input_conv, input_conv, input_conv_mask, input_conv_mask)
             input_dense, input_dense_mask = self.dense_layer(input_attention, input_attention_mask)
             
             output_block = input_dense

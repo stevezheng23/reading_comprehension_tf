@@ -63,7 +63,7 @@ class LayerNorm(object):
             input_data = input_data * input_mask
             input_mean, input_variance = tf.nn.moments(input_data, axes=[-1], keep_dims=True)
             output_norm = (input_data - input_mean) / tf.sqrt(input_variance + EPSILON)
-            output_norm = output_norm * self.scale + self.bias 
+            output_norm = output_norm * self.gamma + self.beta 
             output_mask = input_mask
             output_norm = output_norm * output_mask
         

@@ -182,7 +182,7 @@ class BaseModel(object):
                 subword_unit_dim = 0
             
             if char_feat_enable == True:
-                self.logger.log_print("# build subword-level representation layer")
+                self.logger.log_print("# build char-level representation layer")
                 char_feat_layer = CharFeat(vocab_size=char_vocab_size, embed_dim=char_embed_dim,
                     unit_dim=char_unit_dim, window_size=char_window_size, hidden_activation=char_hidden_activation,
                     pooling_type=char_pooling_type, dropout=char_dropout, num_gpus=self.num_gpus,

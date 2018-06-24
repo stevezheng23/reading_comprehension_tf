@@ -647,7 +647,6 @@ class HeadAttention(object):
                  att_dim,
                  score_type,
                  layer_norm=False,
-                 residual_connect=False,
                  is_self=False,
                  external_matrix=None,
                  num_gpus=1,
@@ -660,7 +659,6 @@ class HeadAttention(object):
         self.att_dim = att_dim
         self.score_type = score_type
         self.layer_norm = layer_norm
-        self.residual_connect = residual_connect
         self.is_self = is_self
         self.trainable = trainable
         self.scope = scope
@@ -719,13 +717,8 @@ class HeadAttention(object):
             input_attention = tf.matmul(input_attention_weight, input_value_attention)
             input_mask = input_src_attention_mask
             
-            if self.residual_connect == True and self.is_self == True:
-                output_attention = input_attention + input_src_data
-                output_mask = input_mask * input_src_mask
-            else:
-                output_attention = input_attention
-                output_mask = input_mask
-            
+            output_attention = input_attention
+            output_mask = input_mask
             output_attention = output_attention * output_mask
         
         return output_attention, output_mask
@@ -769,26 +762,37 @@ class MultiHeadAttention(object):
             self.attention_layer_list = []
             for i in range(len(self.att_dim)):
                 layer_scope = "head_{0}".format(i)
-                attention_layer = HeadAttention(src_dim=self.src_dim, trg_dim=self.trg_dim, att_dim=self.att_dim[i],
-                    score_type=self.score_type, layer_norm=self.layer_norm, residual_connect=self.residual_connect,
-                    is_self=self.is_self, external_matrix=self.external_matrix[i], num_gpus=self.num_gpus,
+                attention_layer = HeadAttention(src_dim=self.src_dim, trg_dim=self.trg_dim,
+                    att_dim=self.att_dim[i], score_type=self.score_type, layer_norm=self.layer_norm,
+                    is_self=self.is_self, external_matrix=self.external_matrix, num_gpus=self.num_gpus,
                     default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
                 self.attention_layer_list.append(attention_layer)
     
     def __call__(self,
-                 input_data,
-                 input_mask):
+                 input_src_data,
+                 input_trg_data,
+                 input_src_mask,
+                 input_trg_mask):
         """call multi-head attention layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             input_attention_list = []
             input_attention_mask_list = []
             for attention_layer in self.attention_layer_list:
-                input_attention, input_attention_mask = conv_layer(input_data, input_mask)
+                input_attention, input_attention_mask = attention_layer(input_src_data,
+                    input_trg_data, input_src_mask, input_trg_mask)
                 input_attention_list.append(input_attention)
                 input_attention_mask_list.append(input_attention_mask)
             
-            output_attehtion = tf.concat(input_attention_list, axis=-1)
-            output_mask = tf.reduce_max(tf.concat(input_attention_mask_list, axis=-1), axis=-1, keep_dims=True)
-            output_attehtion = output_attehtion * output_mask
+            input_attention = tf.concat(input_attention_list, axis=-1)
+            input_mask = tf.reduce_max(tf.concat(input_attention_mask_list, axis=-1), axis=-1, keep_dims=True)
+            
+            if self.residual_connect == True and self.is_self == True:
+                output_attention = input_attention + input_src_data
+                output_mask = input_mask * input_src_mask
+            else:
+                output_attention = input_attention
+                output_mask = input_mask
+            
+            output_attention = output_attention * output_mask
         
-        return output_attehtion, output_mask
+        return output_attention, output_mask
