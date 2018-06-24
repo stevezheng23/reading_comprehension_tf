@@ -148,6 +148,8 @@ def create_infer_model(logger,
 def get_model_creator(model_type):
     if model_type == "bidaf":
         model_creator = BiDAF
+    elif model_type == "qanet":
+        model_creator = QANet
     else:
         raise ValueError("can not create model with unsupported model type {0}".format(model_type))
     
