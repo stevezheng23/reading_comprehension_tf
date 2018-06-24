@@ -310,6 +310,7 @@ def create_default_hyperparams(config_type):
             model_modeling_answer_hidden_activation="relu",
             model_modeling_answer_dropout=0.1,
             model_modeling_answer_trainable=True,
+            model_modeling_enable_sharing=True,
             model_output_answer_start_dropout=0.1,
             model_output_answer_start_trainable=True,
             model_output_answer_end_dropout=0.1,

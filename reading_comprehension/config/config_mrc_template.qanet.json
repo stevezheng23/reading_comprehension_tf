@@ -130,6 +130,7 @@
     "model_modeling_answer_hidden_activation": "relu",
     "model_modeling_answer_dropout": 0.1,
     "model_modeling_answer_trainable": true,
+    "model_modeling_enable_sharing": true,
     "model_output_answer_start_dropout": 0.1,
     "model_output_answer_start_trainable": true,
     "model_output_answer_end_dropout": 0.1,
