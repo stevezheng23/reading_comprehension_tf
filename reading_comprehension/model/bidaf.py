@@ -45,7 +45,7 @@ class BiDAF(BaseModel):
             answer_result_mask = self.data_pipeline.input_answer_mask
             
             """build graph for bidaf model"""
-            self.logger.log_print("# build graph for bidaf model")
+            self.logger.log_print("# build graph")
             (answer_start_output, answer_end_output, answer_start_output_mask,
                 answer_end_output_mask) = self._build_graph(question_word, question_word_mask,
                     question_subword, question_subword_mask, question_char, question_char_mask,
@@ -147,7 +147,7 @@ class BiDAF(BaseModel):
         
         with tf.variable_scope("understanding", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             with tf.variable_scope("question", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-                self.logger.log_print("# build question understanding layer for bidaf model")
+                self.logger.log_print("# build question understanding layer")
                 question_understanding_layer = create_recurrent_layer("bi", question_understanding_num_layer,
                     question_understanding_unit_dim, question_understanding_cell_type, question_understanding_hidden_activation,
                     question_understanding_dropout, question_understanding_forget_bias, question_understanding_residual_connect,
@@ -156,7 +156,7 @@ class BiDAF(BaseModel):
                 question_understanding, question_understanding_mask = question_understanding_layer(question_feat, question_feat_mask)
             
             with tf.variable_scope("context", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-                self.logger.log_print("# build context understanding layer for bidaf model")
+                self.logger.log_print("# build context understanding layer")
                 if enable_understanding_sharing == True:
                     context_understanding_layer = question_understanding_layer
                 else:
@@ -202,7 +202,7 @@ class BiDAF(BaseModel):
             attention_matrix = None
             with tf.variable_scope("context2question", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
                 if context2quesiton_interaction_enable == True:
-                    self.logger.log_print("# build context2question interaction layer for bidaf model")
+                    self.logger.log_print("# build context2question interaction layer")
                     context2quesiton_attention_layer = create_attention_layer("att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         context2quesiton_interaction_attention_dim, context2quesiton_interaction_score_type, False, False, False,
@@ -229,7 +229,7 @@ class BiDAF(BaseModel):
             
             with tf.variable_scope("question2context", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
                 if quesiton2context_interaction_enable == True:
-                    self.logger.log_print("# build question2context interaction layer for bidaf model")
+                    self.logger.log_print("# build question2context interaction layer")
                     quesiton2context_attention_layer = create_attention_layer("max_att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         quesiton2context_interaction_attention_dim, quesiton2context_interaction_score_type, False, False, False,
@@ -281,7 +281,7 @@ class BiDAF(BaseModel):
         fusion_trainable = self.hyperparams.model_modeling_fusion_trainable
         
         with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            self.logger.log_print("# build answer modeling layer for bidaf model")
+            self.logger.log_print("# build answer modeling layer")
             answer_intermediate_list = []
             answer_intermediate_mask_list = []
             answer_intermediate_unit_dim = 0
@@ -347,7 +347,7 @@ class BiDAF(BaseModel):
         answer_end_trainable = self.hyperparams.model_output_answer_end_trainable
         
         with tf.variable_scope("output", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            self.logger.log_print("# build answer output layer for bidaf model")
+            self.logger.log_print("# build answer output layer")
             answer_intermediate_list = [answer_modeling]
             answer_intermediate_mask_list = [answer_modeling_mask]
             answer_intermediate_unit_dim = answer_modeling_unit_dim
@@ -400,13 +400,10 @@ class BiDAF(BaseModel):
         """build graph for bidaf model"""
         with tf.variable_scope("graph", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             """build representation layer for bidaf model"""
-            self.logger.log_print("# build question representation layer for bidaf model")
-            question_feat, question_feat_mask = self._build_representation_layer(question_word, question_word_mask,
-                question_subword, question_subword_mask, question_char, question_char_mask)
-            
-            self.logger.log_print("# build context representation layer for bidaf model")
-            context_feat, context_feat_mask = self._build_representation_layer(context_word, context_word_mask,
-                context_subword, context_subword_mask, context_char, context_char_mask)
+            (question_feat, question_feat_mask, context_feat,
+                context_feat_mask) = self._build_representation_layer(question_word, question_word_mask,
+                    question_subword, question_subword_mask, question_char, question_char_mask, context_word,
+                    context_word_mask, context_subword, context_subword_mask, context_char, context_char_mask)
             
             """build understanding layer for bidaf model"""
             (question_understanding, context_understanding, question_understanding_mask,

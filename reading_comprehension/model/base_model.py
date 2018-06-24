@@ -33,22 +33,14 @@ class BaseModel(object):
         self.mode = mode
         self.scope = scope
         
+        self.word_embedding_placeholder = None
         self.batch_size = tf.size(tf.reduce_max(self.data_pipeline.input_answer_mask, axis=-2))
+        
         self.num_gpus = self.hyperparams.device_num_gpus
         self.default_gpu_id = self.hyperparams.device_default_gpu_id
         self.device_spec = get_device_spec(self.default_gpu_id, self.num_gpus)
         self.logger.log_print("# {0} gpus are used with default gpu id set as {1}"
             .format(self.num_gpus, self.default_gpu_id))
-        
-        self.word_embedding_layer = None
-        self.word_embedding_placeholder = None
-        self.subword_embedding_layer = None
-        self.subword_conv_layer = None
-        self.subword_pooling_layer = None
-        self.char_embedding_layer = None
-        self.char_conv_layer = None
-        self.char_pooling_layer = None
-        self.feat_fusion_layer = None
     
     def _create_fusion_layer(self,
                              input_unit_dim,
@@ -99,114 +91,19 @@ class BaseModel(object):
         
         return input_fusion, input_fusion_mask
     
-    def _build_word_feat(self,
-                         input_word,
-                         input_word_mask,
-                         word_vocab_size,
-                         word_embed_dim,
-                         word_embed_pretrained,
-                         word_feat_trainable):
-        """build word-level featurization for mrc base model"""
-        with tf.variable_scope("feat/word", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            if self.word_embedding_layer == None:
-                self.word_embedding_layer = create_embedding_layer(word_vocab_size,
-                    word_embed_dim, word_embed_pretrained, 0, 0, word_feat_trainable)
-            
-            if self.word_embedding_placeholder == None:
-                self.word_embedding_placeholder = self.word_embedding_layer.get_embedding_placeholder()
-            
-            input_word_embedding = self.word_embedding_layer(input_word)
-            input_word_feat = tf.squeeze(input_word_embedding, axis=-2)
-            input_word_feat_mask = input_word_mask
-            input_word_feat = input_word_feat * input_word_feat_mask
-        
-        return input_word_feat, input_word_feat_mask
-    
-    def _build_subword_feat(self,
-                            input_subword,
-                            input_subword_mask,
-                            subword_vocab_size,
-                            subword_embed_dim,
-                            subword_unit_dim,
-                            subword_feat_trainable,
-                            subword_max_length,
-                            subword_window_size,
-                            subword_hidden_activation,
-                            subword_dropout,
-                            subword_pooling_type):
-        """build subword-level featurization for mrc base model"""
-        with tf.variable_scope("feat/subword", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            if self.subword_embedding_layer == None:
-                self.subword_embedding_layer = create_embedding_layer(subword_vocab_size,
-                    subword_embed_dim, False, 0, 0, subword_feat_trainable)
-            
-            input_subword_embedding = self.subword_embedding_layer(input_subword)
-            input_subword_embedding_mask = tf.expand_dims(input_subword_mask, axis=-1)
-            
-            if self.subword_conv_layer == None:
-                self.subword_conv_layer = create_convolution_layer("multi_2d", 1, subword_embed_dim,
-                    subword_unit_dim, 1, subword_window_size, 1, "SAME", subword_hidden_activation, subword_dropout,
-                    False, False, self.num_gpus, self.default_gpu_id, subword_feat_trainable)
-            
-            (input_subword_conv,
-                input_subword_conv_mask) = self.subword_conv_layer(input_subword_embedding, input_subword_embedding_mask)
-            
-            if self.subword_pooling_layer == None:
-                self.subword_pooling_layer = create_pooling_layer(subword_pooling_type, 0, 0)
-            
-            (input_subword_pool,
-                input_subword_pool_mask) = self.subword_pooling_layer(input_subword_conv, input_subword_conv_mask)
-            input_subword_feat = input_subword_pool
-            input_subword_feat_mask = input_subword_pool_mask
-        
-        return input_subword_feat, input_subword_feat_mask
-    
-    def _build_char_feat(self,
-                         input_char,
-                         input_char_mask,
-                         char_vocab_size,
-                         char_embed_dim,
-                         char_unit_dim,
-                         char_feat_trainable,
-                         char_max_length,
-                         char_window_size,
-                         char_hidden_activation,
-                         char_dropout,
-                         char_pooling_type):
-        """build char-level featurization for mrc base model"""
-        with tf.variable_scope("feat/char", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            if self.char_embedding_layer == None:
-                self.char_embedding_layer = create_embedding_layer(char_vocab_size,
-                    char_embed_dim, False, 0, 0, char_feat_trainable)
-            
-            input_char_embedding = self.char_embedding_layer(input_char)
-            input_char_embedding_mask = tf.expand_dims(input_char_mask, axis=-1)
-            
-            if self.char_conv_layer == None:
-                self.char_conv_layer = create_convolution_layer("multi_2d", 1, char_embed_dim,
-                    char_unit_dim, 1, char_window_size, 1, "SAME", char_hidden_activation, char_dropout,
-                    False, False, self.num_gpus, self.default_gpu_id, char_feat_trainable)
-            
-            (input_char_conv,
-                input_char_conv_mask) = self.char_conv_layer(input_char_embedding, input_char_embedding_mask)
-            
-            if self.char_pooling_layer == None:
-                self.char_pooling_layer = create_pooling_layer(char_pooling_type, 0, 0)
-            
-            (input_char_pool,
-                input_char_pool_mask) = self.char_pooling_layer(input_char_conv, input_char_conv_mask)
-            input_char_feat = input_char_pool
-            input_char_feat_mask = input_char_pool_mask
-        
-        return input_char_feat, input_char_feat_mask
-    
     def _build_representation_layer(self,
-                                    input_word,
-                                    input_word_mask,
-                                    input_subword,
-                                    input_subword_mask,
-                                    input_char,
-                                    input_char_mask):
+                                    input_question_word,
+                                    input_question_word_mask,
+                                    input_question_subword,
+                                    input_question_subword_mask,
+                                    input_question_char,
+                                    input_question_char_mask,
+                                    input_context_word,
+                                    input_context_word_mask,
+                                    input_context_subword,
+                                    input_context_subword_mask,
+                                    input_context_char,
+                                    input_context_char_mask):
         """build representation layer for mrc base model"""
         word_vocab_size = self.hyperparams.data_word_vocab_size
         word_embed_dim = self.hyperparams.model_representation_word_embed_dim
@@ -217,7 +114,6 @@ class BaseModel(object):
         subword_embed_dim = self.hyperparams.model_representation_subword_embed_dim
         subword_unit_dim = self.hyperparams.model_representation_subword_unit_dim
         subword_feat_trainable = self.hyperparams.model_representation_subword_feat_trainable
-        subword_max_length = self.hyperparams.data_max_subword_length
         subword_window_size = self.hyperparams.model_representation_subword_window_size
         subword_hidden_activation = self.hyperparams.model_representation_subword_hidden_activation
         subword_dropout = self.hyperparams.model_representation_subword_dropout if self.mode == "train" else 0.0
@@ -227,7 +123,6 @@ class BaseModel(object):
         char_embed_dim = self.hyperparams.model_representation_char_embed_dim
         char_unit_dim = self.hyperparams.model_representation_char_unit_dim
         char_feat_trainable = self.hyperparams.model_representation_char_feat_trainable
-        char_max_length = self.hyperparams.data_max_char_length
         char_window_size = self.hyperparams.model_representation_char_window_size
         char_hidden_activation = self.hyperparams.model_representation_char_hidden_activation
         char_dropout = self.hyperparams.model_representation_char_dropout if self.mode == "train" else 0.0
@@ -241,46 +136,82 @@ class BaseModel(object):
         fusion_trainable = self.hyperparams.model_representation_fusion_trainable
         
         with tf.variable_scope("representation", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_feat_list = []
-            input_feat_mask_list = []
+            input_question_feat_list = []
+            input_question_feat_mask_list = []
+            input_context_feat_list = []
+            input_context_feat_mask_list = []
+            
             if word_feat_enable == True:
-                input_word_feat, input_word_feat_mask = self._build_word_feat(input_word, input_word_mask,
-                    word_vocab_size, word_embed_dim, word_embed_pretrained, word_feat_trainable)
-                input_feat_list.append(input_word_feat)
-                input_feat_mask_list.append(input_word_feat_mask)
+                self.logger.log_print("# build word-level representation layer")
+                word_feat_layer = WordFeat(vocab_size=word_vocab_size, embed_dim=word_embed_dim,
+                    pretrained=word_embed_pretrained, trainable=word_feat_trainable)
+                
+                (input_question_word_feat,
+                    input_question_word_feat_mask) = word_feat_layer(input_question_word, input_question_word_mask)
+                (input_context_word_feat,
+                    input_context_word_feat_mask) = word_feat_layer(input_context_word, input_context_word_mask)
+                
+                input_question_feat_list.append(input_question_word_feat)
+                input_question_feat_mask_list.append(input_question_word_feat_mask)
+                input_context_feat_list.append(input_context_word_feat)
+                input_context_feat_mask_list.append(input_context_word_feat_mask)
+                
                 word_unit_dim = word_embed_dim
+                self.word_embedding_placeholder = word_feat_layer.get_embedding_placeholder()
             else:
                 word_unit_dim = 0
                 self.word_embedding_placeholder = None
             
             if subword_feat_enable == True:
-                input_subword_feat, input_subword_feat_mask = self._build_subword_feat(input_subword, input_subword_mask,
-                    subword_vocab_size, subword_embed_dim, subword_unit_dim, subword_feat_trainable, subword_max_length,
-                    subword_window_size, subword_hidden_activation, subword_dropout, subword_pooling_type)
-                input_feat_list.append(input_subword_feat)
-                input_feat_mask_list.append(input_subword_feat_mask)
+                self.logger.log_print("# build subword-level representation layer")
+                subword_feat_layer = SubwordFeat(vocab_size=subword_vocab_size, embed_dim=subword_embed_dim,
+                    unit_dim=subword_unit_dim, window_size=subword_window_size, hidden_activation=subword_hidden_activation,
+                    pooling_type=subword_pooling_type, dropout=subword_dropout, num_gpus=self.num_gpus,
+                    default_gpu_id=self.default_gpu_id, trainable=subword_feat_trainable)
+                
+                (input_question_subword_feat,
+                    input_question_subword_feat_mask) = subword_feat_layer(input_question_subword, input_question_subword_mask)
+                (input_context_subword_feat,
+                    input_context_subword_feat_mask) = subword_feat_layer(input_context_subword, input_context_subword_mask)
+                
+                input_question_feat_list.append(input_question_subword_feat)
+                input_question_feat_mask_list.append(input_question_subword_feat_mask)
+                input_context_feat_list.append(input_context_subword_feat)
+                input_context_feat_mask_list.append(input_context_subword_feat_mask)
             else:
                 subword_unit_dim = 0
             
             if char_feat_enable == True:
-                input_char_feat, input_char_feat_mask = self._build_char_feat(input_char, input_char_mask,
-                    char_vocab_size, char_embed_dim, char_unit_dim, char_feat_trainable, char_max_length,
-                    char_window_size, char_hidden_activation, char_dropout, char_pooling_type)
-                input_feat_list.append(input_char_feat)
-                input_feat_mask_list.append(input_char_feat_mask)
+                self.logger.log_print("# build subword-level representation layer")
+                char_feat_layer = CharFeat(vocab_size=char_vocab_size, embed_dim=char_embed_dim,
+                    unit_dim=char_unit_dim, window_size=char_window_size, hidden_activation=char_hidden_activation,
+                    pooling_type=char_pooling_type, dropout=char_dropout, num_gpus=self.num_gpus,
+                    default_gpu_id=self.default_gpu_id, trainable=char_feat_trainable)
+                
+                (input_question_char_feat,
+                    input_question_char_feat_mask) = char_feat_layer(input_question_char, input_question_char_mask)
+                (input_context_char_feat,
+                    input_context_char_feat_mask) = char_feat_layer(input_context_char, input_context_char_mask)
+                
+                input_question_feat_list.append(input_question_char_feat)
+                input_question_feat_mask_list.append(input_question_char_feat_mask)
+                input_context_feat_list.append(input_context_char_feat)
+                input_context_feat_mask_list.append(input_context_char_feat_mask)
             else:
                 char_unit_dim = 0
             
             feat_unit_dim = word_unit_dim + subword_unit_dim + char_unit_dim
-            if self.feat_fusion_layer == None:
-                self.feat_fusion_layer = self._create_fusion_layer(feat_unit_dim, fusion_unit_dim,
-                    fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable)
+            feat_fusion_layer = self._create_fusion_layer(feat_unit_dim, fusion_unit_dim,
+                fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable)
             
-            input_feat, input_feat_mask = self._build_fusion_result(input_feat_list,
-                input_feat_mask_list, self.feat_fusion_layer)
-            input_feat = input_feat * input_feat_mask
+            input_question_feat, input_question_feat_mask = self._build_fusion_result(input_question_feat_list,
+                input_question_feat_mask_list, feat_fusion_layer)
+            input_context_feat, input_context_feat_mask = self._build_fusion_result(input_context_feat_list,
+                input_context_feat_mask_list, feat_fusion_layer)
+            input_question_feat = input_question_feat * input_question_feat_mask
+            input_context_feat = input_context_feat * input_context_feat_mask
         
-        return input_feat, input_feat_mask
+        return input_question_feat, input_question_feat_mask, input_context_feat, input_context_feat_mask
     
     def _apply_learning_rate_decay(self,
                                    learning_rate):
@@ -361,3 +292,149 @@ class BaseModel(object):
         """get infer summary"""
         return tf.no_op()
 
+class WordFeat(object):
+    """word-level featurization layer"""
+    def __init__(self,
+                 vocab_size,
+                 embed_dim,
+                 pretrained,
+                 trainable=True,
+                 scope="word_feat"):
+        """initialize word-level featurization layer"""
+        self.vocab_size = vocab_size
+        self.embed_dim = embed_dim
+        self.pretrained = pretrained
+        self.trainable = trainable
+        self.scope = scope
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            self.embedding_layer = create_embedding_layer(self.vocab_size,
+                self.embed_dim, self.pretrained, 0, 0, self.trainable)
+    
+    def __call__(self,
+                 input_word,
+                 input_word_mask):
+        """call word-level featurization layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            input_word_embedding = self.embedding_layer(input_word)
+            input_word_feat = tf.squeeze(input_word_embedding, axis=-2)
+            input_word_feat_mask = input_word_mask
+            input_word_feat = input_word_feat * input_word_feat_mask
+        
+        return input_word_feat, input_word_feat_mask
+    
+    def get_embedding_placeholder(self):
+        """get word-level embedding placeholder"""
+        return self.embedding_layer.get_embedding_placeholder()
+
+class SubwordFeat(object):
+    """subword-level featurization layer"""
+    def __init__(self,
+                 vocab_size,
+                 embed_dim,
+                 unit_dim,
+                 window_size,
+                 hidden_activation,
+                 pooling_type,
+                 dropout,
+                 num_gpus=1,
+                 default_gpu_id=0,
+                 trainable=True,
+                 scope="subword_feat"):
+        """initialize subword-level featurization layer"""
+        self.vocab_size = vocab_size
+        self.embed_dim = embed_dim
+        self.unit_dim = unit_dim
+        self.window_size = window_size
+        self.hidden_activation = hidden_activation
+        self.pooling_type = pooling_type
+        self.dropout = dropout
+        self.num_gpus = num_gpus
+        self.default_gpu_id = default_gpu_id
+        self.trainable = trainable
+        self.scope = scope
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            self.embedding_layer = create_embedding_layer(self.vocab_size,
+                self.embed_dim, False, 0, 0, self.trainable)
+            
+            self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
+                self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, self.dropout,
+                False, False, self.num_gpus, self.default_gpu_id, self.trainable)
+            
+            self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
+    
+    def __call__(self,
+                 input_subword,
+                 input_subword_mask):
+        """call subword-level featurization layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            input_subword_embedding = self.embedding_layer(input_subword)
+            input_subword_embedding_mask = tf.expand_dims(input_subword_mask, axis=-1)
+            
+            (input_subword_conv,
+                input_subword_conv_mask) = self.conv_layer(input_subword_embedding, input_subword_embedding_mask)
+            
+            (input_subword_pool,
+                input_subword_pool_mask) = self.pooling_layer(input_subword_conv, input_subword_conv_mask)
+            
+            input_subword_feat = input_subword_pool
+            input_subword_feat_mask = input_subword_pool_mask
+        
+        return input_subword_feat, input_subword_feat_mask
+
+class CharFeat(object):
+    """char-level featurization layer"""
+    def __init__(self,
+                 vocab_size,
+                 embed_dim,
+                 unit_dim,
+                 window_size,
+                 hidden_activation,
+                 pooling_type,
+                 dropout,
+                 num_gpus=1,
+                 default_gpu_id=0,
+                 trainable=True,
+                 scope="char_feat"):
+        """initialize char-level featurization layer"""
+        self.vocab_size = vocab_size
+        self.embed_dim = embed_dim
+        self.unit_dim = unit_dim
+        self.window_size = window_size
+        self.hidden_activation = hidden_activation
+        self.pooling_type = pooling_type
+        self.dropout = dropout
+        self.num_gpus = num_gpus
+        self.default_gpu_id = default_gpu_id
+        self.trainable = trainable
+        self.scope = scope
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            self.embedding_layer = create_embedding_layer(self.vocab_size,
+                self.embed_dim, False, 0, 0, self.trainable)
+            
+            self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
+                self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, self.dropout,
+                False, False, self.num_gpus, self.default_gpu_id, self.trainable)
+            
+            self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
+    
+    def __call__(self,
+                 input_char,
+                 input_char_mask):
+        """call char-level featurization layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            input_char_embedding = self.embedding_layer(input_char)
+            input_char_embedding_mask = tf.expand_dims(input_char_mask, axis=-1)
+            
+            (input_char_conv,
+                input_char_conv_mask) = self.conv_layer(input_char_embedding, input_char_embedding_mask)
+            
+            (input_char_pool,
+                input_char_pool_mask) = self.pooling_layer(input_char_conv, input_char_conv_mask)
+            
+            input_char_feat = input_char_pool
+            input_char_feat_mask = input_char_pool_mask
+        
+        return input_char_feat, input_char_feat_mask
