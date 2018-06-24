@@ -37,7 +37,7 @@ class Embedding(object):
         return output_embedding
     
     def get_embedding_placeholder(self):
-        """gert pretrained embedding placeholder"""
+        """get pretrained embedding placeholder"""
         return self.embedding_placeholder
 
 class PretrainedEmbedding(object):
@@ -73,5 +73,5 @@ class PretrainedEmbedding(object):
         return output_embedding
     
     def get_embedding_placeholder(self):
-        """gert pretrained embedding placeholder"""
+        """get pretrained embedding placeholder"""
         return self.embedding_placeholder
