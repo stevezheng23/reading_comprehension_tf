@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 from model.bidaf import *
+from model.qanet import *
 from util.data_util import *
 
 __all__ = ["TrainModel", "InferModel",

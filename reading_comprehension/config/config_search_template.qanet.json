@@ -1,0 +1,391 @@
+{
+    "hyperparams": {
+        "data_max_question_length": {
+            "stype": "discrete",
+            "set": [40],
+            "dtype": "int"
+        },
+        "data_max_context_length": {
+            "stype": "discrete",
+            "set": [500],
+            "dtype": "int"
+        },
+        "data_max_answer_length": {
+            "stype": "discrete",
+            "set": [30],
+            "dtype": "int"
+        },
+        "data_max_subword_length": {
+            "stype": "discrete",
+            "set": [16],
+            "dtype": "int"
+        },
+        "data_max_char_length": {
+            "stype": "discrete",
+            "set": [16],
+            "dtype": "int"
+        },
+        "train_batch_size": {
+            "stype": "discrete",
+            "set": [32],
+            "dtype": "int"
+        },
+        "train_optimizer_type": {
+            "stype": "discrete",
+            "set": ["adam"],
+            "dtype": "string"
+        },
+        "train_optimizer_learning_rate": {
+            "stype": "log",
+            "range": [0.0001, 0.01],
+            "dtype": "float"
+        },
+        "model_representation_word_embed_dim": {
+            "stype": "discrete",
+            "set": [300],
+            "dtype": "int"
+        },
+        "model_representation_subword_embed_dim": {
+            "stype": "lookup",
+            "key": "embed_dim",
+            "dtype": "int"
+        },
+        "model_representation_subword_unit_dim": {
+            "stype": "discrete",
+            "set": [100],
+            "dtype": "int"
+        },
+        "model_representation_subword_window_size": {
+            "stype": "discrete",
+            "set": [[3, 5]],
+            "dtype": "list"
+        },
+        "model_representation_subword_hidden_activation": {
+            "stype": "discrete",
+            "set": ["relu"],
+            "dtype": "string"
+        },
+        "model_representation_subword_dropout": {
+            "stype": "lookup",
+            "key": "dropout",
+            "scale": 0.5,
+            "shift": 0.0,
+            "dtype": "float"
+        },
+        "model_representation_subword_pooling_type": {
+            "stype": "lookup",
+            "key": "pooling_type",
+            "dtype": "string"
+        },
+        "model_representation_char_embed_dim": {
+            "stype": "lookup",
+            "key": "embed_dim",
+            "dtype": "int"
+        },
+        "model_representation_char_unit_dim": {
+            "stype": "discrete",
+            "set": [100],
+            "dtype": "int"
+        },
+        "model_representation_char_window_size": {
+            "stype": "discrete",
+            "set": [[3, 5]],
+            "dtype": "list"
+        },
+        "model_representation_char_hidden_activation": {
+            "stype": "discrete",
+            "set": ["relu"],
+            "dtype": "string"
+        },
+        "model_representation_char_dropout": {
+            "stype": "lookup",
+            "key": "dropout",
+            "scale": 0.5,
+            "shift": 0.0,
+            "dtype": "float"
+        },
+        "model_representation_char_pooling_type": {
+            "stype": "lookup",
+            "key": "pooling_type",
+            "dtype": "string"
+        },
+        "model_representation_fusion_type": {
+            "stype": "discrete",
+            "set": ["highway"],
+            "dtype": "string"
+        },
+        "model_representation_fusion_num_layer": {
+            "stype": "discrete",
+            "set": [2],
+            "dtype": "int"
+        },
+        "model_representation_fusion_unit_dim": {
+            "stype": "discrete",
+            "set": [500],
+            "dtype": "int"
+        },
+        "model_representation_fusion_hidden_activation": {
+            "stype": "discrete",
+            "set": ["relu"],
+            "dtype": "string"
+        },
+        "model_representation_fusion_dropout": {
+            "stype": "lookup",
+            "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "float"
+        },
+        "model_understanding_question_num_layer": {
+            "stype": "lookup",
+            "key": "understanding_num_layer",
+            "dtype": "int"
+        },
+        "model_understanding_question_num_conv": {
+            "stype": "lookup",
+            "key": "understanding_num_conv",
+            "dtype": "int"
+        },
+        "model_understanding_question_num_head": {
+            "stype": "discrete",
+            "set": [8],
+            "dtype": "int"
+        },
+        "model_understanding_question_unit_dim": {
+            "stype": "lookup",
+            "key": "unit_dim",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "int"
+        },
+        "model_understanding_question_window_size": {
+            "stype": "lookup",
+            "key": "understanding_window_size",
+            "dtype": "list"
+        },
+        "model_understanding_question_hidden_activation": {
+            "stype": "lookup",
+            "key": "hidden_activation",
+            "dtype": "string"
+        },
+        "model_understanding_question_dropout": {
+            "stype": "lookup",
+            "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "float"
+        },
+        "model_understanding_context_num_layer": {
+            "stype": "lookup",
+            "key": "understanding_num_layer",
+            "dtype": "int"
+        },
+        "model_understanding_context_num_conv": {
+            "stype": "lookup",
+            "key": "understanding_num_conv",
+            "dtype": "int"
+        },
+        "model_understanding_context_num_head": {
+            "stype": "discrete",
+            "set": [8],
+            "dtype": "int"
+        },
+        "model_understanding_context_unit_dim": {
+            "stype": "lookup",
+            "key": "unit_dim",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "int"
+        },
+        "model_understanding_context_window_size": {
+            "stype": "lookup",
+            "key": "understanding_window_size",
+            "dtype": "list"
+        },
+        "model_understanding_context_hidden_activation": {
+            "stype": "lookup",
+            "key": "hidden_activation",
+            "dtype": "string"
+        },
+        "model_understanding_context_dropout": {
+            "stype": "lookup",
+            "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "float"
+        },
+        "model_interaction_context2quesiton_attention_dim": {
+            "stype": "lookup",
+            "key": "unit_dim",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "int"
+        },
+        "model_interaction_context2quesiton_score_type": {
+            "stype": "lookup",
+            "key": "score_type",
+            "dtype": "string"
+        },
+        "model_interaction_quesiton2context_attention_dim": {
+            "stype": "lookup",
+            "key": "unit_dim",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "int"
+        },
+        "model_interaction_quesiton2context_score_type": {
+            "stype": "lookup",
+            "key": "score_type",
+            "dtype": "string"
+        },
+        "model_interaction_fusion_type": {
+            "stype": "discrete",
+            "set": ["concate"],
+            "dtype": "string"
+        },
+        "model_interaction_fusion_num_layer": {
+            "stype": "discrete",
+            "set": [1],
+            "dtype": "int"
+        },
+        "model_interaction_fusion_unit_dim": {
+            "stype": "lookup",
+            "key": "unit_dim",
+            "scale": 4.0,
+            "shift": 0.0,
+            "dtype": "int"
+        },
+        "model_interaction_fusion_hidden_activation": {
+            "stype": "discrete",
+            "set": ["relu"],
+            "dtype": "string"
+        },
+        "model_interaction_fusion_dropout": {
+            "stype": "lookup",
+            "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "float"
+        },
+        "model_interaction_fusion_combo_enable": {
+            "stype": "discrete",
+            "set": [true],
+            "dtype": "boolean"
+        },
+        "model_modeling_answer_num_layer": {
+            "stype": "lookup",
+            "key": "modeling_num_layer",
+            "dtype": "int"
+        },
+        "model_modeling_answer_num_conv": {
+            "stype": "lookup",
+            "key": "modeling_num_conv",
+            "dtype": "int"
+        },
+        "model_modeling_answer_num_head": {
+            "stype": "discrete",
+            "set": [8],
+            "dtype": "int"
+        },
+        "model_modeling_answer_unit_dim": {
+            "stype": "lookup",
+            "key": "unit_dim",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "int"
+        },
+        "model_modeling_answer_window_size": {
+            "stype": "lookup",
+            "key": "modeling_window_size",
+            "dtype": "list"
+        },
+        "model_modeling_answer_hidden_activation": {
+            "stype": "lookup",
+            "key": "hidden_activation",
+            "dtype": "string"
+        },
+        "model_modeling_answer_dropout": {
+            "stype": "lookup",
+            "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "float"
+        },
+        "model_output_answer_start_dropout": {
+            "stype": "lookup",
+            "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "float"
+        },
+        "model_output_answer_end_dropout": {
+            "stype": "lookup",
+            "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "float"
+        }
+    },
+    "variables": {
+        "embed_dim": {
+            "stype": "uniform",
+            "range": [5, 25],
+            "dtype": "int"
+        },
+        "unit_dim": {
+            "stype": "uniform",
+            "range": [75, 150],
+            "dtype": "int"
+        },
+        "hidden_activation": {
+            "stype": "discrete",
+            "set": ["tanh", "relu"],
+            "dtype": "string"
+        },
+        "pooling_type": {
+            "stype": "discrete",
+            "set": ["max"],
+            "dtype": "string"
+        },
+        "dropout": {
+            "stype": "uniform",
+            "range": [0.05, 0.5],
+            "dtype": "float"
+        },
+        "score_type": {
+            "stype": "discrete",
+            "set": ["dot", "scaled_dot"],
+            "dtype": "string"
+        },
+        "understanding_num_layer": {
+            "stype": "discrete",
+            "set": [1, 2, 4],
+            "dtype": "int"
+        },
+        "understanding_num_conv": {
+            "stype": "discrete",
+            "set": [2, 4],
+            "dtype": "int"
+        },
+        "understanding_window_size": {
+            "stype": "discrete",
+            "set": [[5], [7]],
+            "dtype": "list"
+        },
+        "modeling_num_layer": {
+            "stype": "discrete",
+            "set": [2, 4, 8],
+            "dtype": "int"
+        },
+        "modeling_num_conv": {
+            "stype": "discrete",
+            "set": [2, 4],
+            "dtype": "int"
+        },
+        "modeling_window_size": {
+            "stype": "discrete",
+            "set": [[5], [7]],
+            "dtype": "list"
+        }
+    }
+}
