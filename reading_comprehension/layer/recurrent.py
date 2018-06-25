@@ -151,7 +151,7 @@ class BiRNN(object):
                 self.forget_bias, self.residual_connect, self.num_gpus, self.default_gpu_id)
             self.bwd_cell = _creat_recurrent_cell(self.num_layer,
                 self.unit_dim, self.cell_type, self.activation, self.dropout,
-                self.forget_bias, self.residual_connect, self.num_gpus, self.default_gpu_id)
+                self.forget_bias, self.residual_connect, self.num_gpus, self.default_gpu_id + self.num_layer)
     
     def __call__(self,
                  input_data,
