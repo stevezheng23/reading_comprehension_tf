@@ -38,7 +38,6 @@ class BaseModel(object):
         
         self.num_gpus = self.hyperparams.device_num_gpus
         self.default_gpu_id = self.hyperparams.device_default_gpu_id
-        self.device_spec = get_device_spec(self.default_gpu_id, self.num_gpus)
         self.logger.log_print("# {0} gpus are used with default gpu id set as {1}"
             .format(self.num_gpus, self.default_gpu_id))
     
@@ -46,31 +45,33 @@ class BaseModel(object):
                              input_unit_dim,
                              output_unit_dim,
                              fusion_type,
-                             fusion_num_layer,
-                             fusion_hidden_activation,
-                             fusion_dropout,
-                             fusion_trainable):
+                             num_layer,
+                             hidden_activation,
+                             dropout,
+                             num_gpus,
+                             default_gpu_id,
+                             trainable):
         """create fusion layer for mrc base model"""
-        with tf.variable_scope("fusion", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope("fusion", reuse=tf.AUTO_REUSE):
             if fusion_type == "concate":
                 fusion_layer_list = []
                 if input_unit_dim != output_unit_dim:
                     convert_layer = create_dense_layer(1, output_unit_dim, "", 0.0, False, False,
-                        self.num_gpus, self.default_gpu_id, fusion_trainable)
+                        num_gpus, default_gpu_id, trainable)
                     fusion_layer_list.append(convert_layer)
             elif fusion_type == "dense":
-                fusion_layer = create_dense_layer(fusion_num_layer, output_unit_dim, fusion_hidden_activation,
-                    fusion_dropout, False, False, self.num_gpus, self.default_gpu_id, fusion_trainable)
+                fusion_layer = create_dense_layer(num_layer, output_unit_dim, hidden_activation,
+                    dropout, False, False, num_gpus, default_gpu_id, trainable)
                 fusion_layer_list = [fusion_layer]
             elif fusion_type == "highway":
                 fusion_layer_list = []
                 if input_unit_dim != output_unit_dim:
                     convert_layer = create_dense_layer(1, output_unit_dim, "", 0.0, False, False,
-                        self.num_gpus, self.default_gpu_id, fusion_trainable)
+                        num_gpus, default_gpu_id, trainable)
                     fusion_layer_list.append(convert_layer)
                 
-                fusion_layer = create_highway_layer(fusion_num_layer, output_unit_dim, fusion_hidden_activation,
-                    fusion_dropout, self.num_gpus, self.default_gpu_id, fusion_trainable)
+                fusion_layer = create_highway_layer(num_layer, output_unit_dim, hidden_activation,
+                    dropout, num_gpus, default_gpu_id, trainable)
                 fusion_layer_list.append(fusion_layer)
             else:
                 raise ValueError("unsupported fusion type {0}".format(fusion_type))
@@ -134,8 +135,9 @@ class BaseModel(object):
         fusion_hidden_activation = self.hyperparams.model_representation_fusion_hidden_activation
         fusion_dropout = self.hyperparams.model_representation_fusion_dropout if self.mode == "train" else 0.0
         fusion_trainable = self.hyperparams.model_representation_fusion_trainable
+        default_representation_gpu_id = self.default_gpu_id
         
-        with tf.variable_scope("representation", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope("representation", reuse=tf.AUTO_REUSE):
             input_question_feat_list = []
             input_question_feat_mask_list = []
             input_context_feat_list = []
@@ -167,7 +169,7 @@ class BaseModel(object):
                 subword_feat_layer = SubwordFeat(vocab_size=subword_vocab_size, embed_dim=subword_embed_dim,
                     unit_dim=subword_unit_dim, window_size=subword_window_size, hidden_activation=subword_hidden_activation,
                     pooling_type=subword_pooling_type, dropout=subword_dropout, num_gpus=self.num_gpus,
-                    default_gpu_id=self.default_gpu_id, trainable=subword_feat_trainable)
+                    default_gpu_id=default_representation_gpu_id, trainable=subword_feat_trainable)
                 
                 (input_question_subword_feat,
                     input_question_subword_feat_mask) = subword_feat_layer(input_question_subword, input_question_subword_mask)
@@ -186,7 +188,7 @@ class BaseModel(object):
                 char_feat_layer = CharFeat(vocab_size=char_vocab_size, embed_dim=char_embed_dim,
                     unit_dim=char_unit_dim, window_size=char_window_size, hidden_activation=char_hidden_activation,
                     pooling_type=char_pooling_type, dropout=char_dropout, num_gpus=self.num_gpus,
-                    default_gpu_id=self.default_gpu_id, trainable=char_feat_trainable)
+                    default_gpu_id=default_representation_gpu_id, trainable=char_feat_trainable)
                 
                 (input_question_char_feat,
                     input_question_char_feat_mask) = char_feat_layer(input_question_char, input_question_char_mask)
@@ -202,7 +204,8 @@ class BaseModel(object):
             
             feat_unit_dim = word_unit_dim + subword_unit_dim + char_unit_dim
             feat_fusion_layer = self._create_fusion_layer(feat_unit_dim, fusion_unit_dim,
-                fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable)
+                fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
+                self.num_gpus, default_representation_gpu_id, fusion_trainable)
             
             input_question_feat, input_question_feat_mask = self._build_fusion_result(input_question_feat_list,
                 input_question_feat_mask_list, feat_fusion_layer)
@@ -270,7 +273,10 @@ class BaseModel(object):
                        loss):
         """minimize optimization loss"""
         """compute gradients"""
-        grads_and_vars = self.optimizer.compute_gradients(loss)
+        if self.num_gpus > 1:
+            grads_and_vars = self.optimizer.compute_gradients(loss, colocate_gradients_with_ops=True)
+        else:
+            grads_and_vars = self.optimizer.compute_gradients(loss, colocate_gradients_with_ops=False)
         
         """clip gradients"""
         gradients = [x[0] for x in grads_and_vars]

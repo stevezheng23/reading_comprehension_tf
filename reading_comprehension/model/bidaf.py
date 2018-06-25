@@ -24,7 +24,7 @@ class BiDAF(BaseModel):
         super(BiDAF, self).__init__(logger=logger, hyperparams=hyperparams,
             data_pipeline=data_pipeline, mode=mode, scope=scope)
         
-        with tf.variable_scope(scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
             self.global_step = tf.get_variable("global_step", shape=[], dtype=tf.int32,
                 initializer=tf.zeros_initializer, trainable=False)
             
@@ -144,18 +144,19 @@ class BiDAF(BaseModel):
         context_understanding_residual_connect = self.hyperparams.model_understanding_context_residual_connect
         context_understanding_trainable = self.hyperparams.model_understanding_context_trainable
         enable_understanding_sharing = self.hyperparams.model_understanding_enable_sharing
+        default_understanding_gpu_id = self.default_gpu_id
         
-        with tf.variable_scope("understanding", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            with tf.variable_scope("question", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope("understanding", reuse=tf.AUTO_REUSE):
+            with tf.variable_scope("question", reuse=tf.AUTO_REUSE):
                 self.logger.log_print("# build question understanding layer")
                 question_understanding_layer = create_recurrent_layer("bi", question_understanding_num_layer,
                     question_understanding_unit_dim, question_understanding_cell_type, question_understanding_hidden_activation,
                     question_understanding_dropout, question_understanding_forget_bias, question_understanding_residual_connect,
-                    self.num_gpus, self.default_gpu_id, question_understanding_trainable)
+                    self.num_gpus, default_understanding_gpu_id, question_understanding_trainable)
                 
                 question_understanding, question_understanding_mask = question_understanding_layer(question_feat, question_feat_mask)
             
-            with tf.variable_scope("context", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            with tf.variable_scope("context", reuse=tf.AUTO_REUSE):
                 self.logger.log_print("# build context understanding layer")
                 if enable_understanding_sharing == True:
                     context_understanding_layer = question_understanding_layer
@@ -163,7 +164,7 @@ class BiDAF(BaseModel):
                     context_understanding_layer = create_recurrent_layer("bi", context_understanding_num_layer,
                         context_understanding_unit_dim, context_understanding_cell_type, context_understanding_hidden_activation,
                         context_understanding_dropout, context_understanding_forget_bias, context_understanding_residual_connect,
-                        self.num_gpus, self.default_gpu_id, context_understanding_trainable)
+                        self.num_gpus, default_understanding_gpu_id, context_understanding_trainable)
                 
                 context_understanding, context_understanding_mask = context_understanding_layer(context_feat, context_feat_mask)
         
@@ -193,20 +194,21 @@ class BiDAF(BaseModel):
         fusion_trainable = self.hyperparams.model_interaction_fusion_trainable
         fusion_combo_enable = self.hyperparams.model_interaction_fusion_combo_enable
         enable_interaction_sharing = self.hyperparams.model_interaction_enable_sharing
+        default_interaction_gpu_id = self.default_gpu_id
         
-        with tf.variable_scope("interaction", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope("interaction", reuse=tf.AUTO_REUSE):
             answer_intermediate_list = [context_understanding]
             answer_intermediate_mask_list = [context_understanding_mask]
             answer_intermediate_unit_dim = context_understanding_unit_dim
             
             attention_matrix = None
-            with tf.variable_scope("context2question", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            with tf.variable_scope("context2question", reuse=tf.AUTO_REUSE):
                 if context2quesiton_interaction_enable == True:
                     self.logger.log_print("# build context2question interaction layer")
                     context2quesiton_attention_layer = create_attention_layer("att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         context2quesiton_interaction_attention_dim, context2quesiton_interaction_score_type, False, False, False,
-                        attention_matrix, self.num_gpus, self.default_gpu_id, context2quesiton_interaction_trainable)
+                        attention_matrix, self.num_gpus, default_interaction_gpu_id, context2quesiton_interaction_trainable)
                     
                     if enable_interaction_sharing == True:
                         attention_matrix = context2quesiton_attention_layer.get_attention_matrix()
@@ -227,13 +229,13 @@ class BiDAF(BaseModel):
                             answer_intermediate_mask_list.append(context2quesiton_combo_mask)
                             answer_intermediate_unit_dim = answer_intermediate_unit_dim + question_understanding_unit_dim
             
-            with tf.variable_scope("question2context", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            with tf.variable_scope("question2context", reuse=tf.AUTO_REUSE):
                 if quesiton2context_interaction_enable == True:
                     self.logger.log_print("# build question2context interaction layer")
                     quesiton2context_attention_layer = create_attention_layer("max_att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         quesiton2context_interaction_attention_dim, quesiton2context_interaction_score_type, False, False, False,
-                        attention_matrix, self.num_gpus, self.default_gpu_id, quesiton2context_interaction_trainable)
+                        attention_matrix, self.num_gpus, default_interaction_gpu_id, quesiton2context_interaction_trainable)
                     
                     (quesiton2context_interaction,
                         quesiton2context_interaction_mask) = quesiton2context_attention_layer(context_understanding,
@@ -250,8 +252,9 @@ class BiDAF(BaseModel):
                         answer_intermediate_mask_list.append(quesiton2context_interaction_mask)
                         answer_intermediate_unit_dim = answer_intermediate_unit_dim + context_understanding_unit_dim
             
-            answer_interaction_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim, fusion_unit_dim,
-                fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable)
+            answer_interaction_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim,
+                fusion_unit_dim, fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
+                self.num_gpus, default_interaction_gpu_id, fusion_trainable)
             answer_interaction, answer_interaction_mask = self._build_fusion_result(answer_intermediate_list,
                 answer_intermediate_mask_list, answer_interaction_fusion_layer)
         
@@ -279,8 +282,9 @@ class BiDAF(BaseModel):
         fusion_hidden_activation = self.hyperparams.model_modeling_fusion_hidden_activation
         fusion_dropout = self.hyperparams.model_modeling_fusion_dropout if self.mode == "train" else 0.0
         fusion_trainable = self.hyperparams.model_modeling_fusion_trainable
+        default_modeling_gpu_id = self.default_gpu_id
         
-        with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE):
             self.logger.log_print("# build answer modeling layer")
             answer_intermediate_list = []
             answer_intermediate_mask_list = []
@@ -289,7 +293,7 @@ class BiDAF(BaseModel):
             answer_modeling_sequence_layer = create_recurrent_layer("bi", answer_modeling_num_layer,
                 answer_modeling_unit_dim, answer_modeling_cell_type, answer_modeling_hidden_activation,
                 answer_modeling_dropout, answer_modeling_forget_bias, answer_modeling_residual_connect,
-                self.num_gpus, self.default_gpu_id, answer_modeling_trainable)
+                self.num_gpus, default_modeling_gpu_id, answer_modeling_trainable)
             
             (answer_modeling_sequence,
                 answer_modeling_sequence_mask) = answer_modeling_sequence_layer(answer_interaction, answer_interaction_mask)
@@ -299,7 +303,7 @@ class BiDAF(BaseModel):
                 answer_modeling_attention_layer = create_attention_layer("att",
                     answer_modeling_sequence_unit_dim, answer_modeling_sequence_unit_dim,
                     answer_modeling_attention_dim, answer_modeling_score_type, False, False, True,
-                    None, self.num_gpus, self.default_gpu_id, answer_modeling_trainable)
+                    None, self.num_gpus, default_modeling_gpu_id, answer_modeling_trainable)
 
                 (answer_modeling_attention,
                     answer_modeling_attention_mask) = answer_modeling_attention_layer(answer_modeling_sequence,
@@ -317,8 +321,9 @@ class BiDAF(BaseModel):
                 answer_intermediate_mask_list.append(answer_modeling_sequence_mask)
                 answer_intermediate_unit_dim = answer_intermediate_unit_dim + answer_modeling_sequence_unit_dim
             
-            answer_modeling_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim, fusion_unit_dim,
-                fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable)
+            answer_modeling_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim,
+                fusion_unit_dim, fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
+                self.num_gpus, default_modeling_gpu_id, fusion_trainable)
             answer_modeling, answer_modeling_mask = self._build_fusion_result(answer_intermediate_list,
                 answer_intermediate_mask_list, answer_modeling_fusion_layer)
         
@@ -345,23 +350,24 @@ class BiDAF(BaseModel):
         answer_end_forget_bias = self.hyperparams.model_output_answer_end_forget_bias
         answer_end_residual_connect = self.hyperparams.model_output_answer_end_residual_connect
         answer_end_trainable = self.hyperparams.model_output_answer_end_trainable
+        default_output_gpu_id = self.default_gpu_id
         
-        with tf.variable_scope("output", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope("output", reuse=tf.AUTO_REUSE):
             self.logger.log_print("# build answer output layer")
             answer_intermediate_list = [answer_modeling]
             answer_intermediate_mask_list = [answer_modeling_mask]
             answer_intermediate_unit_dim = answer_modeling_unit_dim
             
-            with tf.variable_scope("start", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            with tf.variable_scope("start", reuse=tf.AUTO_REUSE):
                 answer_start_layer = create_recurrent_layer("bi", answer_start_num_layer,
                     answer_start_unit_dim, answer_start_cell_type, answer_start_hidden_activation,
                     answer_start_dropout, answer_start_forget_bias, answer_start_residual_connect,
-                    self.num_gpus, self.default_gpu_id, answer_start_trainable)
+                    self.num_gpus, default_output_gpu_id, answer_start_trainable)
                 answer_start, answer_start_mask = answer_start_layer(answer_modeling, answer_modeling_mask)
                 
                 answer_start = tf.nn.dropout(answer_start, 1.0-answer_start_dropout)
                 answer_start_output_layer = create_dense_layer(1, 1, "", 0.0, False, False,
-                    self.num_gpus, self.default_gpu_id, answer_start_trainable)
+                    self.num_gpus, default_output_gpu_id, answer_start_trainable)
                 answer_start_output, answer_start_output_mask = answer_start_output_layer(answer_start, answer_start_mask)
             
             answer_intermediate_list.append(answer_start)
@@ -370,16 +376,16 @@ class BiDAF(BaseModel):
             answer_intermediate, answer_intermediate_mask = self._build_fusion_result(answer_intermediate_list,
                 answer_intermediate_mask_list, None)
             
-            with tf.variable_scope("end", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            with tf.variable_scope("end", reuse=tf.AUTO_REUSE):
                 answer_end_layer = create_recurrent_layer("bi", answer_end_num_layer,
                     answer_end_unit_dim, answer_end_cell_type, answer_end_hidden_activation,
                     answer_end_dropout, answer_end_forget_bias, answer_end_residual_connect,
-                    self.num_gpus, self.default_gpu_id, answer_end_trainable)
+                    self.num_gpus, default_output_gpu_id, answer_end_trainable)
                 answer_end, answer_end_mask = answer_end_layer(answer_intermediate, answer_intermediate_mask)
                 
                 answer_end = tf.nn.dropout(answer_end, 1.0-answer_end_dropout)
                 answer_end_output_layer = create_dense_layer(1, 1, "", 0.0, False, False,
-                    self.num_gpus, self.default_gpu_id, answer_end_trainable)
+                    self.num_gpus, default_output_gpu_id, answer_end_trainable)
                 answer_end_output, answer_end_output_mask = answer_end_output_layer(answer_end, answer_end_mask)
         
         return answer_start_output, answer_end_output, answer_start_output_mask, answer_end_output_mask
@@ -398,7 +404,7 @@ class BiDAF(BaseModel):
                      context_char,
                      context_char_mask):
         """build graph for bidaf model"""
-        with tf.variable_scope("graph", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope("graph", reuse=tf.AUTO_REUSE):
             """build representation layer for bidaf model"""
             (question_feat, question_feat_mask, context_feat,
                 context_feat_mask) = self._build_representation_layer(question_word, question_word_mask,

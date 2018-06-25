@@ -24,7 +24,7 @@ class QANet(BaseModel):
         super(QANet, self).__init__(logger=logger, hyperparams=hyperparams,
             data_pipeline=data_pipeline, mode=mode, scope=scope)
         
-        with tf.variable_scope(scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
             self.global_step = tf.get_variable("global_step", shape=[], dtype=tf.int32,
                 initializer=tf.zeros_initializer, trainable=False)
             
@@ -144,19 +144,20 @@ class QANet(BaseModel):
         context_understanding_dropout = self.hyperparams.model_understanding_context_dropout if self.mode == "train" else 0.0
         context_understanding_trainable = self.hyperparams.model_understanding_context_trainable
         enable_understanding_sharing = self.hyperparams.model_understanding_enable_sharing
+        default_understanding_gpu_id = self.default_gpu_id
         
-        with tf.variable_scope("understanding", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            with tf.variable_scope("question", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope("understanding", reuse=tf.AUTO_REUSE):
+            with tf.variable_scope("question", reuse=tf.AUTO_REUSE):
                 self.logger.log_print("# build question understanding layer")
                 question_understanding_layer = StackedEncoderBlock(num_layer=question_understanding_num_layer,
                     num_conv=question_understanding_num_conv, num_head=question_understanding_num_head,
                     unit_dim=question_understanding_unit_dim, window_size=question_understanding_window_size,
                     activation=question_understanding_hidden_activation, dropout=question_understanding_dropout,
-                    num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id, trainable=question_understanding_trainable)
+                    num_gpus=self.num_gpus, default_gpu_id=default_understanding_gpu_id, trainable=question_understanding_trainable)
                 
                 question_understanding, question_understanding_mask = question_understanding_layer(question_feat, question_feat_mask)
             
-            with tf.variable_scope("context", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            with tf.variable_scope("context", reuse=tf.AUTO_REUSE):
                 self.logger.log_print("# build context understanding layer")
                 if enable_understanding_sharing == True:
                     context_understanding_layer = question_understanding_layer
@@ -165,7 +166,7 @@ class QANet(BaseModel):
                         num_conv=context_understanding_num_conv, num_head=context_understanding_num_head,
                         unit_dim=context_understanding_unit_dim, window_size=context_understanding_window_size,
                         activation=context_understanding_hidden_activation, dropout=context_understanding_dropout,
-                        num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id, trainable=context_understanding_trainable)
+                        num_gpus=self.num_gpus, default_gpu_id=default_understanding_gpu_id, trainable=context_understanding_trainable)
                 
                 context_understanding, context_understanding_mask = context_understanding_layer(context_feat, context_feat_mask)
         
@@ -195,20 +196,21 @@ class QANet(BaseModel):
         fusion_trainable = self.hyperparams.model_interaction_fusion_trainable
         fusion_combo_enable = self.hyperparams.model_interaction_fusion_combo_enable
         enable_interaction_sharing = self.hyperparams.model_interaction_enable_sharing
+        default_interaction_gpu_id = self.default_gpu_id
         
-        with tf.variable_scope("interaction", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope("interaction", reuse=tf.AUTO_REUSE):
             answer_intermediate_list = [context_understanding]
             answer_intermediate_mask_list = [context_understanding_mask]
             answer_intermediate_unit_dim = context_understanding_unit_dim
             
             attention_matrix = None
-            with tf.variable_scope("context2question", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            with tf.variable_scope("context2question", reuse=tf.AUTO_REUSE):
                 if context2quesiton_interaction_enable == True:
                     self.logger.log_print("# build context2question interaction layer")
                     context2quesiton_interaction_layer = create_attention_layer("att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         context2quesiton_interaction_attention_dim, context2quesiton_interaction_score_type, False, False, False,
-                        attention_matrix, self.num_gpus, self.default_gpu_id, context2quesiton_interaction_trainable)
+                        attention_matrix, self.num_gpus, default_interaction_gpu_id, context2quesiton_interaction_trainable)
                     
                     if enable_interaction_sharing == True:
                         attention_matrix = context2quesiton_interaction_layer.get_attention_matrix()
@@ -229,13 +231,13 @@ class QANet(BaseModel):
                             answer_intermediate_mask_list.append(context2quesiton_combo_mask)
                             answer_intermediate_unit_dim = answer_intermediate_unit_dim + question_understanding_unit_dim
             
-            with tf.variable_scope("question2context", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            with tf.variable_scope("question2context", reuse=tf.AUTO_REUSE):
                 if quesiton2context_interaction_enable == True:
                     self.logger.log_print("# build question2context interaction layer")
                     quesiton2context_interaction_layer = create_attention_layer("co_att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         quesiton2context_interaction_attention_dim, quesiton2context_interaction_score_type, False, False, False,
-                        attention_matrix, self.num_gpus, self.default_gpu_id, quesiton2context_interaction_trainable)
+                        attention_matrix, self.num_gpus, default_interaction_gpu_id, quesiton2context_interaction_trainable)
                     
                     (quesiton2context_interaction,
                         quesiton2context_interaction_mask) = quesiton2context_interaction_layer(context_understanding,
@@ -252,8 +254,9 @@ class QANet(BaseModel):
                         answer_intermediate_mask_list.append(quesiton2context_interaction_mask)
                         answer_intermediate_unit_dim = answer_intermediate_unit_dim + context_understanding_unit_dim
             
-            answer_interaction_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim, fusion_unit_dim,
-                fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout, fusion_trainable)
+            answer_interaction_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim,
+                fusion_unit_dim, fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
+                self.num_gpus, default_interaction_gpu_id, fusion_trainable)
             answer_interaction, answer_interaction_mask = self._build_fusion_result(answer_intermediate_list,
                 answer_intermediate_mask_list, answer_interaction_fusion_layer)
         
@@ -273,25 +276,26 @@ class QANet(BaseModel):
         answer_modeling_dropout = self.hyperparams.model_modeling_answer_dropout if self.mode == "train" else 0.0
         answer_modeling_trainable = self.hyperparams.model_modeling_answer_trainable
         answer_modeling_enable_sharing = self.hyperparams.model_modeling_enable_sharing
+        default_modeling_gpu_id = self.default_gpu_id
         
-        with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE):
             self.logger.log_print("# build answer modeling layer")
             answer_modeling_list = []
             answer_modeling_mask_list = []
             
-            with tf.variable_scope("base", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            with tf.variable_scope("base", reuse=tf.AUTO_REUSE):
                 answer_modeling_base_layer = StackedEncoderBlock(num_layer=answer_modeling_num_layer,
                     num_conv=answer_modeling_num_conv, num_head=answer_modeling_num_head,
                     unit_dim=answer_modeling_unit_dim, window_size=answer_modeling_window_size,
                     activation=answer_modeling_hidden_activation, dropout=answer_modeling_dropout,
-                    num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id, trainable=answer_modeling_trainable)
+                    num_gpus=self.num_gpus, default_gpu_id=default_modeling_gpu_id, trainable=answer_modeling_trainable)
                 
                 (answer_modeling_base,
                     answer_modeling_base_mask) = answer_modeling_base_layer(answer_interaction, answer_interaction_mask)
                 answer_modeling_list.append(answer_modeling_base)
                 answer_modeling_mask_list.append(answer_modeling_base_mask)
             
-            with tf.variable_scope("start", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            with tf.variable_scope("start", reuse=tf.AUTO_REUSE):
                 if answer_modeling_enable_sharing == True:
                     answer_modeling_start_layer = answer_modeling_base_layer
                 else:
@@ -299,14 +303,14 @@ class QANet(BaseModel):
                         num_conv=answer_modeling_num_conv, num_head=answer_modeling_num_head,
                         unit_dim=answer_modeling_unit_dim, window_size=answer_modeling_window_size,
                         activation=answer_modeling_hidden_activation, dropout=answer_modeling_dropout,
-                        num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id, trainable=answer_modeling_trainable)
+                        num_gpus=self.num_gpus, default_gpu_id=default_modeling_gpu_id, trainable=answer_modeling_trainable)
                 
                 (answer_modeling_start,
                     answer_modeling_start_mask) = answer_modeling_start_layer(answer_modeling_base, answer_modeling_base_mask)
                 answer_modeling_list.append(answer_modeling_start)
                 answer_modeling_mask_list.append(answer_modeling_start_mask)
             
-            with tf.variable_scope("end", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            with tf.variable_scope("end", reuse=tf.AUTO_REUSE):
                 if answer_modeling_enable_sharing == True:
                     answer_modeling_end_layer = answer_modeling_base_layer
                 else:
@@ -314,7 +318,7 @@ class QANet(BaseModel):
                         num_conv=answer_modeling_num_conv, num_head=answer_modeling_num_head,
                         unit_dim=answer_modeling_unit_dim, window_size=answer_modeling_window_size,
                         activation=answer_modeling_hidden_activation, dropout=answer_modeling_dropout,
-                        num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id, trainable=answer_modeling_trainable)
+                        num_gpus=self.num_gpus, default_gpu_id=default_modeling_gpu_id, trainable=answer_modeling_trainable)
                 
                 (answer_modeling_end,
                     answer_modeling_end_mask) = answer_modeling_end_layer(answer_modeling_start, answer_modeling_start_mask)
@@ -331,13 +335,14 @@ class QANet(BaseModel):
         answer_start_trainable = self.hyperparams.model_output_answer_start_trainable
         answer_end_dropout = self.hyperparams.model_output_answer_end_dropout if self.mode == "train" else 0.0
         answer_end_trainable = self.hyperparams.model_output_answer_end_trainable
+        default_output_gpu_id = self.default_gpu_id
         
-        with tf.variable_scope("output", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope("output", reuse=tf.AUTO_REUSE):
             self.logger.log_print("# build answer output layer")
             answer_output_list = []
             answer_output_mask_list = []
             
-            with tf.variable_scope("start", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            with tf.variable_scope("start", reuse=tf.AUTO_REUSE):
                 answer_start_list = [answer_modeling[0], answer_modeling[1]]
                 answer_start_mask_list = [answer_modeling_mask[0], answer_modeling_mask[1]]
                 (answer_start,
@@ -345,12 +350,12 @@ class QANet(BaseModel):
                 
                 answer_start = tf.nn.dropout(answer_start, 1.0-answer_start_dropout)
                 answer_ouput_start_layer = create_dense_layer(1, 1, "", 0.0, False, False,
-                    self.num_gpus, self.default_gpu_id, answer_start_trainable)
+                    self.num_gpus, default_output_gpu_id, answer_start_trainable)
                 answer_output_start, answer_output_start_mask = answer_ouput_start_layer(answer_start, answer_start_mask)
                 answer_output_list.append(answer_output_start)
                 answer_output_mask_list.append(answer_output_start_mask)
             
-            with tf.variable_scope("end", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            with tf.variable_scope("end", reuse=tf.AUTO_REUSE):
                 answer_end_list = [answer_modeling[0], answer_modeling[2]]
                 answer_end_mask_list = [answer_modeling_mask[0], answer_modeling_mask[2]]
                 (answer_end,
@@ -358,7 +363,7 @@ class QANet(BaseModel):
                 
                 answer_end = tf.nn.dropout(answer_end, 1.0-answer_end_dropout)
                 answer_output_end_layer = create_dense_layer(1, 1, "", 0.0, False, False,
-                    self.num_gpus, self.default_gpu_id, answer_end_trainable)
+                    self.num_gpus, default_output_gpu_id, answer_end_trainable)
                 answer_output_end, answer_output_end_mask = answer_output_end_layer(answer_end, answer_end_mask)
                 answer_output_list.append(answer_output_end)
                 answer_output_mask_list.append(answer_output_end_mask)
@@ -379,7 +384,7 @@ class QANet(BaseModel):
                      context_char,
                      context_char_mask):
         """build graph for qanet model"""
-        with tf.variable_scope("graph", reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope("graph", reuse=tf.AUTO_REUSE):
             """build representation layer for qanet model"""
             (question_feat, question_feat_mask, context_feat,
                 context_feat_mask) = self._build_representation_layer(question_word, question_word_mask,
