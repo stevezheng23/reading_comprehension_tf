@@ -1,5 +1,3 @@
-import math
-
 import numpy as np
 import tensorflow as tf
 
@@ -14,11 +12,11 @@ def check_tensorflow_version():
     return curr_tf_version
 
 def safe_exp(value):
-    """handle overflow exception for math.exp"""
+    """handle overflow exception for exp"""
     try:
-        res = math.exp(value)
+        res = np.exp(value)
     except OverflowError:
-        res = float("inf")    
+        res = float("inf")   
     return res
 
 def get_config_proto(log_device_placement,

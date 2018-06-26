@@ -136,6 +136,8 @@ class BaseModel(object):
         fusion_dropout = self.hyperparams.model_representation_fusion_dropout if self.mode == "train" else 0.0
         fusion_trainable = self.hyperparams.model_representation_fusion_trainable
         default_representation_gpu_id = self.default_gpu_id
+        default_fusion_gpu_id = self.default_gpu_id + 1
+        self.default_gpu_id = self.default_gpu_id + fusion_num_layer + 1
         
         with tf.variable_scope("representation", reuse=tf.AUTO_REUSE):
             input_question_feat_list = []
@@ -205,7 +207,7 @@ class BaseModel(object):
             feat_unit_dim = word_unit_dim + subword_unit_dim + char_unit_dim
             feat_fusion_layer = self._create_fusion_layer(feat_unit_dim, fusion_unit_dim,
                 fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_representation_gpu_id, fusion_trainable)
+                self.num_gpus, default_fusion_gpu_id, fusion_trainable)
             
             input_question_feat, input_question_feat_mask = self._build_fusion_result(input_question_feat_list,
                 input_question_feat_mask_list, feat_fusion_layer)
