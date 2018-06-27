@@ -26,6 +26,9 @@ def normalize_text(text):
         exclude = set(string.punctuation)
         return [token for token in tokens if token not in exclude]
     
+    def fix_white_space(tokens):
+        return [token for token in tokens if token and not token.isspace()]
+    
     text = re.sub(r'\b(a|an|the)\b', ' ', text.strip())
     sents = nltk.sent_tokenize(text)
     norm_sents = []
@@ -33,6 +36,7 @@ def normalize_text(text):
         words = nltk.word_tokenize(sent)
         words = process_token(words)
         words = remove_punc(words)
+        words = fix_white_space(words)
         norm_sents.append(' '.join(words))
     
     norm_text = ' '.join(norm_sents)
