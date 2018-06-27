@@ -29,6 +29,7 @@ def extrinsic_eval(logger,
                    word_embedding,
                    batch_size,
                    metric_list,
+                   epoch,
                    global_step):
     data_size = len(input_data)
     load_model(sess, model)
@@ -84,11 +85,12 @@ def extrinsic_eval(logger,
     
     eval_result_detail = ExtrinsicEvalLog(metric="detail",
         score=0.0, sample_output=sample_output, sample_size=len(sample_output))
+    basic_info = BasicInfoEvalLog(epoch=epoch, global_step=global_step)
     
-    logger.update_extrinsic_eval(eval_result_list)
-    logger.update_extrinsic_eval_detail(eval_result_detail)
+    logger.update_extrinsic_eval(eval_result_list, basic_info)
+    logger.update_extrinsic_eval_detail(eval_result_detail, basic_info)
     logger.check_extrinsic_eval()
-    logger.check_extrinsic_eval_detail(global_step)
+    logger.check_extrinsic_eval_detail()
 
 def decoding_eval(logger,
                   summary_writer,
@@ -101,6 +103,7 @@ def decoding_eval(logger,
                   word_embedding,
                   sample_size,
                   random_seed,
+                  epoch,
                   global_step):
     np.random.seed(random_seed)
     sample_ids = np.random.randint(0, len(input_data)-1, size=sample_size)
@@ -145,7 +148,9 @@ def decoding_eval(logger,
             sample_output=sample_output, sample_reference=sample_reference_list)
         eval_result_list.append(eval_result)
     
-    logger.update_decoding_eval(eval_result_list)
+    basic_info = BasicInfoEvalLog(epoch=epoch, global_step=global_step)
+    
+    logger.update_decoding_eval(eval_result_list, basic_info)
     logger.check_decoding_eval()
 
 def train(logger,
@@ -199,11 +204,11 @@ def train(logger,
                     extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
                         infer_model, infer_model.input_data, infer_model.input_question,
                         infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
-                        hyperparams.train_eval_batch_size, hyperparams.train_eval_metric, global_step)
+                        hyperparams.train_eval_batch_size, hyperparams.train_eval_metric, epoch, global_step)
                     decoding_eval(eval_logger, infer_summary_writer, infer_sess,
                         infer_model, infer_model.input_data, infer_model.input_question,
                         infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
-                        hyperparams.train_decoding_sample_size, hyperparams.train_random_seed + global_step, global_step)
+                        hyperparams.train_decoding_sample_size, hyperparams.train_random_seed + global_step, epoch, global_step)
             except tf.errors.OutOfRangeError:
                 train_logger.check()
                 train_summary_writer.add_summary(train_result.summary, global_step)
@@ -211,11 +216,11 @@ def train(logger,
                 extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
                     infer_model, infer_model.input_data, infer_model.input_question,
                     infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
-                    hyperparams.train_eval_batch_size, hyperparams.train_eval_metric, global_step)
+                    hyperparams.train_eval_batch_size, hyperparams.train_eval_metric, epoch, global_step)
                 decoding_eval(eval_logger, infer_summary_writer, infer_sess,
                     infer_model, infer_model.input_data, infer_model.input_question,
                     infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
-                    hyperparams.train_decoding_sample_size, hyperparams.train_random_seed + global_step, global_step)
+                    hyperparams.train_decoding_sample_size, hyperparams.train_random_seed + global_step, epoch, global_step)
                 break
 
     train_summary_writer.close_writer()
