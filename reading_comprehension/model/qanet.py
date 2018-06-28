@@ -127,6 +127,8 @@ class QANet(BaseModel):
                                    question_feat_mask,
                                    context_feat_mask):
         """build understanding layer for qanet model"""
+        question_representation_unit_dim = self.hyperparams.model_representation_fusion_unit_dim
+        context_representation_unit_dim = self.hyperparams.model_representation_fusion_unit_dim
         question_understanding_num_layer = self.hyperparams.model_understanding_question_num_layer
         question_understanding_num_conv = self.hyperparams.model_understanding_question_num_conv
         question_understanding_num_head = self.hyperparams.model_understanding_question_num_head
@@ -150,16 +152,30 @@ class QANet(BaseModel):
         with tf.variable_scope("understanding", reuse=tf.AUTO_REUSE):
             with tf.variable_scope("question", reuse=tf.AUTO_REUSE):
                 self.logger.log_print("# build question understanding layer")
+                question_understanding_fusion_layer = self._create_fusion_layer(question_representation_unit_dim,
+                    question_understanding_unit_dim, "conv", 1, question_understanding_hidden_activation, question_understanding_dropout,
+                    self.num_gpus, default_understanding_gpu_id, question_understanding_trainable)
+                question_understanding_fusion, question_understanding_fusion_mask = self._build_fusion_result([question_feat],
+                    [question_feat_mask], question_understanding_fusion_layer)
+                
                 question_understanding_layer = StackedEncoderBlock(num_layer=question_understanding_num_layer,
                     num_conv=question_understanding_num_conv, num_head=question_understanding_num_head,
                     unit_dim=question_understanding_unit_dim, window_size=question_understanding_window_size,
                     activation=question_understanding_hidden_activation, dropout=question_understanding_dropout,
                     num_gpus=self.num_gpus, default_gpu_id=default_understanding_gpu_id, trainable=question_understanding_trainable)
                 
-                question_understanding, question_understanding_mask = question_understanding_layer(question_feat, question_feat_mask)
+                (question_understanding,
+                    question_understanding_mask) = question_understanding_layer(question_understanding_fusion,
+                        question_understanding_fusion_mask)
             
             with tf.variable_scope("context", reuse=tf.AUTO_REUSE):
                 self.logger.log_print("# build context understanding layer")
+                context_understanding_fusion_layer = self._create_fusion_layer(context_representation_unit_dim,
+                    context_understanding_unit_dim, "conv", 1, context_understanding_hidden_activation, context_understanding_dropout,
+                    self.num_gpus, default_understanding_gpu_id, context_understanding_trainable)
+                context_understanding_fusion, context_understanding_fusion_mask = self._build_fusion_result([context_feat],
+                    [context_feat_mask], context_understanding_fusion_layer)
+                
                 if enable_understanding_sharing == True:
                     context_understanding_layer = question_understanding_layer
                 else:
@@ -169,7 +185,9 @@ class QANet(BaseModel):
                         activation=context_understanding_hidden_activation, dropout=context_understanding_dropout,
                         num_gpus=self.num_gpus, default_gpu_id=default_understanding_gpu_id, trainable=context_understanding_trainable)
                 
-                context_understanding, context_understanding_mask = context_understanding_layer(context_feat, context_feat_mask)
+                (context_understanding,
+                    context_understanding_mask) = context_understanding_layer(context_understanding_fusion,
+                        context_understanding_fusion_mask)
         
         return question_understanding, context_understanding, question_understanding_mask, context_understanding_mask
     
@@ -287,6 +305,12 @@ class QANet(BaseModel):
             answer_modeling_list = []
             answer_modeling_mask_list = []
             
+            answer_modeling_fusion_layer = self._create_fusion_layer(answer_interaction_unit_dim,
+                answer_modeling_unit_dim, "conv", 1, answer_modeling_hidden_activation, answer_modeling_dropout,
+                self.num_gpus, default_modeling_gpu_id, answer_modeling_trainable)
+            answer_modeling_fusion, answer_modeling_fusion_mask = self._build_fusion_result([answer_interaction],
+                [answer_interaction_mask], answer_modeling_fusion_layer)
+            
             with tf.variable_scope("base", reuse=tf.AUTO_REUSE):
                 answer_modeling_base_layer = StackedEncoderBlock(num_layer=answer_modeling_num_layer,
                     num_conv=answer_modeling_num_conv, num_head=answer_modeling_num_head,
@@ -295,7 +319,7 @@ class QANet(BaseModel):
                     num_gpus=self.num_gpus, default_gpu_id=default_modeling_gpu_id, trainable=answer_modeling_trainable)
                 
                 (answer_modeling_base,
-                    answer_modeling_base_mask) = answer_modeling_base_layer(answer_interaction, answer_interaction_mask)
+                    answer_modeling_base_mask) = answer_modeling_base_layer(answer_modeling_fusion, answer_modeling_fusion_mask)
                 answer_modeling_list.append(answer_modeling_base)
                 answer_modeling_mask_list.append(answer_modeling_base_mask)
             
