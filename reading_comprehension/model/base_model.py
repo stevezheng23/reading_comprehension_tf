@@ -73,6 +73,10 @@ class BaseModel(object):
                 fusion_layer = create_highway_layer(num_layer, output_unit_dim, hidden_activation,
                     dropout, num_gpus, default_gpu_id, trainable)
                 fusion_layer_list.append(fusion_layer)
+            elif fusion_type == "conv":
+                fusion_layer = create_convolution_layer("1d", num_layer, input_unit_dim, output_unit_dim,
+                    1, 1, 1, "SAME", hidden_activation, dropout, False, False, num_gpus, default_gpu_id, trainable)
+                fusion_layer_list = [fusion_layer]
             else:
                 raise ValueError("unsupported fusion type {0}".format(fusion_type))
         
