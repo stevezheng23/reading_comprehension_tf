@@ -6,6 +6,8 @@ import json
 import numpy as np
 import tensorflow as tf
 
+from util.default_util import *
+
 __all__ = ["DataPipeline", "create_dynamic_pipeline", "create_data_pipeline",
            "create_src_dataset", "create_trg_dataset",
            "generate_word_feat", "generate_subword_feat", "generate_char_feat",
@@ -511,7 +513,7 @@ def load_vocab_file(vocab_file):
                 if item_size > 1:
                     vocab[items[0]] = int(items[1])
                 elif item_size > 0:
-                    vocab[items[0]] = 1
+                    vocab[items[0]] = MAXIMUM_COUNT
             
             return vocab
     else:
@@ -519,6 +521,7 @@ def load_vocab_file(vocab_file):
 
 def process_vocab_table(vocab,
                         vocab_size,
+                        vocab_threshold,
                         vocab_lookup,
                         unk,
                         pad,
@@ -540,6 +543,7 @@ def process_vocab_table(vocab,
     if eos and eos in vocab:
         del vocab[eos]
     
+    vocab = { k: vocab[k] for k in vocab.keys() if vocab[k] >= vocab_threshold }
     if vocab_lookup is not None:
         vocab = { k: vocab[k] for k in vocab.keys() if k in vocab_lookup }
     
@@ -681,6 +685,7 @@ def prepare_data(logger,
                  input_data,
                  word_vocab_file,
                  word_vocab_size,
+                 word_vocab_threshold,
                  word_embed_dim,
                  word_embed_file,
                  full_word_embed_file,
@@ -692,12 +697,14 @@ def prepare_data(logger,
                  pretrain_word_embed,
                  subword_vocab_file,
                  subword_vocab_size,
+                 subword_vocab_threshold,
                  subword_unk,
                  subword_pad,
                  subword_size,
                  subword_feat_enable,
                  char_vocab_file,
                  char_vocab_size,
+                 char_vocab_threshold,
                  char_unk,
                  char_pad,
                  char_feat_enable):
@@ -722,14 +729,14 @@ def prepare_data(logger,
         logger.log_print("# loading word vocab table from {0}".format(word_vocab_file))
         word_vocab = load_vocab_file(word_vocab_file)
         (word_vocab_table, word_vocab_size, word_vocab_index,
-            word_vocab_inverted_index) = process_vocab_table(word_vocab,
-            word_vocab_size, word_embed_data, word_unk, word_pad, word_sos, word_eos)
+            word_vocab_inverted_index) = process_vocab_table(word_vocab, word_vocab_size,
+            word_vocab_threshold, word_embed_data, word_unk, word_pad, word_sos, word_eos)
     elif input_data is not None:
         logger.log_print("# creating word vocab table from input data")
         word_vocab = create_word_vocab(input_data)
         (word_vocab_table, word_vocab_size, word_vocab_index,
-            word_vocab_inverted_index) = process_vocab_table(word_vocab,
-            word_vocab_size, word_embed_data, word_unk, word_pad, word_sos, word_eos)
+            word_vocab_inverted_index) = process_vocab_table(word_vocab, word_vocab_size,
+            word_vocab_threshold, word_embed_data, word_unk, word_pad, word_sos, word_eos)
         logger.log_print("# creating word vocab file {0}".format(word_vocab_file))
         create_vocab_file(word_vocab_file, word_vocab_table)
     else:
@@ -745,14 +752,14 @@ def prepare_data(logger,
             logger.log_print("# loading subword vocab table from {0}".format(subword_vocab_file))
             subword_vocab = load_vocab_file(subword_vocab_file)
             (_, subword_vocab_size, subword_vocab_index,
-                subword_vocab_inverted_index) = process_vocab_table(subword_vocab,
-                subword_vocab_size, None, subword_unk, subword_pad, None, None)
+                subword_vocab_inverted_index) = process_vocab_table(subword_vocab, subword_vocab_size,
+                subword_vocab_threshold, None, subword_unk, subword_pad, None, None)
         elif input_data is not None:
             logger.log_print("# creating subword vocab table from input data")
             subword_vocab = create_subword_vocab(input_data, subword_size)
             (subword_vocab_table, subword_vocab_size, subword_vocab_index,
-                subword_vocab_inverted_index) = process_vocab_table(subword_vocab,
-                subword_vocab_size, None, subword_unk, subword_pad, None, None)
+                subword_vocab_inverted_index) = process_vocab_table(subword_vocab, subword_vocab_size,
+                subword_vocab_threshold, None, subword_unk, subword_pad, None, None)
             logger.log_print("# creating subword vocab file {0}".format(subword_vocab_file))
             create_vocab_file(subword_vocab_file, subword_vocab_table)
         else:
@@ -768,14 +775,14 @@ def prepare_data(logger,
             logger.log_print("# loading char vocab table from {0}".format(char_vocab_file))
             char_vocab = load_vocab_file(char_vocab_file)
             (_, char_vocab_size, char_vocab_index,
-                char_vocab_inverted_index) = process_vocab_table(char_vocab,
-                char_vocab_size, None, char_unk, char_pad, None, None)
+                char_vocab_inverted_index) = process_vocab_table(char_vocab, char_vocab_size,
+                char_vocab_threshold, None, char_unk, char_pad, None, None)
         elif input_data is not None:
             logger.log_print("# creating char vocab table from input data")
             char_vocab = create_char_vocab(input_data)
             (char_vocab_table, char_vocab_size, char_vocab_index,
-                char_vocab_inverted_index) = process_vocab_table(char_vocab,
-                char_vocab_size, None, char_unk, char_pad, None, None)
+                char_vocab_inverted_index) = process_vocab_table(char_vocab, char_vocab_size,
+                char_vocab_threshold, None, char_unk, char_pad, None, None)
             logger.log_print("# creating char vocab file {0}".format(char_vocab_file))
             create_vocab_file(char_vocab_file, char_vocab_table)
         else:
@@ -803,6 +810,7 @@ def prepare_mrc_data(logger,
                      input_expand_multiple_answer,
                      word_vocab_file,
                      word_vocab_size,
+                     word_vocab_threshold,
                      word_embed_dim,
                      word_embed_file,
                      full_word_embed_file,
@@ -814,12 +822,14 @@ def prepare_mrc_data(logger,
                      pretrain_word_embed,
                      subword_vocab_file,
                      subword_vocab_size,
+                     subword_vocab_threshold,
                      subword_unk,
                      subword_pad,
                      subword_size,
                      subword_feat_enable,
                      char_vocab_file,
                      char_vocab_size,
+                     char_vocab_threshold,
                      char_unk,
                      char_pad,
                      char_feat_enable):
@@ -848,10 +858,10 @@ def prepare_mrc_data(logger,
     (word_embed_data, word_vocab_size, word_vocab_index, word_vocab_inverted_index,
         subword_vocab_size, subword_vocab_index, subword_vocab_inverted_index,
         char_vocab_size, char_vocab_index, char_vocab_inverted_index) = prepare_data(logger, input_data,
-            word_vocab_file, word_vocab_size, word_embed_dim, word_embed_file, full_word_embed_file,
-            word_unk, word_pad, word_sos, word_eos, word_feat_enable, pretrain_word_embed,
-            subword_vocab_file, subword_vocab_size, subword_unk, subword_pad, subword_size, subword_feat_enable,
-            char_vocab_file, char_vocab_size, char_unk, char_pad, char_feat_enable)
+            word_vocab_file, word_vocab_size, word_vocab_threshold, word_embed_dim, word_embed_file,
+            full_word_embed_file, word_unk, word_pad, word_sos, word_eos, word_feat_enable, pretrain_word_embed,
+            subword_vocab_file, subword_vocab_size, subword_vocab_threshold, subword_unk, subword_pad, subword_size,
+            subword_feat_enable, char_vocab_file, char_vocab_size, char_vocab_threshold, char_unk, char_pad, char_feat_enable)
     
     return (input_mrc_data, input_question_data, input_context_data, input_answer_data,
         word_embed_data, word_vocab_size, word_vocab_index, word_vocab_inverted_index,

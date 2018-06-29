@@ -1,9 +1,9 @@
 import numpy as np
 import tensorflow as tf
 
-__all__ = ["EPSILON", "create_variable_initializer", "create_weight_regularizer", "create_activation_function", "softmax_with_mask"]
+from util.default_util import *
 
-EPSILON = 1e-30 
+__all__ = ["create_variable_initializer", "create_weight_regularizer", "create_activation_function", "softmax_with_mask"]
 
 def create_variable_initializer(initializer_type,
                                 random_seed=None,
