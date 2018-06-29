@@ -11,7 +11,7 @@ def add_arguments(parser):
     parser.add_argument("--input_file", help="path to input file", required=True)
     parser.add_argument("--output_file", help="path to output file", required=True)
 
-def normalize_text(text):
+def normalize_text(text, lower_case=True, remove_punc=False):
     def process_token(tokens):
         special = ("-", "\u2212", "\u2014", "\u2013", "/", "~", '"', "'", "\u201C", "\u2019", "\u201D", "\u2018", "\u00B0")
         pattern = "([{}])".format("".join(special))
@@ -22,44 +22,29 @@ def normalize_text(text):
         
         return processed_tokens
     
-    def remove_punc(tokens):
+    def remove_punctuation(tokens):
         exclude = set(string.punctuation)
         return [token for token in tokens if token not in exclude]
     
     def fix_white_space(tokens):
         return [token for token in tokens if token and not token.isspace()]
     
-    text = re.sub(r'\b(a|an|the)\b', ' ', text.strip())
     sents = nltk.sent_tokenize(text)
     norm_sents = []
     for sent in sents:
         words = nltk.word_tokenize(sent)
         words = process_token(words)
-        words = remove_punc(words)
+        if remove_punc:
+            words = remove_punctuation(words)
+        
         words = fix_white_space(words)
         norm_sents.append(' '.join(words))
     
     norm_text = ' '.join(norm_sents)
-    norm_text = norm_text.lower()
+    if lower_case:
+        norm_text = norm_text.lower()
     
     return norm_text
-
-def normalize_answer(s):
-    """Lower text and remove punctuation, articles and extra whitespace."""
-    def remove_articles(text):
-        return re.sub(r'\b(a|an|the)\b', ' ', text)
-
-    def white_space_fix(text):
-        return ' '.join(text.split())
-
-    def remove_punc(text):
-        exclude = set(string.punctuation)
-        return ''.join(ch for ch in text if ch not in exclude)
-
-    def lower(text):
-        return text.lower()
-
-    return white_space_fix(remove_articles(remove_punc(lower(s))))
 
 def get_word_span(context, text, start):
     end = start + len(text)
