@@ -9,7 +9,7 @@ __all__ = ["MaxPooling", "AveragePooling"]
 class MaxPooling(object):
     """max pooling layer"""
     def __init__(self,
-                 num_gpus=0,
+                 num_gpus=1,
                  default_gpu_id=0,
                  scope="max_pool"):
         """initialize max pooling layer"""
@@ -31,7 +31,7 @@ class MaxPooling(object):
 class AveragePooling(object):
     """average pooling layer"""
     def __init__(self,
-                 num_gpus=0,
+                 num_gpus=1,
                  default_gpu_id=0,
                  scope="avg_pool"):
         """initialize average pooling layer"""
