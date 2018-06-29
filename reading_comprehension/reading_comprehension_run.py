@@ -29,9 +29,10 @@ def extrinsic_eval(logger,
                    word_embedding,
                    batch_size,
                    metric_list,
+                   detail_type,
                    epoch,
                    global_step):
-    data_size = len(input_data)
+    data_size = len(input_data)    
     load_model(sess, model)
     sess.run(model.data_pipeline.initializer,
         feed_dict={model.data_pipeline.input_question_placeholder: question_data,
@@ -82,6 +83,9 @@ def extrinsic_eval(logger,
         eval_result = ExtrinsicEvalLog(metric=metric,
             score=score, sample_output=None, sample_size=len(sample_output))
         eval_result_list.append(eval_result)
+    
+    if detail_type == "simplified":
+        sample_output = { sample["id"]: sample["predict"]["text"] for sample in sample_output }
     
     eval_result_detail = ExtrinsicEvalLog(metric="detail",
         score=0.0, sample_output=sample_output, sample_size=len(sample_output))
@@ -204,7 +208,8 @@ def train(logger,
                     extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
                         infer_model, infer_model.input_data, infer_model.input_question,
                         infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
-                        hyperparams.train_eval_batch_size, hyperparams.train_eval_metric, epoch, global_step)
+                        hyperparams.train_eval_batch_size, hyperparams.train_eval_metric,
+                        hyperparams.train_eval_detail_type, epoch, global_step)
                     decoding_eval(eval_logger, infer_summary_writer, infer_sess,
                         infer_model, infer_model.input_data, infer_model.input_question,
                         infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
@@ -216,7 +221,8 @@ def train(logger,
                 extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
                     infer_model, infer_model.input_data, infer_model.input_question,
                     infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
-                    hyperparams.train_eval_batch_size, hyperparams.train_eval_metric, epoch, global_step)
+                    hyperparams.train_eval_batch_size, hyperparams.train_eval_metric,
+                    hyperparams.train_eval_detail_type, epoch, global_step)
                 decoding_eval(eval_logger, infer_summary_writer, infer_sess,
                     infer_model, infer_model.input_data, infer_model.input_question,
                     infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
@@ -252,11 +258,12 @@ def evaluate(logger,
     extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
         infer_model, infer_model.input_data, infer_model.input_question,
         infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
-        hyperparams.train_eval_batch_size, hyperparams.train_eval_metric, global_step)
+        hyperparams.train_eval_batch_size, hyperparams.train_eval_metric,
+        hyperparams.train_eval_detail_type, 0, global_step)
     decoding_eval(eval_logger, infer_summary_writer, infer_sess,
         infer_model, infer_model.input_data, infer_model.input_question,
         infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
-        hyperparams.train_decoding_sample_size, hyperparams.train_random_seed + global_step, global_step)
+        hyperparams.train_decoding_sample_size, hyperparams.train_random_seed, global_step)
     
     infer_summary_writer.close_writer()
     logger.log_print("##### finish evaluation #####")

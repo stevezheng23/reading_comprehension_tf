@@ -2,6 +2,7 @@ import codecs
 import collections
 import os.path
 import time
+import json
 
 import numpy as np
 import tensorflow as tf
@@ -67,8 +68,8 @@ class EvalLogger(object):
         with codecs.getwriter("utf-8")(tf.gfile.GFile(eval_detail_file, mode="w")) as eval_detail_writer:
             if self.extrinsic_eval_detail is None:
                 return
-            for sample_output in self.extrinsic_eval_detail.sample_output:
-                eval_detail_writer.write("{0}\r\n".format(sample_output))
+            sample_output = json.dumps(self.extrinsic_eval_detail.sample_output, indent=4)
+            eval_detail_writer.write(sample_output)
     
     def update_decoding_eval(self,
                              eval_result_list,
