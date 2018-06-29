@@ -68,3 +68,28 @@ class LayerNorm(object):
             output_norm = output_norm * output_mask
         
         return output_norm, output_mask
+
+class PositionalEncoding(object):
+    """positional encoding layer"""
+    def __init__(self,
+                 max_length,
+                 unit_dim,
+                 time_scale,
+                 num_gpus=1,
+                 default_gpu_id=0,
+                 trainable=True,
+                 scope="layer_norm"):
+        """initialize positional encoding layer"""
+        self.max_length = max_length
+        self.unit_dim = unit_dim
+        self.time_scale = time_scale
+        self.trainable = trainable
+        self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
+    
+    def __call__(self,
+                 input_data,
+                 input_mask):
+        """call positional encoding layer"""
+        pass
+            
