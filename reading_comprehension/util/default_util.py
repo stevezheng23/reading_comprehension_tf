@@ -1,7 +1,10 @@
 import numpy as np
 import tensorflow as tf
 
-__all__ = ["check_tensorflow_version", "safe_exp", "get_config_proto", "get_device_spec"]
+__all__ = ["EPSILON", "MAXIMUM_COUNT", "check_tensorflow_version", "safe_exp", "get_config_proto", "get_device_spec"]
+
+EPSILON = 1e-30
+MAXIMUM_COUNT = 1000000000000
 
 def check_tensorflow_version():
     """check tensorflow version in current environment"""
