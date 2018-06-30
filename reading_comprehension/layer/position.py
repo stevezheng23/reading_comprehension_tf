@@ -74,7 +74,10 @@ class AbsolutePosition(object):
             input_signal = input_data * input_mask
             input_signal_mask = input_mask
             
-            output_signal = input_signal + self.position_embedding
+            input_singal_shape = tf.shape(input_signal)
+            max_length = input_singal_shape[-2]
+            position_embedding = self.position_embedding[:,:max_length,:]
+            output_signal = input_signal + position_embedding
             output_mask = input_signal_mask
             output_signal = output_signal * output_mask
         

@@ -31,6 +31,7 @@ def create_embedding_layer(vocab_size,
 
 def create_position_layer(position_type,
                           unit_dim,
+                          max_length,
                           time_scale,
                           num_gpus,
                           default_gpu_id,
@@ -41,7 +42,7 @@ def create_position_layer(position_type,
         position_layer = SinusoidPosition(unit_dim=unit_dim, time_scale=time_scale,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, scope=scope)
     elif position_type == "abs_pos":
-        position_layer = AbsolutePosition(unit_dim=unit_dim,
+        position_layer = AbsolutePosition(unit_dim=unit_dim, max_length=max_length,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported position type {0}".format(position_type))

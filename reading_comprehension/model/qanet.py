@@ -560,7 +560,7 @@ class EncoderBlock(object):
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            self.position_layer = create_position_layer("sin_pos", self.unit_dim, 10000,
+            self.position_layer = create_position_layer("sin_pos", self.unit_dim, 0, 10000,
                 self.num_gpus, self.default_gpu_id, self.trainable)
             
             self.conv_layer = create_convolution_layer("multi_sep_1d", self.num_conv, self.unit_dim,
@@ -634,9 +634,9 @@ class StackedEncoderBlock(object):
             self.block_layer_list = []
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
-                block_layer = EncoderBlock(num_conv=self.num_conv, num_head=self.num_head, unit_dim=self.unit_dim,
-                    window_size=self.window_size, activation=self.activation, dropout=self.dropout, num_gpus=self.num_gpus,
-                    default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
+                block_layer = EncoderBlock(num_conv=self.num_conv, num_head=self.num_head,
+                    unit_dim=self.unit_dim, window_size=self.window_size, activation=self.activation, dropout=self.dropout, 
+                    num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
                 self.block_layer_list.append(block_layer)
     
     def __call__(self,
