@@ -31,15 +31,14 @@ def create_embedding_layer(vocab_size,
 
 def create_position_layer(position_type,
                           unit_dim,
-                          max_length,
                           time_scale,
                           num_gpus,
                           default_gpu_id,
                           trainable):
     """create position layer"""
-    scope = "position/{0}".format(attention_type)
+    scope = "position/{0}".format(position_type)
     if position_type == "sin_pos":
-        position_layer = SinusoidPosition(unit_dim=unit_dim, max_length=max_length, time_scale=time_scale,
+        position_layer = SinusoidPosition(unit_dim=unit_dim, time_scale=time_scale,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, scope=scope)
     else:
         raise ValueError("unsupported position type {0}".format(position_type))
