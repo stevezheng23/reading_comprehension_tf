@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from layer.embedding import *
+from layer.position import *
 from layer.convolution import *
 from layer.pooling import *
 from layer.dense import *
@@ -9,7 +10,7 @@ from layer.highway import *
 from layer.recurrent import *
 from layer.attention import *
 
-__all__ = ["create_embedding_layer", "create_convolution_layer", "create_pooling_layer",
+__all__ = ["create_embedding_layer", "create_position_layer", "create_convolution_layer", "create_pooling_layer",
            "create_dense_layer", "create_highway_layer", "create_recurrent_layer", "create_attention_layer"]
 
 def create_embedding_layer(vocab_size,
@@ -18,7 +19,7 @@ def create_embedding_layer(vocab_size,
                            num_gpus,
                            default_gpu_id,
                            trainable):
-    """create pooling layer"""
+    """create embedding layer"""
     if pretrained == True:
         embed_layer = PretrainedEmbedding(vocab_size=vocab_size, embed_dim=embed_dim,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable)
@@ -27,6 +28,23 @@ def create_embedding_layer(vocab_size,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable)
     
     return embed_layer
+
+def create_position_layer(position_type,
+                          unit_dim,
+                          max_length,
+                          time_scale,
+                          num_gpus,
+                          default_gpu_id,
+                          trainable):
+    """create position layer"""
+    scope = "position/{0}".format(attention_type)
+    if position_type == "sin_pos":
+        position_layer = SinusoidPosition(unit_dim=unit_dim, max_length=max_length, time_scale=time_scale,
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, scope=scope)
+    else:
+        raise ValueError("unsupported position type {0}".format(position_type))
+    
+    return position_layer
 
 def create_convolution_layer(conv_type,
                              num_layer,
