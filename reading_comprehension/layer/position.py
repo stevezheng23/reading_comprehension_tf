@@ -4,7 +4,7 @@ import tensorflow as tf
 from util.default_util import *
 from util.reading_comprehension_util import *
 
-__all__ = ["SinusoidPosition"]
+__all__ = ["SinusoidPosition", "AbsolutePosition"]
 
 class SinusoidPosition(object):
     """sinusoid position layer"""
@@ -40,6 +40,41 @@ class SinusoidPosition(object):
             signal = tf.reshape(signal, shape=[1, max_length, self.unit_dim])
             
             output_signal = input_signal + signal
+            output_mask = input_signal_mask
+            output_signal = output_signal * output_mask
+        
+        return output_signal, output_mask
+
+class AbsolutePosition(object):
+    """absolute position layer"""
+    def __init__(self,
+                 unit_dim,
+                 max_length,
+                 num_gpus=1,
+                 default_gpu_id=0,
+                 trainable=True,
+                 scope="abs_pos"):
+        """initialize absolute position layer"""
+        self.unit_dim = unit_dim
+        self.max_length = max_length
+        self.trainable = trainable
+        self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            weight_initializer = create_variable_initializer("glorot_uniform")
+            self.position_embedding = tf.get_variable("position_embedding", shape=[1, self.max_length, self.unit_dim],
+                initializer=weight_initializer, trainable=self.trainable, dtype=tf.float32)
+    
+    def __call__(self,
+                 input_data,
+                 input_mask):
+        """call absolute position layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            input_signal = input_data * input_mask
+            input_signal_mask = input_mask
+            
+            output_signal = input_signal + self.position_embedding
             output_mask = input_signal_mask
             output_signal = output_signal * output_mask
         
