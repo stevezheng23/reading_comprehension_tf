@@ -291,10 +291,6 @@ class BiDAF(BaseModel):
         
         with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE):
             self.logger.log_print("# build answer modeling layer")
-            answer_intermediate_list = []
-            answer_intermediate_mask_list = []
-            answer_intermediate_unit_dim = 0
-            
             answer_modeling_sequence_layer = create_recurrent_layer("bi", answer_modeling_num_layer,
                 answer_modeling_unit_dim, answer_modeling_cell_type, answer_modeling_hidden_activation,
                 answer_modeling_dropout, answer_modeling_forget_bias, answer_modeling_residual_connect,
@@ -304,6 +300,9 @@ class BiDAF(BaseModel):
                 answer_modeling_sequence_mask) = answer_modeling_sequence_layer(answer_interaction, answer_interaction_mask)
             answer_modeling_sequence_unit_dim = answer_modeling_unit_dim * 2
             
+            answer_intermediate_list = [answer_interaction]
+            answer_intermediate_mask_list = [answer_interaction_mask]
+            answer_intermediate_unit_dim = answer_interaction_unit_dim
             if answer_modeling_attention_enable == True:
                 answer_modeling_attention_layer = create_attention_layer("att",
                     answer_modeling_sequence_unit_dim, answer_modeling_sequence_unit_dim,
@@ -315,9 +314,6 @@ class BiDAF(BaseModel):
                         answer_modeling_sequence, answer_modeling_sequence_mask, answer_modeling_sequence_mask)
                 answer_modeling_attention_unit_dim = answer_modeling_sequence_unit_dim
                 
-                answer_intermediate_list.append(answer_interaction)
-                answer_intermediate_mask_list.append(answer_interaction_mask)
-                answer_intermediate_unit_dim = answer_intermediate_unit_dim + answer_interaction_unit_dim
                 answer_intermediate_list.append(answer_modeling_attention)
                 answer_intermediate_mask_list.append(answer_modeling_attention_mask)
                 answer_intermediate_unit_dim = answer_intermediate_unit_dim + answer_modeling_attention_unit_dim
