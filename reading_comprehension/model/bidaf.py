@@ -358,7 +358,6 @@ class BiDAF(BaseModel):
             self.logger.log_print("# build answer output layer")
             answer_intermediate_list = [answer_modeling]
             answer_intermediate_mask_list = [answer_modeling_mask]
-            answer_intermediate_unit_dim = answer_modeling_unit_dim
             
             with tf.variable_scope("start", reuse=tf.AUTO_REUSE):
                 answer_start_layer = create_recurrent_layer("bi", answer_start_num_layer,
@@ -367,16 +366,22 @@ class BiDAF(BaseModel):
                     self.num_gpus, default_output_gpu_id, answer_start_trainable)
                 answer_start, answer_start_mask = answer_start_layer(answer_modeling, answer_modeling_mask)
                 
-                answer_start = tf.nn.dropout(answer_start, 1.0-answer_start_dropout)
+                (answer_start_fusion,
+                    answer_start_fusion_mask) = self._build_fusion_result([answer_modeling, answer_start],
+                        [answer_modeling_mask, answer_start_mask], None)
+                
+                answer_start_fusion = tf.nn.dropout(answer_start_fusion, 1.0-answer_start_dropout)
                 answer_start_output_layer = create_dense_layer(1, 1, "", 0.0, False, False,
                     self.num_gpus, default_output_gpu_id, answer_start_trainable)
-                answer_start_output, answer_start_output_mask = answer_start_output_layer(answer_start, answer_start_mask)
+                (answer_start_output,
+                    answer_start_output_mask) = answer_start_output_layer(answer_start_fusion,
+                        answer_start_fusion_mask)
             
             answer_intermediate_list.append(answer_start)
             answer_intermediate_mask_list.append(answer_start_mask)
-            answer_intermediate_unit_dim = answer_intermediate_unit_dim + answer_start_unit_dim * 2
-            answer_intermediate, answer_intermediate_mask = self._build_fusion_result(answer_intermediate_list,
-                answer_intermediate_mask_list, None)
+            (answer_intermediate,
+                answer_intermediate_mask) = self._build_fusion_result(answer_intermediate_list,
+                    answer_intermediate_mask_list, None)
             
             with tf.variable_scope("end", reuse=tf.AUTO_REUSE):
                 answer_end_layer = create_recurrent_layer("bi", answer_end_num_layer,
@@ -385,10 +390,16 @@ class BiDAF(BaseModel):
                     self.num_gpus, default_output_gpu_id, answer_end_trainable)
                 answer_end, answer_end_mask = answer_end_layer(answer_intermediate, answer_intermediate_mask)
                 
-                answer_end = tf.nn.dropout(answer_end, 1.0-answer_end_dropout)
+                (answer_end_fusion,
+                    answer_end_fusion_mask) = self._build_fusion_result([answer_modeling, answer_end],
+                        [answer_modeling_mask, answer_end_mask], None)
+                
+                answer_end_fusion = tf.nn.dropout(answer_end_fusion, 1.0-answer_end_dropout)
                 answer_end_output_layer = create_dense_layer(1, 1, "", 0.0, False, False,
                     self.num_gpus, default_output_gpu_id, answer_end_trainable)
-                answer_end_output, answer_end_output_mask = answer_end_output_layer(answer_end, answer_end_mask)
+                (answer_end_output,
+                    answer_end_output_mask) = answer_end_output_layer(answer_end_fusion,
+                        answer_end_fusion_mask)
         
         return answer_start_output, answer_end_output, answer_start_output_mask, answer_end_output_mask
     
