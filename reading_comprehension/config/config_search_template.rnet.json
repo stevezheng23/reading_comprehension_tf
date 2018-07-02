@@ -27,22 +27,22 @@
         },
         "train_batch_size": {
             "stype": "discrete",
-            "set": [60],
+            "set": [64],
             "dtype": "int"
         },
         "train_optimizer_type": {
             "stype": "discrete",
-            "set": ["adam"],
+            "set": ["adadelta"],
             "dtype": "string"
         },
         "train_optimizer_learning_rate": {
             "stype": "log",
-            "range": [0.0001, 0.001],
+            "range": [0.5, 1.5],
             "dtype": "float"
         },
         "model_representation_word_embed_dim": {
             "stype": "discrete",
-            "set": [100],
+            "set": [300],
             "dtype": "int"
         },
         "model_representation_subword_embed_dim": {
@@ -126,7 +126,7 @@
         "model_representation_fusion_unit_dim": {
             "stype": "lookup",
             "key": "unit_dim",
-            "scale": 1.0,
+            "scale": 2.0,
             "shift": 0.0,
             "dtype": "int"
         },
@@ -144,7 +144,7 @@
         },
         "model_understanding_question_num_layer": {
             "stype": "lookup",
-            "key": "num_layer",
+            "key": "understanding_num_layer",
             "dtype": "int"
         },
         "model_understanding_question_unit_dim": {
@@ -173,7 +173,7 @@
         },
         "model_understanding_context_num_layer": {
             "stype": "lookup",
-            "key": "num_layer",
+            "key": "understanding_num_layer",
             "dtype": "int"
         },
         "model_understanding_context_unit_dim": {
@@ -200,26 +200,43 @@
             "shift": 0.0,
             "dtype": "float"
         },
+        "model_interaction_context2quesiton_num_layer": {
+            "stype": "lookup",
+            "key": "interaction_num_layer",
+            "dtype": "int"
+        },
+        "model_interaction_context2quesiton_unit_dim": {
+            "stype": "lookup",
+            "key": "unit_dim",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "int"
+        },
+        "model_interaction_context2quesiton_cell_type": {
+            "stype": "lookup",
+            "key": "cell_type",
+            "dtype": "string"
+        },
+        "model_interaction_context2quesiton_hidden_activation": {
+            "stype": "lookup",
+            "key": "hidden_activation",
+            "dtype": "string"
+        },
+        "model_interaction_context2quesiton_dropout": {
+            "stype": "lookup",
+            "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "float"
+        },
         "model_interaction_context2quesiton_attention_dim": {
             "stype": "lookup",
             "key": "unit_dim",
-            "scale": 2.0,
+            "scale": 1.0,
             "shift": 0.0,
             "dtype": "int"
         },
         "model_interaction_context2quesiton_score_type": {
-            "stype": "lookup",
-            "key": "score_type",
-            "dtype": "string"
-        },
-        "model_interaction_quesiton2context_attention_dim": {
-            "stype": "lookup",
-            "key": "unit_dim",
-            "scale": 2.0,
-            "shift": 0.0,
-            "dtype": "int"
-        },
-        "model_interaction_quesiton2context_score_type": {
             "stype": "lookup",
             "key": "score_type",
             "dtype": "string"
@@ -237,7 +254,7 @@
         "model_interaction_fusion_unit_dim": {
             "stype": "lookup",
             "key": "unit_dim",
-            "scale": 4.0,
+            "scale": 2.0,
             "shift": 0.0,
             "dtype": "int"
         },
@@ -253,14 +270,9 @@
             "shift": 0.0,
             "dtype": "float"
         },
-        "model_interaction_fusion_combo_enable": {
-            "stype": "discrete",
-            "set": [true],
-            "dtype": "boolean"
-        },
         "model_modeling_answer_num_layer": {
             "stype": "lookup",
-            "key": "num_layer",
+            "key": "modeling_num_layer",
             "dtype": "int"
         },
         "model_modeling_answer_unit_dim": {
@@ -290,7 +302,7 @@
         "model_modeling_answer_attention_dim": {
             "stype": "lookup",
             "key": "unit_dim",
-            "scale": 2.0,
+            "scale": 1.0,
             "shift": 0.0,
             "dtype": "int"
         },
@@ -298,11 +310,6 @@
             "stype": "lookup",
             "key": "score_type",
             "dtype": "string"
-        },
-        "model_modeling_answer_attention_enable": {
-            "stype": "discrete",
-            "set": [false],
-            "dtype": "boolean"
         },
         "model_modeling_fusion_type": {
             "stype": "discrete",
@@ -335,7 +342,7 @@
         },
         "model_output_answer_start_num_layer": {
             "stype": "lookup",
-            "key": "num_layer",
+            "key": "output_num_layer",
             "dtype": "int"
         },
         "model_output_answer_start_unit_dim": {
@@ -364,7 +371,7 @@
         },
         "model_output_answer_end_num_layer": {
             "stype": "lookup",
-            "key": "num_layer",
+            "key": "output_num_layer",
             "dtype": "int"
         },
         "model_output_answer_end_unit_dim": {
@@ -413,14 +420,29 @@
             "set": ["max"],
             "dtype": "string"
         },
-        "num_layer": {
+        "understanding_num_layer": {
             "stype": "discrete",
-            "set": [1, 2],
+            "set": [1, 2, 3],
+            "dtype": "int"
+        },
+        "interaction_num_layer": {
+            "stype": "discrete",
+            "set": [1],
+            "dtype": "int"
+        },
+        "modeling_num_layer": {
+            "stype": "discrete",
+            "set": [1],
+            "dtype": "int"
+        },
+        "output_num_layer": {
+            "stype": "discrete",
+            "set": [1],
             "dtype": "int"
         },
         "unit_dim": {
             "stype": "uniform",
-            "range": [50, 150],
+            "range": [25, 125],
             "dtype": "int"
         },
         "cell_type": {
@@ -435,7 +457,7 @@
         },
         "score_type": {
             "stype": "discrete",
-            "set": ["dot", "scaled_dot"],
+            "set": ["scaled_dot", "linear"],
             "dtype": "string"
         }
     }
