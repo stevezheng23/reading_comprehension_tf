@@ -179,14 +179,14 @@ class BiDAF(BaseModel):
         """build interaction layer for bidaf model"""
         question_understanding_unit_dim = self.hyperparams.model_understanding_question_unit_dim * 2
         context_understanding_unit_dim = self.hyperparams.model_understanding_context_unit_dim * 2
-        quesiton2context_interaction_attention_dim = self.hyperparams.model_interaction_quesiton2context_attention_dim
-        quesiton2context_interaction_score_type = self.hyperparams.model_interaction_quesiton2context_score_type
-        quesiton2context_interaction_trainable = self.hyperparams.model_interaction_quesiton2context_trainable
-        quesiton2context_interaction_enable = self.hyperparams.model_interaction_quesiton2context_enable
-        context2quesiton_interaction_attention_dim = self.hyperparams.model_interaction_context2quesiton_attention_dim
-        context2quesiton_interaction_score_type = self.hyperparams.model_interaction_context2quesiton_score_type
-        context2quesiton_interaction_trainable = self.hyperparams.model_interaction_context2quesiton_trainable
-        context2quesiton_interaction_enable = self.hyperparams.model_interaction_context2quesiton_enable
+        question2context_interaction_attention_dim = self.hyperparams.model_interaction_question2context_attention_dim
+        question2context_interaction_score_type = self.hyperparams.model_interaction_question2context_score_type
+        question2context_interaction_trainable = self.hyperparams.model_interaction_question2context_trainable
+        question2context_interaction_enable = self.hyperparams.model_interaction_question2context_enable
+        context2question_interaction_attention_dim = self.hyperparams.model_interaction_context2question_attention_dim
+        context2question_interaction_score_type = self.hyperparams.model_interaction_context2question_score_type
+        context2question_interaction_trainable = self.hyperparams.model_interaction_context2question_trainable
+        context2question_interaction_enable = self.hyperparams.model_interaction_context2question_enable
         fusion_type = self.hyperparams.model_interaction_fusion_type
         fusion_num_layer = self.hyperparams.model_interaction_fusion_num_layer
         fusion_unit_dim = self.hyperparams.model_interaction_fusion_unit_dim
@@ -206,53 +206,53 @@ class BiDAF(BaseModel):
             
             attention_matrix = None
             with tf.variable_scope("context2question", reuse=tf.AUTO_REUSE):
-                if context2quesiton_interaction_enable == True:
+                if context2question_interaction_enable == True:
                     self.logger.log_print("# build context2question interaction layer")
-                    context2quesiton_attention_layer = create_attention_layer("att",
+                    context2question_attention_layer = create_attention_layer("att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
-                        context2quesiton_interaction_attention_dim, context2quesiton_interaction_score_type, False, False, False,
-                        attention_matrix, self.num_gpus, default_interaction_gpu_id, context2quesiton_interaction_trainable)
+                        context2question_interaction_attention_dim, context2question_interaction_score_type, False, False, False,
+                        attention_matrix, self.num_gpus, default_interaction_gpu_id, context2question_interaction_trainable)
                     
                     if enable_interaction_sharing == True:
-                        attention_matrix = context2quesiton_attention_layer.get_attention_matrix()
+                        attention_matrix = context2question_attention_layer.get_attention_matrix()
                     
-                    (context2quesiton_interaction,
-                        context2quesiton_interaction_mask) = context2quesiton_attention_layer(context_understanding,
+                    (context2question_interaction,
+                        context2question_interaction_mask) = context2question_attention_layer(context_understanding,
                             question_understanding, context_understanding_mask, question_understanding_mask)
                     
-                    answer_intermediate_list.append(context2quesiton_interaction)
-                    answer_intermediate_mask_list.append(context2quesiton_interaction_mask)
+                    answer_intermediate_list.append(context2question_interaction)
+                    answer_intermediate_mask_list.append(context2question_interaction_mask)
                     answer_intermediate_unit_dim = answer_intermediate_unit_dim + question_understanding_unit_dim
                     
                     if fusion_combo_enable == True:
                         if question_understanding_unit_dim == context_understanding_unit_dim:
-                            context2quesiton_combo = context_understanding * context2quesiton_interaction
-                            context2quesiton_combo_mask = context_understanding_mask * context2quesiton_interaction_mask
-                            answer_intermediate_list.append(context2quesiton_combo)
-                            answer_intermediate_mask_list.append(context2quesiton_combo_mask)
+                            context2question_combo = context_understanding * context2question_interaction
+                            context2question_combo_mask = context_understanding_mask * context2question_interaction_mask
+                            answer_intermediate_list.append(context2question_combo)
+                            answer_intermediate_mask_list.append(context2question_combo_mask)
                             answer_intermediate_unit_dim = answer_intermediate_unit_dim + question_understanding_unit_dim
             
             with tf.variable_scope("question2context", reuse=tf.AUTO_REUSE):
-                if quesiton2context_interaction_enable == True:
+                if question2context_interaction_enable == True:
                     self.logger.log_print("# build question2context interaction layer")
-                    quesiton2context_attention_layer = create_attention_layer("max_att",
+                    question2context_attention_layer = create_attention_layer("max_att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
-                        quesiton2context_interaction_attention_dim, quesiton2context_interaction_score_type, False, False, False,
-                        attention_matrix, self.num_gpus, default_interaction_gpu_id, quesiton2context_interaction_trainable)
+                        question2context_interaction_attention_dim, question2context_interaction_score_type, False, False, False,
+                        attention_matrix, self.num_gpus, default_interaction_gpu_id, question2context_interaction_trainable)
                     
-                    (quesiton2context_interaction,
-                        quesiton2context_interaction_mask) = quesiton2context_attention_layer(context_understanding,
+                    (question2context_interaction,
+                        question2context_interaction_mask) = question2context_attention_layer(context_understanding,
                             question_understanding, context_understanding_mask, question_understanding_mask)
                     
                     if fusion_combo_enable == True:
-                        quesiton2context_combo = context_understanding * quesiton2context_interaction
-                        quesiton2context_combo_mask = context_understanding_mask * quesiton2context_interaction_mask
-                        answer_intermediate_list.append(quesiton2context_combo)
-                        answer_intermediate_mask_list.append(quesiton2context_combo_mask)
+                        question2context_combo = context_understanding * question2context_interaction
+                        question2context_combo_mask = context_understanding_mask * question2context_interaction_mask
+                        answer_intermediate_list.append(question2context_combo)
+                        answer_intermediate_mask_list.append(question2context_combo_mask)
                         answer_intermediate_unit_dim = answer_intermediate_unit_dim + context_understanding_unit_dim
                     else:
-                        answer_intermediate_list.append(quesiton2context_interaction)
-                        answer_intermediate_mask_list.append(quesiton2context_interaction_mask)
+                        answer_intermediate_list.append(question2context_interaction)
+                        answer_intermediate_mask_list.append(question2context_interaction_mask)
                         answer_intermediate_unit_dim = answer_intermediate_unit_dim + context_understanding_unit_dim
             
             answer_interaction_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim,
