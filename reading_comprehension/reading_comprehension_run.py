@@ -32,7 +32,7 @@ def extrinsic_eval(logger,
                    detail_type,
                    epoch,
                    global_step):
-    data_size = len(input_data)    
+    data_size = len(input_data)
     load_model(sess, model)
     sess.run(model.data_pipeline.initializer,
         feed_dict={model.data_pipeline.input_question_placeholder: question_data,
@@ -70,10 +70,14 @@ def extrinsic_eval(logger,
             "id": sample_id,
             "predict": {
                 "text": predict,
-                "start": predict_span[i][0],
-                "end": predict_span[i][1]
+                "start": int(predict_span[i][0]),
+                "end": int(predict_span[i][1])
             },
-            "answers": input_data[i]["answers"]
+            "answers": [{
+                "text": answer["text"],
+                "start": int(answer["start"]),
+                "end": int(answer["end"])
+            } for answer in input_data[i]["answers"]]
         })
     
     eval_result_list = []
