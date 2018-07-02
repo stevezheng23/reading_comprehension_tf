@@ -68,7 +68,7 @@
         "model_representation_subword_dropout": {
             "stype": "lookup",
             "key": "dropout",
-            "scale": 0.5,
+            "scale": 1.0,
             "shift": 0.0,
             "dtype": "float"
         },
@@ -100,7 +100,7 @@
         "model_representation_char_dropout": {
             "stype": "lookup",
             "key": "dropout",
-            "scale": 0.5,
+            "scale": 1.0,
             "shift": 0.0,
             "dtype": "float"
         },
