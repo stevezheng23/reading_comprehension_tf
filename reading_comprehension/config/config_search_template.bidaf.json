@@ -200,26 +200,26 @@
             "shift": 0.0,
             "dtype": "float"
         },
-        "model_interaction_context2quesiton_attention_dim": {
+        "model_interaction_context2question_attention_dim": {
             "stype": "lookup",
             "key": "unit_dim",
             "scale": 2.0,
             "shift": 0.0,
             "dtype": "int"
         },
-        "model_interaction_context2quesiton_score_type": {
+        "model_interaction_context2question_score_type": {
             "stype": "lookup",
             "key": "score_type",
             "dtype": "string"
         },
-        "model_interaction_quesiton2context_attention_dim": {
+        "model_interaction_question2context_attention_dim": {
             "stype": "lookup",
             "key": "unit_dim",
             "scale": 2.0,
             "shift": 0.0,
             "dtype": "int"
         },
-        "model_interaction_quesiton2context_score_type": {
+        "model_interaction_question2context_score_type": {
             "stype": "lookup",
             "key": "score_type",
             "dtype": "string"

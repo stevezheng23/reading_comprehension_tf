@@ -200,43 +200,43 @@
             "shift": 0.0,
             "dtype": "float"
         },
-        "model_interaction_context2quesiton_num_layer": {
+        "model_interaction_context2question_num_layer": {
             "stype": "lookup",
             "key": "interaction_num_layer",
             "dtype": "int"
         },
-        "model_interaction_context2quesiton_unit_dim": {
+        "model_interaction_context2question_unit_dim": {
             "stype": "lookup",
             "key": "unit_dim",
             "scale": 1.0,
             "shift": 0.0,
             "dtype": "int"
         },
-        "model_interaction_context2quesiton_cell_type": {
+        "model_interaction_context2question_cell_type": {
             "stype": "lookup",
             "key": "cell_type",
             "dtype": "string"
         },
-        "model_interaction_context2quesiton_hidden_activation": {
+        "model_interaction_context2question_hidden_activation": {
             "stype": "lookup",
             "key": "hidden_activation",
             "dtype": "string"
         },
-        "model_interaction_context2quesiton_dropout": {
+        "model_interaction_context2question_dropout": {
             "stype": "lookup",
             "key": "dropout",
             "scale": 1.0,
             "shift": 0.0,
             "dtype": "float"
         },
-        "model_interaction_context2quesiton_attention_dim": {
+        "model_interaction_context2question_attention_dim": {
             "stype": "lookup",
             "key": "unit_dim",
             "scale": 1.0,
             "shift": 0.0,
             "dtype": "int"
         },
-        "model_interaction_context2quesiton_score_type": {
+        "model_interaction_context2question_score_type": {
             "stype": "lookup",
             "key": "score_type",
             "dtype": "string"
