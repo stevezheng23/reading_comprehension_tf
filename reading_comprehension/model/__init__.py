@@ -1,1 +1,1 @@
-__all__ = ["base_model", "bidaf", "qanet"]
+__all__ = ["base_model", "bidaf", "qanet", "rnet"]
