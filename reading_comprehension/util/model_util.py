@@ -5,6 +5,7 @@ import tensorflow as tf
 
 from model.bidaf import *
 from model.qanet import *
+from model.rnet import *
 from util.data_util import *
 
 __all__ = ["TrainModel", "InferModel",
@@ -151,6 +152,8 @@ def get_model_creator(model_type):
         model_creator = BiDAF
     elif model_type == "qanet":
         model_creator = QANet
+    elif model_type == "rnet":
+        model_creator = RNet
     else:
         raise ValueError("can not create model with unsupported model type {0}".format(model_type))
     
