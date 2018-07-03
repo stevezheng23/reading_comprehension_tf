@@ -89,7 +89,7 @@
     "model_representation_char_feat_enable": true,
     "model_representation_fusion_type": "highway",
     "model_representation_fusion_num_layer": 2,
-    "model_representation_fusion_unit_dim": 500,
+    "model_representation_fusion_unit_dim": 400,
     "model_representation_fusion_hidden_activation": "relu",
     "model_representation_fusion_dropout": 0.2,
     "model_representation_fusion_trainable": true,
