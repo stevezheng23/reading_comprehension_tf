@@ -162,34 +162,34 @@ def decoding_eval(logger,
     logger.check_decoding_eval()
 
 def train(logger,
-          hyperparams):
-    logger.log_print("##### create train model #####")
-    train_model = create_train_model(logger, hyperparams)
-    logger.log_print("##### create infer model #####")
-    infer_model = create_infer_model(logger, hyperparams)
-    
+          hyperparams,
+          enable_eval=True):
     config_proto = get_config_proto(hyperparams.device_log_device_placement,
         hyperparams.device_allow_soft_placement, hyperparams.device_allow_growth,
         hyperparams.device_per_process_gpu_memory_fraction)
     
-    train_sess = tf.Session(config=config_proto, graph=train_model.graph)
-    infer_sess = tf.Session(config=config_proto, graph=infer_model.graph)
-    
-    logger.log_print("##### start training #####")
     summary_output_dir = hyperparams.train_summary_output_dir
     if not tf.gfile.Exists(summary_output_dir):
         tf.gfile.MakeDirs(summary_output_dir)
     
+    logger.log_print("##### create train model #####")
+    train_model = create_train_model(logger, hyperparams)
+    train_sess = tf.Session(config=config_proto, graph=train_model.graph)
     train_summary_writer = SummaryWriter(train_model.graph, os.path.join(summary_output_dir, "train"))
-    infer_summary_writer = SummaryWriter(infer_model.graph, os.path.join(summary_output_dir, "infer"))
-    
     init_model(train_sess, train_model)
-    init_model(infer_sess, infer_model)
+    train_logger = TrainLogger(hyperparams.data_log_output_dir)
     
+    if enable_eval == True:
+        logger.log_print("##### create infer model #####")
+        infer_model = create_infer_model(logger, hyperparams)
+        infer_sess = tf.Session(config=config_proto, graph=infer_model.graph)
+        infer_summary_writer = SummaryWriter(infer_model.graph, os.path.join(summary_output_dir, "infer"))
+        init_model(infer_sess, infer_model)
+        eval_logger = EvalLogger(hyperparams.data_log_output_dir)
+    
+    logger.log_print("##### start training #####")
     global_step = 0
     train_model.model.save(train_sess, global_step)
-    train_logger = TrainLogger(hyperparams.data_log_output_dir)
-    eval_logger = EvalLogger(hyperparams.data_log_output_dir)
     for epoch in range(hyperparams.train_num_epoch):
         train_sess.run(train_model.data_pipeline.initializer)
         step_in_epoch = 0
@@ -208,7 +208,7 @@ def train(logger,
                     train_summary_writer.add_summary(train_result.summary, global_step)
                 if step_in_epoch % hyperparams.train_step_per_ckpt == 0:
                     train_model.model.save(train_sess, global_step)
-                if step_in_epoch % hyperparams.train_step_per_eval == 0:
+                if step_in_epoch % hyperparams.train_step_per_eval == 0 and enable_eval == True:
                     extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
                         infer_model, infer_model.input_data, infer_model.input_question,
                         infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
@@ -222,19 +222,22 @@ def train(logger,
                 train_logger.check()
                 train_summary_writer.add_summary(train_result.summary, global_step)
                 train_model.model.save(train_sess, global_step)
-                extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
-                    infer_model, infer_model.input_data, infer_model.input_question,
-                    infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
-                    hyperparams.train_eval_batch_size, hyperparams.train_eval_metric,
-                    hyperparams.train_eval_detail_type, epoch, global_step)
-                decoding_eval(eval_logger, infer_summary_writer, infer_sess,
-                    infer_model, infer_model.input_data, infer_model.input_question,
-                    infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
-                    hyperparams.train_decoding_sample_size, hyperparams.train_random_seed + global_step, epoch, global_step)
+                if enable_eval == True:
+                    extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
+                        infer_model, infer_model.input_data, infer_model.input_question,
+                        infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
+                        hyperparams.train_eval_batch_size, hyperparams.train_eval_metric,
+                        hyperparams.train_eval_detail_type, epoch, global_step)
+                    decoding_eval(eval_logger, infer_summary_writer, infer_sess,
+                        infer_model, infer_model.input_data, infer_model.input_question,
+                        infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
+                        hyperparams.train_decoding_sample_size, hyperparams.train_random_seed + global_step, epoch, global_step)
                 break
 
     train_summary_writer.close_writer()
-    infer_summary_writer.close_writer()
+    if enable_eval == True:
+        infer_summary_writer.close_writer()
+    
     logger.log_print("##### finish training #####")
 
 def evaluate(logger,
@@ -279,8 +282,10 @@ def main(args):
     tf_version = check_tensorflow_version()
     logger.log_print("# tensorflow verison is {0}".format(tf_version))
     
-    if (args.mode == 'train'):
-        train(logger, hyperparams)
+    if (args.mode == 'train_eval'):
+        train(logger, hyperparams, enable_eval=True)
+    elif (args.mode == 'train'):
+        train(logger, hyperparams, enable_eval=False)
     elif (args.mode == 'eval'):
         evaluate(logger, hyperparams)
 
