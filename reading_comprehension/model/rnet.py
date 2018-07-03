@@ -182,7 +182,60 @@ class RNet(BaseModel):
                               answer_interaction,
                               answer_interaction_mask):
         """build modeling layer for rnet model"""
-        pass
+        answer_interaction_unit_dim = self.hyperparams.model_interaction_fusion_unit_dim
+        answer_modeling_num_layer = self.hyperparams.model_modeling_answer_num_layer
+        answer_modeling_unit_dim = self.hyperparams.model_modeling_answer_unit_dim
+        answer_modeling_cell_type = self.hyperparams.model_modeling_answer_cell_type
+        answer_modeling_hidden_activation = self.hyperparams.model_modeling_answer_hidden_activation
+        answer_modeling_dropout = self.hyperparams.model_modeling_answer_dropout if self.mode == "train" else 0.0
+        answer_modeling_forget_bias = self.hyperparams.model_modeling_answer_forget_bias
+        answer_modeling_residual_connect = self.hyperparams.model_modeling_answer_residual_connect
+        answer_modeling_attention_dim = self.hyperparams.model_modeling_answer_attention_dim
+        answer_modeling_score_type = self.hyperparams.model_modeling_answer_score_type
+        answer_modeling_trainable = self.hyperparams.model_modeling_answer_trainable
+        fusion_type = self.hyperparams.model_modeling_fusion_type
+        fusion_num_layer = self.hyperparams.model_modeling_fusion_num_layer
+        fusion_unit_dim = self.hyperparams.model_modeling_fusion_unit_dim
+        fusion_hidden_activation = self.hyperparams.model_modeling_fusion_hidden_activation
+        fusion_dropout = self.hyperparams.model_modeling_fusion_dropout if self.mode == "train" else 0.0
+        fusion_trainable = self.hyperparams.model_modeling_fusion_trainable
+        default_modeling_gpu_id = self.default_gpu_id + 2
+        
+        with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE):
+            self.logger.log_print("# build answer modeling layer")
+            answer_intermediate_list = [answer_interaction]
+            answer_intermediate_mask_list = [answer_interaction_mask]
+            answer_intermediate_unit_dim = answer_interaction_unit_dim
+            
+            answer_modeling_attention_layer = create_attention_layer("att",
+                answer_interaction_unit_dim, answer_interaction_unit_dim,
+                answer_modeling_attention_dim, answer_modeling_score_type, False, False, True,
+                None, self.num_gpus, default_modeling_gpu_id, answer_modeling_trainable)
+            
+            (answer_modeling_attention,
+                answer_modeling_attention_mask) = answer_modeling_attention_layer(answer_interaction,
+                    answer_interaction, answer_interaction_mask, answer_interaction_mask)
+            
+            answer_modeling_sequence_layer = create_recurrent_layer("bi", answer_modeling_num_layer,
+                answer_modeling_unit_dim, answer_modeling_cell_type, answer_modeling_hidden_activation,
+                answer_modeling_dropout, answer_modeling_forget_bias, answer_modeling_residual_connect,
+                self.num_gpus, default_modeling_gpu_id, answer_modeling_trainable)
+            
+            (answer_modeling_sequence,
+                answer_modeling_sequence_mask) = answer_modeling_sequence_layer(answer_modeling_attention,
+                    answer_modeling_attention_mask)
+            
+            answer_intermediate_list.append(answer_modeling_sequence)
+            answer_intermediate_mask_list.append(answer_modeling_sequence_mask)
+            answer_intermediate_unit_dim = answer_intermediate_unit_dim + answer_interaction_unit_dim
+            
+            answer_modeling_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim,
+                fusion_unit_dim, fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
+                self.num_gpus, default_modeling_gpu_id, fusion_trainable)
+            answer_modeling, answer_modeling_mask = self._build_fusion_result(answer_intermediate_list,
+                answer_intermediate_mask_list, answer_modeling_fusion_layer)
+        
+        return answer_modeling, answer_modeling_mask
     
     def _build_output_layer(self,
                             answer_modeling,
