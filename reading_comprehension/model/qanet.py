@@ -147,7 +147,6 @@ class QANet(BaseModel):
         context_understanding_trainable = self.hyperparams.model_understanding_context_trainable
         enable_understanding_sharing = self.hyperparams.model_understanding_enable_sharing
         default_understanding_gpu_id = self.default_gpu_id
-        self.default_gpu_id = self.default_gpu_id + np.amax([question_understanding_num_layer, context_understanding_num_layer])
         
         with tf.variable_scope("understanding", reuse=tf.AUTO_REUSE):
             with tf.variable_scope("question", reuse=tf.AUTO_REUSE):
@@ -215,9 +214,7 @@ class QANet(BaseModel):
         fusion_trainable = self.hyperparams.model_interaction_fusion_trainable
         fusion_combo_enable = self.hyperparams.model_interaction_fusion_combo_enable
         enable_interaction_sharing = self.hyperparams.model_interaction_enable_sharing
-        default_interaction_gpu_id = self.default_gpu_id
-        default_fusion_gpu_id = self.default_gpu_id + 1
-        self.default_gpu_id = self.default_gpu_id + fusion_num_layer + 1
+        default_interaction_gpu_id = self.default_gpu_id + 1
         
         with tf.variable_scope("interaction", reuse=tf.AUTO_REUSE):
             answer_intermediate_list = [context_understanding]
@@ -277,7 +274,7 @@ class QANet(BaseModel):
             
             answer_interaction_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim,
                 fusion_unit_dim, fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_fusion_gpu_id, fusion_trainable)
+                self.num_gpus, default_interaction_gpu_id, fusion_trainable)
             answer_interaction, answer_interaction_mask = self._build_fusion_result(answer_intermediate_list,
                 answer_intermediate_mask_list, answer_interaction_fusion_layer)
         
@@ -297,8 +294,7 @@ class QANet(BaseModel):
         answer_modeling_dropout = self.hyperparams.model_modeling_answer_dropout if self.mode == "train" else 0.0
         answer_modeling_trainable = self.hyperparams.model_modeling_answer_trainable
         answer_modeling_enable_sharing = self.hyperparams.model_modeling_enable_sharing
-        default_modeling_gpu_id = self.default_gpu_id
-        self.default_gpu_id = self.default_gpu_id + answer_modeling_num_layer
+        default_modeling_gpu_id = self.default_gpu_id + 2
         
         with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE):
             self.logger.log_print("# build answer modeling layer")
@@ -364,7 +360,6 @@ class QANet(BaseModel):
         answer_end_dropout = self.hyperparams.model_output_answer_end_dropout if self.mode == "train" else 0.0
         answer_end_trainable = self.hyperparams.model_output_answer_end_trainable
         default_output_gpu_id = self.default_gpu_id
-        self.default_gpu_id = self.default_gpu_id + 1
         
         with tf.variable_scope("output", reuse=tf.AUTO_REUSE):
             self.logger.log_print("# build answer output layer")
