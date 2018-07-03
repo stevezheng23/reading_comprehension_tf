@@ -127,7 +127,48 @@ class RNet(BaseModel):
                                    question_feat_mask,
                                    context_feat_mask):
         """build understanding layer for rnet model"""
-        pass
+        question_understanding_num_layer = self.hyperparams.model_understanding_question_num_layer
+        question_understanding_unit_dim = self.hyperparams.model_understanding_question_unit_dim
+        question_understanding_cell_type = self.hyperparams.model_understanding_question_cell_type
+        question_understanding_hidden_activation = self.hyperparams.model_understanding_question_hidden_activation
+        question_understanding_dropout = self.hyperparams.model_understanding_question_dropout if self.mode == "train" else 0.0
+        question_understanding_forget_bias = self.hyperparams.model_understanding_question_forget_bias
+        question_understanding_residual_connect = self.hyperparams.model_understanding_question_residual_connect
+        question_understanding_trainable = self.hyperparams.model_understanding_question_trainable
+        context_understanding_num_layer = self.hyperparams.model_understanding_context_num_layer
+        context_understanding_unit_dim = self.hyperparams.model_understanding_context_unit_dim
+        context_understanding_cell_type = self.hyperparams.model_understanding_context_cell_type
+        context_understanding_hidden_activation = self.hyperparams.model_understanding_context_hidden_activation
+        context_understanding_dropout = self.hyperparams.model_understanding_context_dropout if self.mode == "train" else 0.0
+        context_understanding_forget_bias = self.hyperparams.model_understanding_context_forget_bias
+        context_understanding_residual_connect = self.hyperparams.model_understanding_context_residual_connect
+        context_understanding_trainable = self.hyperparams.model_understanding_context_trainable
+        enable_understanding_sharing = self.hyperparams.model_understanding_enable_sharing
+        default_understanding_gpu_id = self.default_gpu_id
+        
+        with tf.variable_scope("understanding", reuse=tf.AUTO_REUSE):
+            with tf.variable_scope("question", reuse=tf.AUTO_REUSE):
+                self.logger.log_print("# build question understanding layer")
+                question_understanding_layer = create_recurrent_layer("bi", question_understanding_num_layer,
+                    question_understanding_unit_dim, question_understanding_cell_type, question_understanding_hidden_activation,
+                    question_understanding_dropout, question_understanding_forget_bias, question_understanding_residual_connect,
+                    self.num_gpus, default_understanding_gpu_id, question_understanding_trainable)
+                
+                question_understanding, question_understanding_mask = question_understanding_layer(question_feat, question_feat_mask)
+            
+            with tf.variable_scope("context", reuse=tf.AUTO_REUSE):
+                self.logger.log_print("# build context understanding layer")
+                if enable_understanding_sharing == True:
+                    context_understanding_layer = question_understanding_layer
+                else:
+                    context_understanding_layer = create_recurrent_layer("bi", context_understanding_num_layer,
+                        context_understanding_unit_dim, context_understanding_cell_type, context_understanding_hidden_activation,
+                        context_understanding_dropout, context_understanding_forget_bias, context_understanding_residual_connect,
+                        self.num_gpus, default_understanding_gpu_id, context_understanding_trainable)
+                
+                context_understanding, context_understanding_mask = context_understanding_layer(context_feat, context_feat_mask)
+        
+        return question_understanding, context_understanding, question_understanding_mask, context_understanding_mask
     
     def _build_interaction_layer(self,
                                  question_understanding,
