@@ -513,7 +513,7 @@ def load_vocab_file(vocab_file):
                 if item_size > 1:
                     vocab[items[0]] = int(items[1])
                 elif item_size > 0:
-                    vocab[items[0]] = MAXIMUM_COUNT
+                    vocab[items[0]] = MAX_INT
             
             return vocab
     else:

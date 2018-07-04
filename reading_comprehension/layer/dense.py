@@ -51,7 +51,6 @@ class Dense(object):
                  input_mask):
         """call dense layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_data = input_data * input_mask
             input_dense = input_data
             input_dense_mask = input_mask
             
@@ -72,8 +71,6 @@ class Dense(object):
             else:
                 output_dense = input_dense
                 output_mask = input_dense_mask
-            
-            output_dense = output_dense * output_mask
         
         return output_dense, output_mask
 

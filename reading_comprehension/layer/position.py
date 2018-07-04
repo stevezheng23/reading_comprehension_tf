@@ -25,11 +25,8 @@ class SinusoidPosition(object):
                  input_mask):
         """call sinusoid position layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_signal = input_data * input_mask
-            input_signal_mask = input_mask
-            
-            input_singal_shape = tf.shape(input_signal)
-            max_length = input_singal_shape[-2]
+            input_shape = tf.shape(input_data)
+            max_length = input_shape[-2]
             num_time_scale = self.unit_dim / 2
             position = tf.to_float(tf.range(max_length))
             log_time_scale = np.log(float(self.time_scale)) / (float(num_time_scale) - 1)
@@ -39,9 +36,8 @@ class SinusoidPosition(object):
             signal = tf.pad(signal, paddings=[[0, 0], [0, self.unit_dim % 2]])
             signal = tf.reshape(signal, shape=[1, max_length, self.unit_dim])
             
-            output_signal = input_signal + signal
-            output_mask = input_signal_mask
-            output_signal = output_signal * output_mask
+            output_signal = input_data + signal
+            output_mask = input_mask
         
         return output_signal, output_mask
 
@@ -71,14 +67,10 @@ class AbsolutePosition(object):
                  input_mask):
         """call absolute position layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_signal = input_data * input_mask
-            input_signal_mask = input_mask
-            
-            input_singal_shape = tf.shape(input_signal)
-            max_length = input_singal_shape[-2]
+            input_shape = tf.shape(input_data)
+            max_length = input_shape[-2]
             position_embedding = self.position_embedding[:,:max_length,:]
-            output_signal = input_signal + position_embedding
-            output_mask = input_signal_mask
-            output_signal = output_signal * output_mask
+            output_signal = input_data + position_embedding
+            output_mask = input_mask
         
         return output_signal, output_mask

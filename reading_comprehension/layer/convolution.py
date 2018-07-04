@@ -82,7 +82,6 @@ class Conv1D(Conv):
                  input_mask):
         """call 1d convolution layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_data = input_data * input_mask
             input_conv = input_data
             input_conv_mask = input_mask
             
@@ -100,8 +99,6 @@ class Conv1D(Conv):
             else:
                 output_conv = input_conv
                 output_mask = input_mask
-            
-            output_conv = output_conv * output_mask
         
         return output_conv, output_mask
 
@@ -131,7 +128,6 @@ class Conv2D(Conv):
                  input_mask):
         """call 2d convolution layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_data = input_data * input_mask
             input_conv = input_data
             input_conv_mask = input_mask
             
@@ -157,8 +153,6 @@ class Conv2D(Conv):
                 output_conv = input_conv
                 output_mask = input_mask
             
-            output_conv = output_conv * output_mask
-        
         return output_conv, output_mask
 
 class MultiConv1D(object):
@@ -219,7 +213,6 @@ class MultiConv1D(object):
             
             output_conv = tf.concat(input_conv_list, axis=-1)
             output_mask = tf.reduce_max(tf.concat(input_conv_mask_list, axis=-1), axis=-1, keep_dims=True)
-            output_conv = output_conv * output_mask
         
         return output_conv, output_mask
 
@@ -281,7 +274,6 @@ class MultiConv2D(object):
             
             output_conv = tf.concat(input_conv_list, axis=-1)
             output_mask = tf.reduce_max(tf.concat(input_conv_mask_list, axis=-1), axis=-1, keep_dims=True)
-            output_conv = output_conv * output_mask
         
         return output_conv, output_mask
 
@@ -368,7 +360,6 @@ class SeparableConv1D(SeparableConv):
                  input_mask):
         """call depthwise-separable 1d convolution layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_data = input_data * input_mask
             input_conv = input_data
             input_conv_mask = input_mask
             
@@ -393,8 +384,6 @@ class SeparableConv1D(SeparableConv):
             else:
                 output_conv = input_conv
                 output_mask = input_mask
-            
-            output_conv = output_conv * output_mask
         
         return output_conv, output_mask
 
@@ -426,7 +415,6 @@ class SeparableConv2D(SeparableConv):
                  input_mask):
         """call depthwise-separable 2d convolution layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_data = input_data * input_mask
             input_conv = input_data
             input_conv_mask = input_mask
             
@@ -455,8 +443,6 @@ class SeparableConv2D(SeparableConv):
             else:
                 output_conv = input_conv
                 output_mask = input_mask
-            
-            output_conv = output_conv * output_mask
         
         return output_conv, output_mask
 
@@ -520,7 +506,6 @@ class MultiSeparableConv1D(object):
             
             output_conv = tf.concat(input_conv_list, axis=-1)
             output_mask = tf.reduce_max(tf.concat(input_conv_mask_list, axis=-1), axis=-1, keep_dims=True)
-            output_conv = output_conv * output_mask
         
         return output_conv, output_mask
 
@@ -584,7 +569,6 @@ class MultiSeparableConv2D(object):
             
             output_conv = tf.concat(input_conv_list, axis=-1)
             output_mask = tf.reduce_max(tf.concat(input_conv_mask_list, axis=-1), axis=-1, keep_dims=True)
-            output_conv = output_conv * output_mask
         
         return output_conv, output_mask
 
