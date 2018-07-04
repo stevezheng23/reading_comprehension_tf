@@ -228,7 +228,7 @@ class QANet(BaseModel):
                     context2question_interaction_layer = create_attention_layer("att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         context2question_interaction_attention_dim, context2question_interaction_score_type, False, False, False,
-                        attention_matrix, self.num_gpus, default_interaction_gpu_id, context2question_interaction_trainable)
+                        attention_matrix, self.num_gpus, default_interaction_gpu_id, True, context2question_interaction_trainable)
                     
                     if enable_interaction_sharing == True:
                         attention_matrix = context2question_interaction_layer.get_attention_matrix()
@@ -255,7 +255,7 @@ class QANet(BaseModel):
                     question2context_interaction_layer = create_attention_layer("co_att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         question2context_interaction_attention_dim, question2context_interaction_score_type, False, False, False,
-                        attention_matrix, self.num_gpus, default_interaction_gpu_id, question2context_interaction_trainable)
+                        attention_matrix, self.num_gpus, default_interaction_gpu_id, True, question2context_interaction_trainable)
                     
                     (question2context_interaction,
                         question2context_interaction_mask) = question2context_interaction_layer(context_understanding,
@@ -560,7 +560,7 @@ class EncoderBlock(object):
             
             self.conv_layer = create_convolution_layer("multi_sep_1d", self.num_conv, self.unit_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.activation, self.dropout,
-                True, True, self.num_gpus, self.default_gpu_id, self.trainable)
+                True, True, self.num_gpus, self.default_gpu_id, True, self.trainable)
             
             if unit_dim % num_head != 0 or unit_dim / num_head == 0:
                 raise ValueError("unit dim {0} and # head {1} mis-match".format(unit_dim, num_head))
@@ -573,7 +573,7 @@ class EncoderBlock(object):
             
             self.attention_layer = create_attention_layer("multi_head_att",
                 self.unit_dim, self.unit_dim, att_dim_list, "scaled_dot", True, True, True, None,
-                self.num_gpus, self.default_gpu_id, self.trainable)
+                self.num_gpus, self.default_gpu_id, True, self.trainable)
             
             self.dense_layer = create_dense_layer(1, self.unit_dim, self.activation,
                 self.dropout, True, True, num_gpus, default_gpu_id, True, self.trainable)

@@ -75,7 +75,7 @@ class BaseModel(object):
                 fusion_layer_list.append(fusion_layer)
             elif fusion_type == "conv":
                 fusion_layer = create_convolution_layer("1d", num_layer, input_unit_dim, output_unit_dim,
-                    1, 1, 1, "SAME", hidden_activation, dropout, False, False, num_gpus, default_gpu_id, trainable)
+                    1, 1, 1, "SAME", hidden_activation, dropout, False, False, num_gpus, default_gpu_id, True, trainable)
                 fusion_layer_list = [fusion_layer]
             else:
                 raise ValueError("unsupported fusion type {0}".format(fusion_type))
@@ -370,7 +370,7 @@ class SubwordFeat(object):
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, self.dropout,
-                False, False, self.num_gpus, self.default_gpu_id, self.trainable)
+                False, False, self.num_gpus, self.default_gpu_id, True, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
@@ -426,7 +426,7 @@ class CharFeat(object):
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, self.dropout,
-                False, False, self.num_gpus, self.default_gpu_id, self.trainable)
+                False, False, self.num_gpus, self.default_gpu_id, True, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
