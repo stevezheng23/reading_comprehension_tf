@@ -29,7 +29,6 @@ class Dropout(object):
                 output_dropout = input_data
             
             output_mask = input_mask
-            output_dropout = output_dropout * output_mask
         
         return output_dropout, output_mask
 
@@ -60,11 +59,9 @@ class LayerNorm(object):
                  input_mask):
         """call layer norm layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_data = input_data * input_mask
             input_mean, input_variance = tf.nn.moments(input_data, axes=[-1], keep_dims=True)
             output_norm = (input_data - input_mean) / tf.sqrt(input_variance + EPSILON)
             output_norm = output_norm * self.gamma + self.beta 
             output_mask = input_mask
-            output_norm = output_norm * output_mask
         
         return output_norm, output_mask

@@ -116,14 +116,10 @@ class RNN(object):
         """call uni-directional recurrent layer"""
         input_data = input_data * input_mask
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            input_data = input_data * input_mask
-            output_mask = input_mask
-            
             input_length = tf.cast(tf.reduce_sum(tf.squeeze(input_mask, axis=-1), axis=-1), dtype=tf.int32)
             output_recurrent, final_state_recurrent = tf.nn.dynamic_rnn(cell=self.cell,
                 inputs=input_data, sequence_length=input_length, dtype=input_data.dtype)
-            
-            output_recurrent = output_recurrent * output_mask
+            output_mask = input_mask
         
         return output_recurrent, output_mask
 
@@ -169,14 +165,11 @@ class BiRNN(object):
                  input_mask):
         """call bi-directional recurrent layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            input_data = input_data * input_mask
-            output_mask = input_mask
-            
             input_length = tf.cast(tf.reduce_sum(tf.squeeze(input_mask, axis=-1), axis=-1), dtype=tf.int32)
             output_recurrent, final_state_recurrent = tf.nn.bidirectional_dynamic_rnn(cell_fw=self.fwd_cell,
                 cell_bw=self.bwd_cell, inputs=input_data, sequence_length=input_length, dtype=input_data.dtype)
             
             output_recurrent = tf.concat(output_recurrent, -1)
-            output_recurrent = output_recurrent * output_mask
+            output_mask = input_mask
         
         return output_recurrent, output_mask

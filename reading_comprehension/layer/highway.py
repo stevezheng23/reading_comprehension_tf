@@ -45,8 +45,6 @@ class Highway(object):
                  input_mask):
         """call highway layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_data = input_data * input_mask
-            
             if self.dropout > 0.0:
                 input_data, input_mask = self.dropout_layer(input_data, input_mask)
             
@@ -54,7 +52,6 @@ class Highway(object):
             gate = self.gate_layer(input_data)
             output_highway = transform * gate + input_data * (1 - gate)
             output_mask = input_mask
-            output_highway = output_highway * output_mask
         
         return output_highway, output_mask
 

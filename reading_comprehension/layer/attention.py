@@ -429,8 +429,6 @@ class Attention(object):
                  input_trg_mask):
         """call attention layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_src_data = input_src_data * input_src_mask
-            input_trg_data = input_trg_data * input_trg_mask
             input_src_attention = input_src_data
             input_trg_attention = input_trg_data
             input_src_attention_mask = input_src_mask
@@ -454,8 +452,6 @@ class Attention(object):
             else:
                 output_attention = input_attention
                 output_mask = input_mask
-            
-            output_attention = output_attention * output_mask
         
         return output_attention, output_mask
     
@@ -513,8 +509,6 @@ class MaxAttention(object):
                  input_trg_mask):
         """call max-attention layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_src_data = input_src_data * input_src_mask
-            input_trg_data = input_trg_data * input_trg_mask
             input_src_attention = input_src_data
             input_trg_attention = input_trg_data
             input_src_attention_mask = input_src_mask
@@ -543,8 +537,6 @@ class MaxAttention(object):
             else:
                 output_attention = input_attention
                 output_mask = input_mask
-            
-            output_attention = output_attention * output_mask
         
         return output_attention, output_mask
     
@@ -602,8 +594,6 @@ class CoAttention(object):
                  input_trg_mask):
         """call co-attention layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_src_data = input_src_data * input_src_mask
-            input_trg_data = input_trg_data * input_trg_mask
             input_src_attention = input_src_data
             input_trg_attention = input_trg_data
             input_src_attention_mask = input_src_mask
@@ -631,8 +621,6 @@ class CoAttention(object):
             else:
                 output_attention = input_attention
                 output_mask = input_mask
-            
-            output_attention = output_attention * output_mask
         
         return output_attention, output_mask
     
@@ -695,8 +683,6 @@ class HeadAttention(object):
                  input_trg_mask):
         """call head-attention layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_src_data = input_src_data * input_src_mask
-            input_trg_data = input_trg_data * input_trg_mask
             input_src_attention = input_src_data
             input_trg_attention = input_trg_data
             input_src_attention_mask = input_src_mask
@@ -719,7 +705,6 @@ class HeadAttention(object):
             
             output_attention = input_attention
             output_mask = input_mask
-            output_attention = output_attention * output_mask
         
         return output_attention, output_mask
     
@@ -795,7 +780,5 @@ class MultiHeadAttention(object):
             else:
                 output_attention = input_attention
                 output_mask = input_mask
-            
-            output_attention = output_attention * output_mask
         
         return output_attention, output_mask
