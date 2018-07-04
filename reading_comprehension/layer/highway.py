@@ -67,6 +67,7 @@ class StackedHighway(object):
                  dropout,
                  num_gpus=1,
                  default_gpu_id=0,
+                 enable_multi_gpu=True,
                  trainable=True,
                  scope="stacked_highway"):
         """initialize stacked highway layer"""
@@ -76,6 +77,7 @@ class StackedHighway(object):
         self.dropout = dropout
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
+        self.enable_multi_gpu = enable_multi_gpu
         self.trainable = trainable
         self.scope = scope
         
@@ -83,8 +85,9 @@ class StackedHighway(object):
             self.highway_layer_list = []
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
+                layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
                 highway_layer = Highway(unit_dim=self.unit_dim, activation=self.activation, dropout=self.dropout,
-                    num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
+                    num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, trainable=self.trainable, scope=layer_scope)
                 self.highway_layer_list.append(highway_layer)
     
     def __call__(self,

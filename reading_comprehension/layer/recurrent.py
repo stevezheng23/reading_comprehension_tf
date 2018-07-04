@@ -54,18 +54,25 @@ def _creat_recurrent_cell(num_layer,
                           forget_bias,
                           residual_connect,
                           num_gpus,
-                          default_gpu_id):
+                          default_gpu_id,
+                          enable_multi_gpu):
     """create recurrent cell"""
     if num_layer > 1:
         cell_list = []
         for i in range(num_layer):
+            if enable_multi_gpu == True:
+                device_spec = get_device_spec(default_gpu_id + i, num_gpus)
+            else:
+                device_spec = get_device_spec(default_gpu_id, num_gpus)
+            
             single_cell = _create_single_reccurent_cell(unit_dim, cell_type, activation,
-                dropout, forget_bias, residual_connect, get_device_spec(default_gpu_id+i, num_gpus))
+                dropout, forget_bias, residual_connect, device_spec)
         cell_list.append(single_cell)
         cell = tf.contrib.rnn.MultiRNNCell(cell_list)
     else:
+        device_spec = get_device_spec(default_gpu_id, num_gpus)
         cell = _create_single_reccurent_cell(unit_dim, cell_type, activation,
-            dropout, forget_bias, residual_connect, get_device_spec(default_gpu_id, num_gpus))
+            dropout, forget_bias, residual_connect, device_spec)
     
     return cell
 
@@ -81,6 +88,7 @@ class RNN(object):
                  residual_connect=False,
                  num_gpus=1,
                  default_gpu_id=0,
+                 enable_multi_gpu=True,
                  trainable=True,
                  scope="rnn"):
         """initialize uni-directional recurrent layer"""
@@ -93,13 +101,14 @@ class RNN(object):
         self.residual_connect = residual_connect
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
+        self.enable_multi_gpu = enable_multi_gpu
         self.trainable = trainable
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            self.cell = _creat_recurrent_cell(self.num_layer,
-                self.unit_dim, self.cell_type, self.activation, self.dropout,
-                self.forget_bias, self.residual_connect, self.num_gpus, self.default_gpu_id)
+            self.cell = _creat_recurrent_cell(self.num_layer, self.unit_dim, self.cell_type,
+                self.activation, self.dropout, self.forget_bias, self.residual_connect,
+                self.num_gpus, self.default_gpu_id, self.enable_multi_gpu)
     
     def __call__(self,
                  input_data,
@@ -130,9 +139,10 @@ class BiRNN(object):
                  residual_connect=False,
                  num_gpus=1,
                  default_gpu_id=0,
+                 enable_multi_gpu=True,
                  trainable=True,
                  scope="rnn"):
-        """initialize uni-directional recurrent layer"""
+        """initialize bi-directional recurrent layer"""
         self.num_layer = num_layer
         self.unit_dim = unit_dim
         self.cell_type = cell_type
@@ -142,16 +152,17 @@ class BiRNN(object):
         self.residual_connect = residual_connect
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
+        self.enable_multi_gpu = enable_multi_gpu
         self.trainable = trainable
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            self.fwd_cell = _creat_recurrent_cell(self.num_layer,
-                self.unit_dim, self.cell_type, self.activation, self.dropout,
-                self.forget_bias, self.residual_connect, self.num_gpus, self.default_gpu_id)
-            self.bwd_cell = _creat_recurrent_cell(self.num_layer,
-                self.unit_dim, self.cell_type, self.activation, self.dropout,
-                self.forget_bias, self.residual_connect, self.num_gpus, self.default_gpu_id + self.num_layer)
+            self.fwd_cell = _creat_recurrent_cell(self.num_layer, self.unit_dim, self.cell_type,
+                self.activation, self.dropout, self.forget_bias, self.residual_connect,
+                self.num_gpus, self.default_gpu_id, self.enable_multi_gpu)
+            self.bwd_cell = _creat_recurrent_cell(self.num_layer, self.unit_dim, self.cell_type,
+                self.activation, self.dropout, self.forget_bias, self.residual_connect,
+                self.num_gpus, self.default_gpu_id + self.num_layer, self.enable_multi_gpu)
     
     def __call__(self,
                  input_data,
