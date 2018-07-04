@@ -210,7 +210,7 @@ class RNet(BaseModel):
             answer_modeling_attention_layer = create_attention_layer("att",
                 answer_interaction_unit_dim, answer_interaction_unit_dim,
                 answer_modeling_attention_dim, answer_modeling_score_type, False, False, True,
-                None, self.num_gpus, default_modeling_gpu_id, answer_modeling_trainable)
+                None, self.num_gpus, default_modeling_gpu_id, True, answer_modeling_trainable)
             
             (answer_modeling_attention,
                 answer_modeling_attention_mask) = answer_modeling_attention_layer(answer_interaction,

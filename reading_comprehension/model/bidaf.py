@@ -208,7 +208,7 @@ class BiDAF(BaseModel):
                     context2question_attention_layer = create_attention_layer("att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         context2question_interaction_attention_dim, context2question_interaction_score_type, False, False, False,
-                        attention_matrix, self.num_gpus, default_interaction_gpu_id, context2question_interaction_trainable)
+                        attention_matrix, self.num_gpus, default_interaction_gpu_id, True, context2question_interaction_trainable)
                     
                     if enable_interaction_sharing == True:
                         attention_matrix = context2question_attention_layer.get_attention_matrix()
@@ -235,7 +235,7 @@ class BiDAF(BaseModel):
                     question2context_attention_layer = create_attention_layer("max_att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         question2context_interaction_attention_dim, question2context_interaction_score_type, False, False, False,
-                        attention_matrix, self.num_gpus, default_interaction_gpu_id, question2context_interaction_trainable)
+                        attention_matrix, self.num_gpus, default_interaction_gpu_id, True, question2context_interaction_trainable)
                     
                     (question2context_interaction,
                         question2context_interaction_mask) = question2context_attention_layer(context_understanding,
@@ -302,7 +302,7 @@ class BiDAF(BaseModel):
                 answer_modeling_attention_layer = create_attention_layer("att",
                     answer_modeling_sequence_unit_dim, answer_modeling_sequence_unit_dim,
                     answer_modeling_attention_dim, answer_modeling_score_type, False, False, True,
-                    None, self.num_gpus, default_modeling_gpu_id, answer_modeling_trainable)
+                    None, self.num_gpus, default_modeling_gpu_id, True, answer_modeling_trainable)
 
                 (answer_modeling_attention,
                     answer_modeling_attention_mask) = answer_modeling_attention_layer(answer_modeling_sequence,

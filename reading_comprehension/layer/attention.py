@@ -742,6 +742,7 @@ class MultiHeadAttention(object):
                  external_matrix=None,
                  num_gpus=1,
                  default_gpu_id=0,
+                 enable_multi_gpu=True,
                  trainable=True,
                  scope="multi_head_att"):
         """initialize multi-head attention layer"""
@@ -755,6 +756,7 @@ class MultiHeadAttention(object):
         self.external_matrix=external_matrix
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
+        self.enable_multi_gpu = enable_multi_gpu
         self.trainable = trainable
         self.scope = scope
         
@@ -762,10 +764,11 @@ class MultiHeadAttention(object):
             self.attention_layer_list = []
             for i in range(len(self.att_dim)):
                 layer_scope = "head_{0}".format(i)
+                layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
                 attention_layer = HeadAttention(src_dim=self.src_dim, trg_dim=self.trg_dim,
                     att_dim=self.att_dim[i], score_type=self.score_type, layer_norm=self.layer_norm,
                     is_self=self.is_self, external_matrix=self.external_matrix, num_gpus=self.num_gpus,
-                    default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
+                    default_gpu_id=layer_default_gpu_id, trainable=self.trainable, scope=layer_scope)
                 self.attention_layer_list.append(attention_layer)
     
     def __call__(self,
