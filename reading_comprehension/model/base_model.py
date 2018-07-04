@@ -57,21 +57,21 @@ class BaseModel(object):
                 fusion_layer_list = []
                 if input_unit_dim != output_unit_dim:
                     convert_layer = create_dense_layer(1, output_unit_dim, "", 0.0, False, False,
-                        num_gpus, default_gpu_id, trainable)
+                        num_gpus, default_gpu_id, True, trainable)
                     fusion_layer_list.append(convert_layer)
             elif fusion_type == "dense":
                 fusion_layer = create_dense_layer(num_layer, output_unit_dim, hidden_activation,
-                    dropout, False, False, num_gpus, default_gpu_id, trainable)
+                    dropout, False, False, num_gpus, default_gpu_id, True, trainable)
                 fusion_layer_list = [fusion_layer]
             elif fusion_type == "highway":
                 fusion_layer_list = []
                 if input_unit_dim != output_unit_dim:
                     convert_layer = create_dense_layer(1, output_unit_dim, "", 0.0, False, False,
-                        num_gpus, default_gpu_id, trainable)
+                        num_gpus, default_gpu_id, True, trainable)
                     fusion_layer_list.append(convert_layer)
                 
                 fusion_layer = create_highway_layer(num_layer, output_unit_dim, hidden_activation,
-                    dropout, num_gpus, default_gpu_id, trainable)
+                    dropout, num_gpus, default_gpu_id, True, trainable)
                 fusion_layer_list.append(fusion_layer)
             elif fusion_type == "conv":
                 fusion_layer = create_convolution_layer("1d", num_layer, input_unit_dim, output_unit_dim,

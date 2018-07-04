@@ -133,11 +133,12 @@ def create_dense_layer(num_layer,
                        residual_connect,
                        num_gpus,
                        default_gpu_id,
+                       enable_multi_gpu,
                        trainable):
     """create dense layer"""
-    dense_layer = StackedDense(num_layer=num_layer, unit_dim=unit_dim, activation=activation,
-        dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
-        num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable)
+    dense_layer = StackedDense(num_layer=num_layer, unit_dim=unit_dim,
+        activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
+        num_gpus=num_gpus, default_gpu_id=default_gpu_id, enable_multi_gpu=enable_multi_gpu, trainable=trainable)
     
     return dense_layer
 
@@ -147,10 +148,11 @@ def create_highway_layer(num_layer,
                          dropout,
                          num_gpus,
                          default_gpu_id,
+                         enable_multi_gpu,
                          trainable):
     """create highway layer"""
-    highway_layer = StackedHighway(num_layer=num_layer, unit_dim=unit_dim, activation=activation,
-        dropout=dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable)
+    highway_layer = StackedHighway(num_layer=num_layer, unit_dim=unit_dim, activation=activation, dropout=dropout,
+        num_gpus=num_gpus, default_gpu_id=default_gpu_id, enable_multi_gpu=enable_multi_gpu, trainable=trainable)
     
     return highway_layer
 
@@ -164,17 +166,18 @@ def create_recurrent_layer(recurrent_type,
                            residual_connect,
                            num_gpus,
                            default_gpu_id,
+                           enable_multi_gpu,
                            trainable):
     """create recurrent layer"""
     scope = "recurrent/{0}".format(recurrent_type)
     if recurrent_type == "uni":
         recurrent_layer = RNN(num_layer=num_layer, unit_dim=unit_dim, cell_type=cell_type,
             activation=activation, dropout=dropout, forget_bias=forget_bias, residual_connect=residual_connect,
-            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, enable_multi_gpu=enable_multi_gpu, trainable=trainable, scope=scope)
     elif recurrent_type == "bi":
         recurrent_layer = BiRNN(num_layer=num_layer, unit_dim=unit_dim, cell_type=cell_type,
             activation=activation, dropout=dropout, forget_bias=forget_bias, residual_connect=residual_connect,
-            num_gpus=num_gpus, default_gpu_id=default_gpu_id, trainable=trainable, scope=scope)
+            num_gpus=num_gpus, default_gpu_id=default_gpu_id, enable_multi_gpu=enable_multi_gpu, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported recurrent type {0}".format(recurrent_type))
     
