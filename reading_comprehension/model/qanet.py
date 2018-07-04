@@ -560,7 +560,7 @@ class EncoderBlock(object):
             
             self.conv_layer = create_convolution_layer("multi_sep_1d", self.num_conv, self.unit_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.activation, self.dropout,
-                True, True, self.num_gpus, self.default_gpu_id, True, self.trainable)
+                True, True, self.num_gpus, self.default_gpu_id, False, self.trainable)
             
             if unit_dim % num_head != 0 or unit_dim / num_head == 0:
                 raise ValueError("unit dim {0} and # head {1} mis-match".format(unit_dim, num_head))
@@ -573,10 +573,10 @@ class EncoderBlock(object):
             
             self.attention_layer = create_attention_layer("multi_head_att",
                 self.unit_dim, self.unit_dim, att_dim_list, "scaled_dot", True, True, True, None,
-                self.num_gpus, self.default_gpu_id, True, self.trainable)
+                self.num_gpus, self.default_gpu_id, False, self.trainable)
             
             self.dense_layer = create_dense_layer(1, self.unit_dim, self.activation,
-                self.dropout, True, True, num_gpus, default_gpu_id, True, self.trainable)
+                self.dropout, True, True, num_gpus, default_gpu_id, False, self.trainable)
     
     def __call__(self,
                  input_data,
@@ -610,6 +610,7 @@ class StackedEncoderBlock(object):
                  dropout,
                  num_gpus=1,
                  default_gpu_id=0,
+                 enable_multi_gpu=True,
                  trainable=True,
                  scope="encoder_block"):
         """initialize stacked encoder-block layer"""
@@ -622,6 +623,7 @@ class StackedEncoderBlock(object):
         self.dropout = dropout
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
+        self.enable_multi_gpu = enable_multi_gpu
         self.trainable = trainable
         self.scope = scope
         
@@ -629,9 +631,10 @@ class StackedEncoderBlock(object):
             self.block_layer_list = []
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
+                layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
                 block_layer = EncoderBlock(num_conv=self.num_conv, num_head=self.num_head,
                     unit_dim=self.unit_dim, window_size=self.window_size, activation=self.activation, dropout=self.dropout, 
-                    num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id+i, trainable=self.trainable, scope=layer_scope)
+                    num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, trainable=self.trainable, scope=layer_scope)
                 self.block_layer_list.append(block_layer)
     
     def __call__(self,
