@@ -171,26 +171,15 @@ def _generate_attention_score(input_src_data,
 def _generate_dot_attention_score(input_src_data,
                                   input_trg_data):
     """generate dot-product attention score"""
-    input_src_shape = tf.shape(input_src_data)
-    input_trg_shape = tf.shape(input_trg_data)
-    batch_size = input_src_shape[0]
-    src_max_length = input_src_shape[1]
-    src_unit_dim = input_src_shape[2]
-    input_trg_data = tf.transpose(input_trg_data, perm=[0, 2, 1])
-    input_attention = tf.matmul(input_src_data, input_trg_data)
+    input_attention = tf.matmul(input_src_data, input_trg_data, transpose_b=True)
     
     return input_attention
 
 def _generate_scaled_dot_attention_score(input_src_data,
                                          input_trg_data):
     """generate scaled dot-product attention score"""
-    input_src_shape = tf.shape(input_src_data)
-    input_trg_shape = tf.shape(input_trg_data)
-    batch_size = input_src_shape[0]
-    src_max_length = input_src_shape[1]
-    src_unit_dim = input_src_shape[2]
-    input_trg_data = tf.transpose(input_trg_data, perm=[0, 2, 1])
-    input_attention = tf.matmul(input_src_data, input_trg_data)
+    src_unit_dim = tf.shape(input_src_data)[2]
+    input_attention = tf.matmul(input_src_data, input_trg_data, transpose_b=True)
     input_attention = input_attention / tf.sqrt(tf.cast(src_unit_dim, dtype=tf.float32))
     
     return input_attention
@@ -206,13 +195,13 @@ def _generate_linear_attention_score(input_src_data,
     trg_max_length = input_trg_shape[1]
     src_unit_dim = input_src_shape[2]
     trg_unit_dim = input_trg_shape[2]
-    linear_src_weight = tf.transpose(attention_matrix[0], perm=[1, 0])
-    linear_trg_weight = tf.transpose(attention_matrix[1], perm=[1, 0])
+    linear_src_weight = attention_matrix[0]
+    linear_trg_weight = attention_matrix[1]
     input_src_data = tf.reshape(input_src_data, shape=[-1, src_unit_dim])
-    input_src_data = tf.matmul(input_src_data, linear_src_weight)
+    input_src_data = tf.matmul(input_src_data, linear_src_weight, transpose_b=True)
     input_src_data = tf.reshape(input_src_data, shape=[batch_size, src_max_length, 1, -1])
     input_trg_data = tf.reshape(input_trg_data, shape=[-1, trg_unit_dim])
-    input_trg_data = tf.matmul(input_trg_data, linear_trg_weight)
+    input_trg_data = tf.matmul(input_trg_data, linear_trg_weight, transpose_b=True)
     input_trg_data = tf.reshape(input_trg_data, shape=[batch_size, 1, trg_max_length, -1])
     input_src_data = tf.tile(input_src_data, multiples=[1, 1, trg_max_length, 1])
     input_trg_data = tf.tile(input_trg_data, multiples=[1, src_max_length, 1, 1])
@@ -226,7 +215,6 @@ def _generate_bilinear_attention_score(input_src_data,
                                        attention_matrix):
     """generate bilinear attention score"""
     input_src_shape = tf.shape(input_src_data)
-    input_trg_shape = tf.shape(input_trg_data)
     batch_size = input_src_shape[0]
     src_max_length = input_src_shape[1]
     src_unit_dim = input_src_shape[2]
@@ -234,8 +222,7 @@ def _generate_bilinear_attention_score(input_src_data,
     input_src_data = tf.reshape(input_src_data, shape=[-1, src_unit_dim])
     input_src_data = tf.matmul(input_src_data, bilinear_weight)
     input_src_data = tf.reshape(input_src_data, shape=[batch_size, src_max_length, -1])
-    input_trg_data = tf.transpose(input_trg_data, perm=[0, 2, 1])
-    input_attention = tf.matmul(input_src_data, input_trg_data)
+    input_attention = tf.matmul(input_src_data, input_trg_data, transpose_b=True)
     
     return input_attention
 
@@ -250,15 +237,15 @@ def _generate_nonlinear_attention_score(input_src_data,
     trg_max_length = input_trg_shape[1]
     src_unit_dim = input_src_shape[2]
     trg_unit_dim = input_trg_shape[2]
-    pre_nonlinear_src_weight = tf.transpose(attention_matrix[0], perm=[1, 0])
-    pre_nonlinear_trg_weight = tf.transpose(attention_matrix[1], perm=[1, 0])
+    pre_nonlinear_src_weight = attention_matrix[0]
+    pre_nonlinear_trg_weight = attention_matrix[1]
     pre_nonlinear_bias = tf.reshape(attention_matrix[2], shape=[1, 1, 1, -1])
-    post_nonlinear_weight = tf.transpose(attention_matrix[3], perm=[1, 0])
+    post_nonlinear_weight = attention_matrix[3]
     input_src_data = tf.reshape(input_src_data, shape=[-1, src_unit_dim])
-    input_src_data = tf.matmul(input_src_data, pre_nonlinear_src_weight)
+    input_src_data = tf.matmul(input_src_data, pre_nonlinear_src_weight, transpose_b=True)
     input_src_data = tf.reshape(input_src_data, shape=[batch_size, src_max_length, 1, -1])
     input_trg_data = tf.reshape(input_trg_data, shape=[-1, trg_unit_dim])
-    input_trg_data = tf.matmul(input_trg_data, pre_nonlinear_trg_weight)
+    input_trg_data = tf.matmul(input_trg_data, pre_nonlinear_trg_weight, transpose_b=True)
     input_trg_data = tf.reshape(input_trg_data, shape=[batch_size, 1, trg_max_length, -1])
     input_src_data = tf.tile(input_src_data, multiples=[1, 1, trg_max_length, 1])
     input_trg_data = tf.tile(input_trg_data, multiples=[1, src_max_length, 1, 1])
@@ -266,7 +253,7 @@ def _generate_nonlinear_attention_score(input_src_data,
     input_attention = tf.nn.tanh(input_attention + pre_nonlinear_bias)
     attention_dim = tf.shape(input_attention)[-1]
     input_attention = tf.reshape(input_attention, shape=[-1, attention_dim])
-    input_attention = tf.matmul(input_attention, post_nonlinear_weight)
+    input_attention = tf.matmul(input_attention, post_nonlinear_weight, transpose_b=True)
     input_attention = tf.reshape(input_attention, shape=[batch_size, src_max_length, trg_max_length])
     
     return input_attention
@@ -283,23 +270,20 @@ def _generate_linear_plus_attention_score(input_src_data,
     src_unit_dim = input_src_shape[2]
     trg_unit_dim = input_trg_shape[2]
     mul_unit_dim = src_unit_dim
-    linear_plus_src_weight = tf.transpose(attention_matrix[0], perm=[1, 0])
-    linear_plus_trg_weight = tf.transpose(attention_matrix[1], perm=[1, 0])
-    linear_plus_mul_weight = tf.transpose(attention_matrix[2], perm=[1, 0])
+    linear_plus_src_weight = attention_matrix[0]
+    linear_plus_trg_weight = attention_matrix[1]
+    linear_plus_mul_weight = attention_matrix[2]
     input_src_data = tf.expand_dims(input_src_data, axis=2)
     input_trg_data = tf.expand_dims(input_trg_data, axis=1)
     input_src_data = tf.tile(input_src_data, multiples=[1, 1, trg_max_length, 1])
     input_trg_data = tf.tile(input_trg_data, multiples=[1, src_max_length, 1, 1])
     input_mul_data = input_src_data * input_trg_data
     input_src_data = tf.reshape(input_src_data, shape=[-1, src_unit_dim])
-    input_src_data = tf.matmul(input_src_data, linear_plus_src_weight)
-    input_src_data = tf.reshape(input_src_data, shape=[batch_size, src_max_length, trg_max_length, -1])
+    input_src_data = tf.matmul(input_src_data, linear_plus_src_weight, transpose_b=True)
     input_trg_data = tf.reshape(input_trg_data, shape=[-1, trg_unit_dim])
-    input_trg_data = tf.matmul(input_trg_data, linear_plus_trg_weight)
-    input_trg_data = tf.reshape(input_trg_data, shape=[batch_size, src_max_length, trg_max_length, -1])
+    input_trg_data = tf.matmul(input_trg_data, linear_plus_trg_weight, transpose_b=True)
     input_mul_data = tf.reshape(input_mul_data, shape=[-1, mul_unit_dim])
-    input_mul_data = tf.matmul(input_mul_data, linear_plus_mul_weight)
-    input_mul_data = tf.reshape(input_mul_data, shape=[batch_size, src_max_length, trg_max_length, -1])
+    input_mul_data = tf.matmul(input_mul_data, linear_plus_mul_weight, transpose_b=True)
     input_attention = input_src_data + input_trg_data + input_mul_data
     input_attention = tf.reshape(input_attention, shape=[batch_size, src_max_length, trg_max_length])
     
@@ -317,30 +301,25 @@ def _generate_nonlinear_plus_attention_score(input_src_data,
     src_unit_dim = input_src_shape[2]
     trg_unit_dim = input_trg_shape[2]
     mul_unit_dim = src_unit_dim
-    pre_nonlinear_plus_src_weight = tf.transpose(attention_matrix[0], perm=[1, 0])
-    pre_nonlinear_plus_trg_weight = tf.transpose(attention_matrix[1], perm=[1, 0])
-    pre_nonlinear_plus_mul_weight = tf.transpose(attention_matrix[2], perm=[1, 0])
+    pre_nonlinear_plus_src_weight = attention_matrix[0]
+    pre_nonlinear_plus_trg_weight = attention_matrix[1]
+    pre_nonlinear_plus_mul_weight = attention_matrix[2]
     pre_nonlinear_plus_bias = tf.reshape(attention_matrix[3], shape=[1, 1, 1, -1])
-    post_nonlinear_plus_weight = tf.transpose(attention_matrix[4], perm=[1, 0])
+    post_nonlinear_plus_weight = attention_matrix[4]
     input_src_data = tf.reshape(input_src_data, shape=[batch_size, src_max_length, 1, -1])
     input_trg_data = tf.reshape(input_trg_data, shape=[batch_size, 1, trg_max_length, -1])
     input_src_data = tf.tile(input_src_data, multiples=[1, 1, trg_max_length, 1])
     input_trg_data = tf.tile(input_trg_data, multiples=[1, src_max_length, 1, 1])
     input_mul_data = input_src_data * input_trg_data
     input_src_data = tf.reshape(input_src_data, shape=[-1, src_unit_dim])
-    input_src_data = tf.matmul(input_src_data, pre_nonlinear_plus_src_weight)
-    input_src_data = tf.reshape(input_src_data, shape=[batch_size, src_max_length, trg_max_length, -1])
+    input_src_data = tf.matmul(input_src_data, pre_nonlinear_plus_src_weight, transpose_b=True)
     input_trg_data = tf.reshape(input_trg_data, shape=[-1, trg_unit_dim])
-    input_trg_data = tf.matmul(input_trg_data, pre_nonlinear_plus_trg_weight)
-    input_trg_data = tf.reshape(input_trg_data, shape=[batch_size, src_max_length, trg_max_length, -1])
+    input_trg_data = tf.matmul(input_trg_data, pre_nonlinear_plus_trg_weight, transpose_b=True)
     input_mul_data = tf.reshape(input_mul_data, shape=[-1, mul_unit_dim])
-    input_mul_data = tf.matmul(input_mul_data, pre_nonlinear_plus_mul_weight)
-    input_mul_data = tf.reshape(input_mul_data, shape=[batch_size, src_max_length, trg_max_length, -1])
+    input_mul_data = tf.matmul(input_mul_data, pre_nonlinear_plus_mul_weight, transpose_b=True)
     input_attention = input_src_data + input_trg_data + input_mul_data
     input_attention = tf.nn.tanh(input_attention + pre_nonlinear_plus_bias)
-    attention_dim = tf.shape(input_attention)[-1]
-    input_attention = tf.reshape(input_attention, shape=[-1, attention_dim])
-    input_attention = tf.matmul(input_attention, post_nonlinear_plus_weight)
+    input_attention = tf.matmul(input_attention, post_nonlinear_plus_weight, transpose_b=True)
     input_attention = tf.reshape(input_attention, shape=[batch_size, src_max_length, trg_max_length])
     
     return input_attention
@@ -524,7 +503,7 @@ class MaxAttention(object):
             input_attention_score = tf.reduce_max(input_attention_score, axis=-1, keep_dims=True)
             input_attention_mask = tf.reduce_max(input_attention_mask, axis=-1, keep_dims=True)
             input_attention_weight = softmax_with_mask(input_attention_score,
-                input_attention_mask, axis=-2, keepdims=True)
+                input_attention_mask, axis=1, keepdims=True)
             input_attention_weight = tf.transpose(input_attention_weight, perm=[0, 2, 1])
             input_attention = tf.matmul(input_attention_weight, input_src_attention)
             src_max_length = tf.shape(input_src_attention)[1]
@@ -609,7 +588,7 @@ class CoAttention(object):
             input_attention_s2t_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True)
             input_attention_t2s_weight = softmax_with_mask(input_attention_score,
-                input_attention_mask, axis=-2, keepdims=True)
+                input_attention_mask, axis=1, keepdims=True)
             input_attention_t2s_weight = tf.transpose(input_attention_t2s_weight, perm=[0, 2, 1])
             input_attention = tf.matmul(input_attention_t2s_weight, input_src_attention)
             input_attention = tf.matmul(input_attention_s2t_weight, input_attention)
