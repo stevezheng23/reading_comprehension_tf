@@ -5,6 +5,8 @@ import time
 import numpy as np
 import tensorflow as tf
 
+from tensorflow.python import debug as tf_debug
+
 from util.default_util import *
 from util.param_util import *
 from util.model_util import *
@@ -163,7 +165,8 @@ def decoding_eval(logger,
 
 def train(logger,
           hyperparams,
-          enable_eval=True):
+          enable_eval=True,
+          enable_debug=False):
     config_proto = get_config_proto(hyperparams.device_log_device_placement,
         hyperparams.device_allow_soft_placement, hyperparams.device_allow_growth,
         hyperparams.device_per_process_gpu_memory_fraction)
@@ -175,6 +178,9 @@ def train(logger,
     logger.log_print("##### create train model #####")
     train_model = create_train_model(logger, hyperparams)
     train_sess = tf.Session(config=config_proto, graph=train_model.graph)
+    if enable_debug == True:
+        train_sess = tf_debug.LocalCLIDebugWrapperSession(train_sess)
+    
     train_summary_writer = SummaryWriter(train_model.graph, os.path.join(summary_output_dir, "train"))
     init_model(train_sess, train_model)
     train_logger = TrainLogger(hyperparams.data_log_output_dir)
@@ -183,6 +189,9 @@ def train(logger,
         logger.log_print("##### create infer model #####")
         infer_model = create_infer_model(logger, hyperparams)
         infer_sess = tf.Session(config=config_proto, graph=infer_model.graph)
+        if enable_debug == True:
+            infer_sess = tf_debug.LocalCLIDebugWrapperSession(infer_sess)
+        
         infer_summary_writer = SummaryWriter(infer_model.graph, os.path.join(summary_output_dir, "infer"))
         init_model(infer_sess, infer_model)
         eval_logger = EvalLogger(hyperparams.data_log_output_dir)
@@ -241,27 +250,28 @@ def train(logger,
     logger.log_print("##### finish training #####")
 
 def evaluate(logger,
-             hyperparams):
-    logger.log_print("##### create infer model #####")
-    infer_model = create_infer_model(logger, hyperparams)
-    
+             hyperparams,
+             enable_debug=False):   
     config_proto = get_config_proto(hyperparams.device_log_device_placement,
         hyperparams.device_allow_soft_placement, hyperparams.device_allow_growth,
         hyperparams.device_per_process_gpu_memory_fraction)
     
-    infer_sess = tf.Session(config=config_proto, graph=infer_model.graph)
-    
-    logger.log_print("##### start evaluation #####")
     summary_output_dir = hyperparams.train_summary_output_dir
     if not tf.gfile.Exists(summary_output_dir):
         tf.gfile.MakeDirs(summary_output_dir)
     
+    logger.log_print("##### create infer model #####")
+    infer_model = create_infer_model(logger, hyperparams)
+    infer_sess = tf.Session(config=config_proto, graph=infer_model.graph)
+    if enable_debug == True:
+        infer_sess = tf_debug.LocalCLIDebugWrapperSession(infer_sess)
+    
     infer_summary_writer = SummaryWriter(infer_model.graph, os.path.join(summary_output_dir, "infer"))
-    
     init_model(infer_sess, infer_model)
-    
-    global_step = 0
     eval_logger = EvalLogger(hyperparams.data_log_output_dir)
+    
+    logger.log_print("##### start evaluation #####")
+    global_step = 0
     extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
         infer_model, infer_model.input_data, infer_model.input_question,
         infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
@@ -282,12 +292,16 @@ def main(args):
     tf_version = check_tensorflow_version()
     logger.log_print("# tensorflow verison is {0}".format(tf_version))
     
-    if (args.mode == 'train_eval'):
-        train(logger, hyperparams, enable_eval=True)
-    elif (args.mode == 'train'):
-        train(logger, hyperparams, enable_eval=False)
+    if (args.mode == 'train'):
+        train(logger, hyperparams, enable_eval=False, enable_debug=False)
+    elif (args.mode == 'train_eval'):
+        train(logger, hyperparams, enable_eval=True, enable_debug=False)
+    elif (args.mode == 'train_debug'):
+        train(logger, hyperparams, enable_eval=False, enable_debug=True)
     elif (args.mode == 'eval'):
-        evaluate(logger, hyperparams)
+        evaluate(logger, hyperparams, enable_debug=False)
+    elif (args.mode == 'eval_debug'):
+        evaluate(logger, hyperparams, enable_debug=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
