@@ -384,7 +384,7 @@ class Attention(object):
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim,
                     self.trg_dim, self.att_dim, self.score_type, self.trainable)
@@ -464,7 +464,7 @@ class MaxAttention(object):
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim,
                     self.trg_dim, self.att_dim, self.score_type, self.trainable)
@@ -549,7 +549,7 @@ class CoAttention(object):
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim,
                     self.trg_dim, self.att_dim, self.score_type, self.trainable)
@@ -631,7 +631,7 @@ class HeadAttention(object):
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             if external_matrix == None:
                 (q_att_dim, k_att_dim, v_att_dim) = tuple(self.att_dim)
                 self.projection_matrix = [
@@ -723,8 +723,9 @@ class MultiHeadAttention(object):
         self.enable_multi_gpu = enable_multi_gpu
         self.trainable = trainable
         self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             self.attention_layer_list = []
             for i in range(len(self.att_dim)):
                 layer_scope = "head_{0}".format(i)
@@ -741,7 +742,7 @@ class MultiHeadAttention(object):
                  input_src_mask,
                  input_trg_mask):
         """call multi-head attention layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_attention_list = []
             input_attention_mask_list = []
             for attention_layer in self.attention_layer_list:
