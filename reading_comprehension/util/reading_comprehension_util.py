@@ -59,10 +59,5 @@ def softmax_with_mask(input_data,
                       input_mask,
                       axis=-1,
                       keepdims=True):
-    """compute softmax with masking"""
-    input_data = input_data * input_mask
-    input_max = tf.reduce_max(input_data, axis=axis, keep_dims=keepdims) * input_mask
-    input_numerator = tf.exp(input_data - input_max) * input_mask
-    input_denominator = tf.reduce_sum(tf.exp(input_data - input_max) * input_mask, axis=axis, keep_dims=keepdims) + EPSILON
-    
-    return input_numerator / input_denominator
+    """compute softmax with masking"""    
+    return tf.nn.softmax(input_data + MIN_FLOAT * (1 - input_mask), dim=axis)
