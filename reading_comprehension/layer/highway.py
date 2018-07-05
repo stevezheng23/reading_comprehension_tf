@@ -26,7 +26,7 @@ class Highway(object):
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             weight_initializer = create_variable_initializer("glorot_uniform")
             bias_initializer = create_variable_initializer("zero")
             transform_activation = create_activation_function(self.activation)
@@ -77,8 +77,9 @@ class StackedHighway(object):
         self.enable_multi_gpu = enable_multi_gpu
         self.trainable = trainable
         self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             self.highway_layer_list = []
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
@@ -91,7 +92,7 @@ class StackedHighway(object):
                  input_data,
                  input_mask):
         """call stacked highway layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_highway = input_data
             input_highway_mask = input_mask
             

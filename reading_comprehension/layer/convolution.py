@@ -40,7 +40,7 @@ class Conv1D(object):
         self.scope=scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             weight_initializer = create_variable_initializer("glorot_uniform")
             bias_initializer = create_variable_initializer("zero")
             conv_activation = create_activation_function(self.activation)
@@ -111,7 +111,7 @@ class Conv2D(object):
         self.scope=scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             weight_initializer = create_variable_initializer("glorot_uniform")
             bias_initializer = create_variable_initializer("zero")
             conv_activation = create_activation_function(self.activation)
@@ -184,8 +184,9 @@ class MultiConv1D(object):
         self.enable_multi_gpu = enable_multi_gpu
         self.trainable = trainable
         self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             self.conv_layer_list = []
             for i in range(len(self.window_size)):
                 layer_scope = "window_{0}".format(i)
@@ -200,7 +201,7 @@ class MultiConv1D(object):
                  input_data,
                  input_mask):
         """call multi-window 1d convolution layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_conv_list = []
             input_conv_mask_list = []
             for conv_layer in self.conv_layer_list:
@@ -245,8 +246,9 @@ class MultiConv2D(object):
         self.enable_multi_gpu = enable_multi_gpu
         self.trainable = trainable
         self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             self.conv_layer_list = []
             for i in range(len(self.window_size)):
                 layer_scope = "window_{0}".format(i)
@@ -261,7 +263,7 @@ class MultiConv2D(object):
                  input_data,
                  input_mask):
         """call multi-window 2d convolution layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_conv_list = []
             input_conv_mask_list = []
             for conv_layer in self.conv_layer_list:
@@ -306,7 +308,7 @@ class SeparableConv(object):
         self.scope=scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             weight_initializer = create_variable_initializer("glorot_uniform")
             bias_initializer = create_variable_initializer("zero")
             self.depthwise_filter = tf.get_variable("depthwise_filter",
@@ -470,8 +472,9 @@ class MultiSeparableConv1D(object):
         self.enable_multi_gpu = enable_multi_gpu
         self.trainable = trainable
         self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             self.conv_layer_list = []
             for i in range(len(self.window_size)):
                 layer_scope = "window_{0}".format(i)
@@ -486,7 +489,7 @@ class MultiSeparableConv1D(object):
                  input_data,
                  input_mask):
         """call multi-window depthwise-separable 1d convolution layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_conv_list = []
             input_conv_mask_list = []
             for conv_layer in self.conv_layer_list:
@@ -533,8 +536,9 @@ class MultiSeparableConv2D(object):
         self.enable_multi_gpu = enable_multi_gpu
         self.trainable = trainable
         self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             self.conv_layer_list = []
             for i in range(len(self.window_size)):
                 layer_scope = "window_{0}".format(i)
@@ -549,7 +553,7 @@ class MultiSeparableConv2D(object):
                  input_data,
                  input_mask):
         """call multi-window depthwise-separable 2d convolution layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_conv_list = []
             input_conv_mask_list = []
             for conv_layer in self.conv_layer_list:
@@ -598,8 +602,9 @@ class StackedConv(object):
         self.enable_multi_gpu = enable_multi_gpu
         self.trainable = trainable
         self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             self.conv_layer_list = []
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
@@ -614,7 +619,7 @@ class StackedConv(object):
                  input_data,
                  input_mask):
         """call stacked convolution layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_conv = input_data
             input_conv_mask = input_mask
             
@@ -662,8 +667,9 @@ class StackedMultiConv(object):
         self.enable_multi_gpu = enable_multi_gpu
         self.trainable = trainable
         self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             self.conv_layer_list = []
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
@@ -679,7 +685,7 @@ class StackedMultiConv(object):
                  input_data,
                  input_mask):
         """call stacked multi-window convolution layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_conv = input_data
             input_conv_mask = input_mask
             
@@ -729,8 +735,9 @@ class StackedSeparableConv(object):
         self.enable_multi_gpu = enable_multi_gpu
         self.trainable = trainable
         self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             self.conv_layer_list = []
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
@@ -746,7 +753,7 @@ class StackedSeparableConv(object):
                  input_data,
                  input_mask):
         """call stacked depthwise-separable convolution layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_conv = input_data
             input_conv_mask = input_mask
             
@@ -796,8 +803,9 @@ class StackedMultiSeparableConv(object):
         self.enable_multi_gpu = enable_multi_gpu
         self.trainable = trainable
         self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             self.conv_layer_list = []
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
@@ -813,7 +821,7 @@ class StackedMultiSeparableConv(object):
                  input_data,
                  input_mask):
         """call stacked depthwise-separable convolution layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_conv = input_data
             input_conv_mask = input_mask
             

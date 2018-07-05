@@ -30,7 +30,7 @@ class Dense(object):
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             weight_initializer = create_variable_initializer("glorot_uniform")
             bias_initializer = create_variable_initializer("zero")
             self.dense_layer = tf.layers.Dense(units=self.unit_dim, activation=None, use_bias=True,
@@ -100,8 +100,9 @@ class StackedDense(object):
         self.enable_multi_gpu = enable_multi_gpu
         self.trainable = trainable
         self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             self.dense_layer_list = []
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
@@ -115,7 +116,7 @@ class StackedDense(object):
                  input_data,
                  input_mask):
         """call stacked dense layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_dense = input_data
             input_dense_mask = input_mask
             

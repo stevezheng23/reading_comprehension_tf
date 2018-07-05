@@ -22,7 +22,7 @@ class Embedding(object):
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             initializer = create_variable_initializer("glorot_uniform")
             self.embedding = tf.get_variable("embedding", shape=[self.vocab_size, self.embed_dim],
                 initializer=initializer, trainable=self.trainable, dtype=tf.float32)
@@ -56,7 +56,7 @@ class PretrainedEmbedding(object):
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             initializer = create_variable_initializer("zero")
             embedding = tf.get_variable("pretrained_embedding", shape=[self.vocab_size, self.embed_dim],
                 initializer=initializer, trainable=self.trainable, dtype=tf.float32)

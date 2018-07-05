@@ -583,7 +583,6 @@ class EncoderBlock(object):
                  input_mask):
         """call encoder-block layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            input_data = input_data * input_mask
             input_block = input_data
             input_block_mask = input_mask
             
@@ -594,7 +593,6 @@ class EncoderBlock(object):
             
             output_block = input_dense
             output_mask = input_dense_mask
-            output_block = output_block * output_mask
         
         return output_block, output_mask
 

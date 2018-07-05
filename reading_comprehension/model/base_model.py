@@ -215,8 +215,6 @@ class BaseModel(object):
                 input_question_feat_mask_list, feat_fusion_layer)
             input_context_feat, input_context_feat_mask = self._build_fusion_result(input_context_feat_list,
                 input_context_feat_mask_list, feat_fusion_layer)
-            input_question_feat = input_question_feat * input_question_feat_mask
-            input_context_feat = input_context_feat * input_context_feat_mask
         
         return input_question_feat, input_question_feat_mask, input_context_feat, input_context_feat_mask
     
@@ -329,7 +327,6 @@ class WordFeat(object):
             input_word_embedding = self.embedding_layer(input_word)
             input_word_feat = tf.squeeze(input_word_embedding, axis=-2)
             input_word_feat_mask = input_word_mask
-            input_word_feat = input_word_feat * input_word_feat_mask
         
         return input_word_feat, input_word_feat_mask
     
