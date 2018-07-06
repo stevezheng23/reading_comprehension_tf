@@ -381,7 +381,7 @@ class QANet(BaseModel):
                 
                 answer_start = tf.nn.dropout(answer_start, 1.0-answer_start_dropout)
                 answer_ouput_start_layer = create_dense_layer(1, 1, "", 0.0, False, False,
-                    self.num_gpus, default_output_gpu_id, True, answer_start_trainable)
+                    self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_start_trainable)
                 answer_output_start, answer_output_start_mask = answer_ouput_start_layer(answer_start, answer_start_mask)
                 answer_output_list.append(answer_output_start)
                 answer_output_mask_list.append(answer_output_start_mask)
@@ -394,7 +394,7 @@ class QANet(BaseModel):
                 
                 answer_end = tf.nn.dropout(answer_end, 1.0-answer_end_dropout)
                 answer_output_end_layer = create_dense_layer(1, 1, "", 0.0, False, False,
-                    self.num_gpus, default_output_gpu_id, True, answer_end_trainable)
+                    self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_end_trainable)
                 answer_output_end, answer_output_end_mask = answer_output_end_layer(answer_end, answer_end_mask)
                 answer_output_list.append(answer_output_end)
                 answer_output_mask_list.append(answer_output_end_mask)
@@ -585,7 +585,7 @@ class EncoderBlock(object):
                 self.num_gpus, self.default_gpu_id, False, self.regularizer, self.trainable)
             
             self.dense_layer = create_dense_layer(1, self.unit_dim, self.activation,
-                self.dropout, True, True, num_gpus, default_gpu_id, False, self.trainable)
+                self.dropout, True, True, num_gpus, default_gpu_id, False, self.regularizer, self.trainable)
     
     def __call__(self,
                  input_data,
