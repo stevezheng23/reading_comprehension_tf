@@ -210,7 +210,7 @@ class RNet(BaseModel):
             answer_modeling_attention_layer = create_attention_layer("att",
                 answer_interaction_unit_dim, answer_interaction_unit_dim,
                 answer_modeling_attention_dim, answer_modeling_score_type, False, False, True,
-                None, self.num_gpus, default_modeling_gpu_id, True, answer_modeling_trainable)
+                None, self.num_gpus, default_modeling_gpu_id, True, self.regularizer, answer_modeling_trainable)
             
             (answer_modeling_attention,
                 answer_modeling_attention_mask) = answer_modeling_attention_layer(answer_interaction,
@@ -231,7 +231,7 @@ class RNet(BaseModel):
             
             answer_modeling_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim,
                 fusion_unit_dim, fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_modeling_gpu_id, fusion_trainable)
+                self.num_gpus, default_modeling_gpu_id, self.regularizer, fusion_trainable)
             answer_modeling, answer_modeling_mask = self._build_fusion_result(answer_intermediate_list,
                 answer_intermediate_mask_list, answer_modeling_fusion_layer)
         
