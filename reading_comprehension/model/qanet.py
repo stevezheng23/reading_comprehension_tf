@@ -161,7 +161,8 @@ class QANet(BaseModel):
                     num_conv=question_understanding_num_conv, num_head=question_understanding_num_head,
                     unit_dim=question_understanding_unit_dim, window_size=question_understanding_window_size,
                     activation=question_understanding_hidden_activation, dropout=question_understanding_dropout,
-                    num_gpus=self.num_gpus, default_gpu_id=default_understanding_gpu_id, trainable=question_understanding_trainable)
+                    num_gpus=self.num_gpus, default_gpu_id=default_understanding_gpu_id,
+                    enable_multi_gpu=True, trainable=question_understanding_trainable)
                 
                 (question_understanding,
                     question_understanding_mask) = question_understanding_layer(question_understanding_fusion,
@@ -182,7 +183,8 @@ class QANet(BaseModel):
                         num_conv=context_understanding_num_conv, num_head=context_understanding_num_head,
                         unit_dim=context_understanding_unit_dim, window_size=context_understanding_window_size,
                         activation=context_understanding_hidden_activation, dropout=context_understanding_dropout,
-                        num_gpus=self.num_gpus, default_gpu_id=default_understanding_gpu_id, trainable=context_understanding_trainable)
+                        num_gpus=self.num_gpus, default_gpu_id=default_understanding_gpu_id,
+                        enable_multi_gpu=True, trainable=context_understanding_trainable)
                 
                 (context_understanding,
                     context_understanding_mask) = context_understanding_layer(context_understanding_fusion,
@@ -312,7 +314,8 @@ class QANet(BaseModel):
                     num_conv=answer_modeling_num_conv, num_head=answer_modeling_num_head,
                     unit_dim=answer_modeling_unit_dim, window_size=answer_modeling_window_size,
                     activation=answer_modeling_hidden_activation, dropout=answer_modeling_dropout,
-                    num_gpus=self.num_gpus, default_gpu_id=default_modeling_gpu_id, trainable=answer_modeling_trainable)
+                    num_gpus=self.num_gpus, default_gpu_id=default_modeling_gpu_id,
+                    enable_multi_gpu=True, trainable=answer_modeling_trainable)
                 
                 (answer_modeling_base,
                     answer_modeling_base_mask) = answer_modeling_base_layer(answer_modeling_fusion, answer_modeling_fusion_mask)
@@ -327,7 +330,8 @@ class QANet(BaseModel):
                         num_conv=answer_modeling_num_conv, num_head=answer_modeling_num_head,
                         unit_dim=answer_modeling_unit_dim, window_size=answer_modeling_window_size,
                         activation=answer_modeling_hidden_activation, dropout=answer_modeling_dropout,
-                        num_gpus=self.num_gpus, default_gpu_id=default_modeling_gpu_id, trainable=answer_modeling_trainable)
+                        num_gpus=self.num_gpus, default_gpu_id=default_modeling_gpu_id,
+                        enable_multi_gpu=True, trainable=answer_modeling_trainable)
                 
                 (answer_modeling_start,
                     answer_modeling_start_mask) = answer_modeling_start_layer(answer_modeling_base, answer_modeling_base_mask)
@@ -342,7 +346,8 @@ class QANet(BaseModel):
                         num_conv=answer_modeling_num_conv, num_head=answer_modeling_num_head,
                         unit_dim=answer_modeling_unit_dim, window_size=answer_modeling_window_size,
                         activation=answer_modeling_hidden_activation, dropout=answer_modeling_dropout,
-                        num_gpus=self.num_gpus, default_gpu_id=default_modeling_gpu_id, trainable=answer_modeling_trainable)
+                        num_gpus=self.num_gpus, default_gpu_id=default_modeling_gpu_id,
+                        enable_multi_gpu=True, trainable=answer_modeling_trainable)
                 
                 (answer_modeling_end,
                     answer_modeling_end_mask) = answer_modeling_end_layer(answer_modeling_start, answer_modeling_start_mask)
