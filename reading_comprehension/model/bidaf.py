@@ -85,6 +85,11 @@ class BiDAF(BaseModel):
                 end_loss = self._compute_loss(answer_end_result, self.answer_end, self.answer_end_mask)
                 self.train_loss = start_loss + end_loss
                 
+                if self.hyperparams.train_regularization_enable == True:
+                    regularization_variables = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+                    regularization_loss = tf.contrib.layers.apply_regularization(self.regularizer, regularization_variables)
+                    self.train_loss = self.train_loss + regularization_loss
+                
                 """apply learning rate decay"""
                 self.learning_rate = tf.constant(self.hyperparams.train_optimizer_learning_rate)
                 
