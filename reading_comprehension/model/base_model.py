@@ -40,6 +40,12 @@ class BaseModel(object):
         self.default_gpu_id = self.hyperparams.device_default_gpu_id
         self.logger.log_print("# {0} gpus are used with default gpu id set as {1}"
             .format(self.num_gpus, self.default_gpu_id))
+        
+        if self.hyperparams.train_regularization_enable == True:
+            self.regularizer = create_weight_regularizer(self.hyperparams.train_regularization_type,
+                self.hyperparams.train_regularization_scale)
+        else:
+            self.regularizer = None
     
     def _create_fusion_layer(self,
                              input_unit_dim,
@@ -50,6 +56,7 @@ class BaseModel(object):
                              dropout,
                              num_gpus,
                              default_gpu_id,
+                             regularizer,
                              trainable):
         """create fusion layer for mrc base model"""
         with tf.variable_scope("fusion", reuse=tf.AUTO_REUSE):
@@ -74,8 +81,8 @@ class BaseModel(object):
                     dropout, num_gpus, default_gpu_id, True, trainable)
                 fusion_layer_list.append(fusion_layer)
             elif fusion_type == "conv":
-                fusion_layer = create_convolution_layer("1d", num_layer, input_unit_dim, output_unit_dim,
-                    1, 1, 1, "SAME", hidden_activation, dropout, False, False, num_gpus, default_gpu_id, True, trainable)
+                fusion_layer = create_convolution_layer("1d", num_layer, input_unit_dim, output_unit_dim, 1, 1, 1,
+                    "SAME", hidden_activation, dropout, False, False, num_gpus, default_gpu_id, True, regularizer, trainable)
                 fusion_layer_list = [fusion_layer]
             else:
                 raise ValueError("unsupported fusion type {0}".format(fusion_type))
@@ -173,7 +180,7 @@ class BaseModel(object):
                 subword_feat_layer = SubwordFeat(vocab_size=subword_vocab_size, embed_dim=subword_embed_dim,
                     unit_dim=subword_unit_dim, window_size=subword_window_size, hidden_activation=subword_hidden_activation,
                     pooling_type=subword_pooling_type, dropout=subword_dropout, num_gpus=self.num_gpus,
-                    default_gpu_id=default_representation_gpu_id, trainable=subword_feat_trainable)
+                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer, trainable=subword_feat_trainable)
                 
                 (input_question_subword_feat,
                     input_question_subword_feat_mask) = subword_feat_layer(input_question_subword, input_question_subword_mask)
@@ -192,7 +199,7 @@ class BaseModel(object):
                 char_feat_layer = CharFeat(vocab_size=char_vocab_size, embed_dim=char_embed_dim,
                     unit_dim=char_unit_dim, window_size=char_window_size, hidden_activation=char_hidden_activation,
                     pooling_type=char_pooling_type, dropout=char_dropout, num_gpus=self.num_gpus,
-                    default_gpu_id=default_representation_gpu_id, trainable=char_feat_trainable)
+                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer, trainable=char_feat_trainable)
                 
                 (input_question_char_feat,
                     input_question_char_feat_mask) = char_feat_layer(input_question_char, input_question_char_mask)
@@ -209,7 +216,7 @@ class BaseModel(object):
             feat_unit_dim = word_unit_dim + subword_unit_dim + char_unit_dim
             feat_fusion_layer = self._create_fusion_layer(feat_unit_dim, fusion_unit_dim,
                 fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_representation_gpu_id, fusion_trainable)
+                self.num_gpus, default_representation_gpu_id, self.regularizer, fusion_trainable)
             
             input_question_feat, input_question_feat_mask = self._build_fusion_result(input_question_feat_list,
                 input_question_feat_mask_list, feat_fusion_layer)
@@ -346,6 +353,7 @@ class SubwordFeat(object):
                  dropout,
                  num_gpus=1,
                  default_gpu_id=0,
+                 regularizer=None,
                  trainable=True,
                  scope="subword_feat"):
         """initialize subword-level featurization layer"""
@@ -358,6 +366,7 @@ class SubwordFeat(object):
         self.dropout = dropout
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
+        self.regularizer = regularizer
         self.trainable = trainable
         self.scope = scope
         
@@ -367,7 +376,7 @@ class SubwordFeat(object):
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, self.dropout,
-                False, False, self.num_gpus, self.default_gpu_id, True, self.trainable)
+                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
@@ -402,6 +411,7 @@ class CharFeat(object):
                  dropout,
                  num_gpus=1,
                  default_gpu_id=0,
+                 regularizer=None,
                  trainable=True,
                  scope="char_feat"):
         """initialize char-level featurization layer"""
@@ -414,6 +424,7 @@ class CharFeat(object):
         self.dropout = dropout
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
+        self.regularizer = regularizer
         self.trainable = trainable
         self.scope = scope
         
@@ -423,7 +434,7 @@ class CharFeat(object):
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, self.dropout,
-                False, False, self.num_gpus, self.default_gpu_id, True, self.trainable)
+                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
