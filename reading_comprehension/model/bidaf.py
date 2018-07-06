@@ -368,7 +368,7 @@ class BiDAF(BaseModel):
                 
                 answer_start_fusion = tf.nn.dropout(answer_start_fusion, 1.0-answer_start_dropout)
                 answer_start_output_layer = create_dense_layer(1, 1, "", 0.0, False, False,
-                    self.num_gpus, default_output_gpu_id, True, answer_start_trainable)
+                    self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_start_trainable)
                 (answer_start_output,
                     answer_start_output_mask) = answer_start_output_layer(answer_start_fusion,
                         answer_start_fusion_mask)
@@ -392,7 +392,7 @@ class BiDAF(BaseModel):
                 
                 answer_end_fusion = tf.nn.dropout(answer_end_fusion, 1.0-answer_end_dropout)
                 answer_end_output_layer = create_dense_layer(1, 1, "", 0.0, False, False,
-                    self.num_gpus, default_output_gpu_id, True, answer_end_trainable)
+                    self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_end_trainable)
                 (answer_end_output,
                     answer_end_output_mask) = answer_end_output_layer(answer_end_fusion,
                         answer_end_fusion_mask)

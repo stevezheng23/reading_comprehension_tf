@@ -144,11 +144,12 @@ def create_dense_layer(num_layer,
                        num_gpus,
                        default_gpu_id,
                        enable_multi_gpu,
+                       regularizer,
                        trainable):
     """create dense layer"""
-    dense_layer = StackedDense(num_layer=num_layer, unit_dim=unit_dim,
-        activation=activation, dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect,
-        num_gpus=num_gpus, default_gpu_id=default_gpu_id, enable_multi_gpu=enable_multi_gpu, trainable=trainable)
+    dense_layer = StackedDense(num_layer=num_layer, unit_dim=unit_dim, activation=activation, 
+        dropout=dropout, layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, 
+        default_gpu_id=default_gpu_id, enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, trainable=trainable)
     
     return dense_layer
 
@@ -159,10 +160,12 @@ def create_highway_layer(num_layer,
                          num_gpus,
                          default_gpu_id,
                          enable_multi_gpu,
+                         regularizer,
                          trainable):
     """create highway layer"""
-    highway_layer = StackedHighway(num_layer=num_layer, unit_dim=unit_dim, activation=activation, dropout=dropout,
-        num_gpus=num_gpus, default_gpu_id=default_gpu_id, enable_multi_gpu=enable_multi_gpu, trainable=trainable)
+    highway_layer = StackedHighway(num_layer=num_layer, unit_dim=unit_dim, activation=activation,
+        dropout=dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id, enable_multi_gpu=enable_multi_gpu,
+        regularizer=regularizer, trainable=trainable)
     
     return highway_layer
 

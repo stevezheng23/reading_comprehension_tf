@@ -16,12 +16,14 @@ class Highway(object):
                  dropout,
                  num_gpus=1,
                  default_gpu_id=0,
+                 regularizer=None,
                  trainable=True,
                  scope="highway"):
         """initialize highway layer"""
         self.unit_dim = unit_dim
         self.activation = activation
         self.dropout = dropout
+        self.regularizer = regularizer
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -32,9 +34,11 @@ class Highway(object):
             transform_activation = create_activation_function(self.activation)
             gate_activation = create_activation_function("sigmoid")
             self.transform_layer = tf.layers.Dense(units=self.unit_dim, activation=transform_activation, use_bias=True,
-                kernel_initializer=weight_initializer, bias_initializer=bias_initializer, trainable=self.trainable)
+                kernel_initializer=weight_initializer, bias_initializer=bias_initializer,
+                kernel_regularizer=self.regularizer, bias_regularizer=self.regularizer, trainable=self.trainable)
             self.gate_layer = tf.layers.Dense(units=self.unit_dim, activation=gate_activation, use_bias=True,
-                kernel_initializer=weight_initializer, bias_initializer=bias_initializer, trainable=self.trainable)
+                kernel_initializer=weight_initializer, bias_initializer=bias_initializer,
+                kernel_regularizer=self.regularizer, bias_regularizer=self.regularizer, trainable=self.trainable)
             
             if self.dropout > 0.0:
                 self.dropout_layer = Dropout(keep_prob=1.0-self.dropout,
@@ -65,6 +69,7 @@ class StackedHighway(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  enable_multi_gpu=True,
+                 regularizer=None,
                  trainable=True,
                  scope="stacked_highway"):
         """initialize stacked highway layer"""
@@ -75,6 +80,7 @@ class StackedHighway(object):
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
+        self.regularizer = regularizer
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -84,8 +90,9 @@ class StackedHighway(object):
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
                 layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
-                highway_layer = Highway(unit_dim=self.unit_dim, activation=self.activation, dropout=self.dropout,
-                    num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, trainable=self.trainable, scope=layer_scope)
+                highway_layer = Highway(unit_dim=self.unit_dim, activation=self.activation,
+                    dropout=self.dropout, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
+                    regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
                 self.highway_layer_list.append(highway_layer)
     
     def __call__(self,
