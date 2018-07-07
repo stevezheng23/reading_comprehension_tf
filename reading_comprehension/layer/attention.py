@@ -438,8 +438,9 @@ class Attention(object):
             input_mask = input_src_attention_mask
             
             if self.residual_connect == True and self.is_self == True:
-                output_attention = input_attention + input_src_data
-                output_mask = input_mask * input_src_mask
+                output_attention, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
+                    lambda: (input_src_data, input_src_mask),
+                    lambda: (input_attention + input_src_data, input_mask * input_src_mask))
             else:
                 output_attention = input_attention
                 output_mask = input_mask
@@ -527,8 +528,9 @@ class MaxAttention(object):
             input_mask = input_src_attention_mask
             
             if self.residual_connect == True and self.is_self == True:
-                output_attention = input_attention + input_src_data
-                output_mask = input_mask * input_src_mask
+                output_attention, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
+                    lambda: (input_src_data, input_src_mask),
+                    lambda: (input_attention + input_src_data, input_mask * input_src_mask))
             else:
                 output_attention = input_attention
                 output_mask = input_mask
@@ -615,8 +617,9 @@ class CoAttention(object):
             input_mask = input_src_attention_mask
             
             if self.residual_connect == True and self.is_self == True:
-                output_attention = input_attention + input_src_data
-                output_mask = input_mask * input_src_mask
+                output_attention, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
+                    lambda: (input_src_data, input_src_mask),
+                    lambda: (input_attention + input_src_data, input_mask * input_src_mask))
             else:
                 output_attention = input_attention
                 output_mask = input_mask
@@ -633,7 +636,6 @@ class HeadAttention(object):
                  trg_dim,
                  att_dim,
                  score_type,
-                 layer_dropout=0.0,
                  layer_norm=False,
                  is_self=False,
                  external_matrix=None,
@@ -647,7 +649,6 @@ class HeadAttention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
-        self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.is_self = is_self
         self.regularizer = regularizer
@@ -783,8 +784,9 @@ class MultiHeadAttention(object):
             input_mask = tf.reduce_max(tf.concat(input_attention_mask_list, axis=-1), axis=-1, keep_dims=True)
             
             if self.residual_connect == True and self.is_self == True:
-                output_attention = input_attention + input_src_data
-                output_mask = input_mask * input_src_mask
+                output_attention, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
+                    lambda: (input_src_data, input_src_mask),
+                    lambda: (input_attention + input_src_data, input_mask * input_src_mask))
             else:
                 output_attention = input_attention
                 output_mask = input_mask

@@ -78,8 +78,9 @@ class Conv1D(object):
             input_conv = self.conv_layer(input_conv)
             
             if self.residual_connect == True:
-                output_conv = input_conv + input_data
-                output_mask = input_conv_mask * input_mask
+                output_conv, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
+                    lambda: (input_data, input_mask),
+                    lambda: (input_conv + input_data, input_conv_mask * input_mask))
             else:
                 output_conv = input_conv
                 output_mask = input_mask
@@ -154,8 +155,9 @@ class Conv2D(object):
             input_conv = self.conv_layer(input_conv)
             
             if self.residual_connect == True:
-                output_conv = input_conv + input_data
-                output_mask = input_conv_mask * input_mask
+                output_conv, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
+                    lambda: (input_data, input_mask),
+                    lambda: (input_conv + input_data, input_conv_mask * input_mask))
             else:
                 output_conv = input_conv
                 output_mask = input_mask
@@ -404,8 +406,9 @@ class SeparableConv1D(SeparableConv):
                 input_conv = self.conv_activation(input_conv)
             
             if self.residual_connect == True:
-                output_conv = input_conv + input_data
-                output_mask = input_conv_mask * input_mask
+                output_conv, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
+                    lambda: (input_data, input_mask),
+                    lambda: (input_conv + input_data, input_conv_mask * input_mask))
             else:
                 output_conv = input_conv
                 output_mask = input_mask
@@ -457,8 +460,9 @@ class SeparableConv2D(SeparableConv):
             input_conv = self.conv_activation(input_conv)
             
             if self.residual_connect == True:
-                output_conv = input_conv + input_data
-                output_mask = input_conv_mask * input_mask
+                output_conv, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
+                    lambda: (input_data, input_mask),
+                    lambda: (input_conv + input_data, input_conv_mask * input_mask))
             else:
                 output_conv = input_conv
                 output_mask = input_mask

@@ -392,8 +392,7 @@ class QANet(BaseModel):
                 (answer_start,
                     answer_start_mask) = self._build_fusion_result(answer_start_list, answer_start_mask_list, None)
                 
-                answer_start = tf.nn.dropout(answer_start, 1.0-answer_start_dropout)
-                answer_ouput_start_layer = create_dense_layer(1, 1, "", 0.0, None, False, False,
+                answer_ouput_start_layer = create_dense_layer(1, 1, "", answer_start_dropout, None, False, False,
                     self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_start_trainable)
                 answer_output_start, answer_output_start_mask = answer_ouput_start_layer(answer_start, answer_start_mask)
                 answer_output_list.append(answer_output_start)
@@ -405,8 +404,7 @@ class QANet(BaseModel):
                 (answer_end,
                     answer_end_mask) = self._build_fusion_result(answer_end_list, answer_end_mask_list, None)
                 
-                answer_end = tf.nn.dropout(answer_end, 1.0-answer_end_dropout)
-                answer_output_end_layer = create_dense_layer(1, 1, "", 0.0, None, False, False,
+                answer_output_end_layer = create_dense_layer(1, 1, "", answer_end_dropout, None, False, False,
                     self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_end_trainable)
                 answer_output_end, answer_output_end_mask = answer_output_end_layer(answer_end, answer_end_mask)
                 answer_output_list.append(answer_output_end)

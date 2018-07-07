@@ -71,8 +71,9 @@ class Dense(object):
                 input_dense = self.dense_activation(input_dense)
             
             if self.residual_connect == True:
-                output_dense = input_dense + input_data
-                output_mask = input_dense_mask * input_mask
+                output_dense, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
+                    lambda: (input_data, input_mask),
+                    lambda: (input_dense + input_data, input_dense_mask * input_mask))
             else:
                 output_dense = input_dense
                 output_mask = input_dense_mask
