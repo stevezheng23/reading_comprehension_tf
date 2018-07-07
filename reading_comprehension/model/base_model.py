@@ -63,26 +63,26 @@ class BaseModel(object):
             if fusion_type == "concate":
                 fusion_layer_list = []
                 if input_unit_dim != output_unit_dim:
-                    convert_layer = create_dense_layer(1, output_unit_dim, "", 0.0, False, False,
-                        num_gpus, default_gpu_id, True, regularizer, trainable)
+                    convert_layer = create_dense_layer(1, output_unit_dim, "", 0.0, None,
+                        False, False, num_gpus, default_gpu_id, True, regularizer, trainable)
                     fusion_layer_list.append(convert_layer)
             elif fusion_type == "dense":
                 fusion_layer = create_dense_layer(num_layer, output_unit_dim, hidden_activation,
-                    dropout, False, False, num_gpus, default_gpu_id, True, regularizer, trainable)
+                    dropout, None, False, False, num_gpus, default_gpu_id, True, regularizer, trainable)
                 fusion_layer_list = [fusion_layer]
             elif fusion_type == "highway":
                 fusion_layer_list = []
                 if input_unit_dim != output_unit_dim:
-                    convert_layer = create_dense_layer(1, output_unit_dim, "", 0.0, False, False,
-                        num_gpus, default_gpu_id, True, regularizer, trainable)
+                    convert_layer = create_dense_layer(1, output_unit_dim, "", 0.0, None,
+                        False, False, num_gpus, default_gpu_id, True, regularizer, trainable)
                     fusion_layer_list.append(convert_layer)
                 
                 fusion_layer = create_highway_layer(num_layer, output_unit_dim, hidden_activation,
                     dropout, num_gpus, default_gpu_id, True, regularizer, trainable)
                 fusion_layer_list.append(fusion_layer)
             elif fusion_type == "conv":
-                fusion_layer = create_convolution_layer("1d", num_layer, input_unit_dim, output_unit_dim, 1, 1, 1,
-                    "SAME", hidden_activation, dropout, False, False, num_gpus, default_gpu_id, True, regularizer, trainable)
+                fusion_layer = create_convolution_layer("1d", num_layer, input_unit_dim, output_unit_dim, 1, 1, 1, "SAME",
+                    hidden_activation, dropout, None, False, False, num_gpus, default_gpu_id, True, regularizer, trainable)
                 fusion_layer_list = [fusion_layer]
             else:
                 raise ValueError("unsupported fusion type {0}".format(fusion_type))
@@ -375,7 +375,7 @@ class SubwordFeat(object):
                 self.embed_dim, False, 0, 0, self.trainable)
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
-                self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, self.dropout,
+                self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, self.dropout, None,
                 False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
@@ -433,7 +433,7 @@ class CharFeat(object):
                 self.embed_dim, False, 0, 0, self.trainable)
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
-                self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, self.dropout,
+                self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, self.dropout, None,
                 False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)

@@ -14,6 +14,7 @@ class Dense(object):
                  unit_dim,
                  activation,
                  dropout,
+                 layer_dropout=0.0,
                  layer_norm=False,
                  residual_connect=False,
                  num_gpus=1,
@@ -25,6 +26,7 @@ class Dense(object):
         self.unit_dim = unit_dim
         self.activation = activation
         self.dropout = dropout
+        self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
         self.regularizer = regularizer
@@ -84,6 +86,7 @@ class StackedDense(object):
                  unit_dim,
                  activation,
                  dropout,
+                 layer_dropout=None,
                  layer_norm=False,
                  residual_connect=False,
                  num_gpus=1,
@@ -97,6 +100,7 @@ class StackedDense(object):
         self.unit_dim = unit_dim
         self.activation = activation
         self.dropout = dropout
+        self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
         self.num_gpus = num_gpus
@@ -112,9 +116,11 @@ class StackedDense(object):
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
                 layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
-                dense_layer = Dense(unit_dim=self.unit_dim, activation=self.activation, dropout=self.dropout,
-                    layer_norm=self.layer_norm, residual_connect=self.residual_connect, num_gpus=self.num_gpus,
-                    default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
+                sublayer_dropout = self.layer_dropout[i] if self.layer_dropout != None else 0.0
+                dense_layer = Dense(unit_dim=self.unit_dim, activation=self.activation,
+                    dropout=self.dropout, layer_dropout=sublayer_dropout, layer_norm=self.layer_norm,
+                    residual_connect=self.residual_connect, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
+                    regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
                 self.dense_layer_list.append(dense_layer)
     
     def __call__(self,
