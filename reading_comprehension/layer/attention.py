@@ -372,6 +372,7 @@ class Attention(object):
                  trg_dim,
                  att_dim,
                  score_type,
+                 layer_dropout=0.0,
                  layer_norm=False,
                  residual_connect=False,
                  is_self=False,
@@ -386,6 +387,7 @@ class Attention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
         self.is_self = is_self
@@ -454,6 +456,7 @@ class MaxAttention(object):
                  trg_dim,
                  att_dim,
                  score_type,
+                 layer_dropout=0.0,
                  layer_norm=False,
                  residual_connect=False,
                  is_self=False,
@@ -468,6 +471,7 @@ class MaxAttention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
         self.is_self = is_self
@@ -541,6 +545,7 @@ class CoAttention(object):
                  trg_dim,
                  att_dim,
                  score_type,
+                 layer_dropout=0.0,
                  layer_norm=False,
                  residual_connect=False,
                  is_self=False,
@@ -555,6 +560,7 @@ class CoAttention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
         self.is_self = is_self
@@ -627,6 +633,7 @@ class HeadAttention(object):
                  trg_dim,
                  att_dim,
                  score_type,
+                 layer_dropout=0.0,
                  layer_norm=False,
                  is_self=False,
                  external_matrix=None,
@@ -640,6 +647,7 @@ class HeadAttention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.is_self = is_self
         self.regularizer = regularizer
@@ -716,6 +724,7 @@ class MultiHeadAttention(object):
                  trg_dim,
                  att_dim,
                  score_type,
+                 layer_dropout=0.0,
                  layer_norm=False,
                  residual_connect=False,
                  is_self=False,
@@ -731,6 +740,7 @@ class MultiHeadAttention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
         self.is_self = is_self

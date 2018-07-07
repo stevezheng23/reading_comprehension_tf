@@ -212,7 +212,7 @@ class BiDAF(BaseModel):
                     self.logger.log_print("# build context2question interaction layer")
                     context2question_attention_layer = create_attention_layer("att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
-                        context2question_interaction_attention_dim, context2question_interaction_score_type,
+                        context2question_interaction_attention_dim, context2question_interaction_score_type, 0.0,
                         False, False, False, attention_matrix, self.num_gpus, default_interaction_gpu_id,
                         True, self.regularizer, context2question_interaction_trainable)
                     
@@ -240,7 +240,7 @@ class BiDAF(BaseModel):
                     self.logger.log_print("# build question2context interaction layer")
                     question2context_attention_layer = create_attention_layer("max_att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
-                        question2context_interaction_attention_dim, question2context_interaction_score_type,
+                        question2context_interaction_attention_dim, question2context_interaction_score_type, 0.0,
                         False, False, False, attention_matrix, self.num_gpus, default_interaction_gpu_id,
                         True, self.regularizer, question2context_interaction_trainable)
                     
@@ -308,7 +308,7 @@ class BiDAF(BaseModel):
             if answer_modeling_attention_enable == True:
                 answer_modeling_attention_layer = create_attention_layer("att",
                     answer_modeling_sequence_unit_dim, answer_modeling_sequence_unit_dim,
-                    answer_modeling_attention_dim, answer_modeling_score_type, False, False, True,
+                    answer_modeling_attention_dim, answer_modeling_score_type, 0.0, False, False, True,
                     None, self.num_gpus, default_modeling_gpu_id, True, self.regularizer, answer_modeling_trainable)
 
                 (answer_modeling_attention,
@@ -372,7 +372,7 @@ class BiDAF(BaseModel):
                         [answer_modeling_mask, answer_start_mask], None)
                 
                 answer_start_fusion = tf.nn.dropout(answer_start_fusion, 1.0-answer_start_dropout)
-                answer_start_output_layer = create_dense_layer(1, 1, "", 0.0, False, False,
+                answer_start_output_layer = create_dense_layer(1, 1, "", 0.0, None, False, False,
                     self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_start_trainable)
                 (answer_start_output,
                     answer_start_output_mask) = answer_start_output_layer(answer_start_fusion,
@@ -396,7 +396,7 @@ class BiDAF(BaseModel):
                         [answer_modeling_mask, answer_end_mask], None)
                 
                 answer_end_fusion = tf.nn.dropout(answer_end_fusion, 1.0-answer_end_dropout)
-                answer_end_output_layer = create_dense_layer(1, 1, "", 0.0, False, False,
+                answer_end_output_layer = create_dense_layer(1, 1, "", 0.0, None, False, False,
                     self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_end_trainable)
                 (answer_end_output,
                     answer_end_output_mask) = answer_end_output_layer(answer_end_fusion,
