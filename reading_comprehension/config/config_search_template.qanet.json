@@ -175,6 +175,13 @@
             "shift": 0.0,
             "dtype": "float"
         },
+        "model_understanding_question_layer_dropout": {
+            "stype": "lookup",
+            "key": "layer_dropout",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "float"
+        },
         "model_understanding_context_num_layer": {
             "stype": "lookup",
             "key": "understanding_num_layer",
@@ -210,6 +217,13 @@
         "model_understanding_context_dropout": {
             "stype": "lookup",
             "key": "dropout",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "float"
+        },
+        "model_understanding_context_layer_dropout": {
+            "stype": "lookup",
+            "key": "layer_dropout",
             "scale": 1.0,
             "shift": 0.0,
             "dtype": "float"
@@ -311,6 +325,13 @@
             "shift": 0.0,
             "dtype": "float"
         },
+        "model_modeling_answer_layer_dropout": {
+            "stype": "lookup",
+            "key": "layer_dropout",
+            "scale": 1.0,
+            "shift": 0.0,
+            "dtype": "float"
+        },
         "model_output_answer_start_dropout": {
             "stype": "lookup",
             "key": "dropout",
@@ -350,6 +371,11 @@
         "dropout": {
             "stype": "uniform",
             "range": [0.05, 0.5],
+            "dtype": "float"
+        },
+        "layer_dropout": {
+            "stype": "uniform",
+            "range": [0.05, 0.15],
             "dtype": "float"
         },
         "score_type": {
