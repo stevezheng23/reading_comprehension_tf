@@ -359,6 +359,8 @@ class BiDAF(BaseModel):
             self.logger.log_print("# build answer output layer")
             answer_intermediate_list = [answer_modeling]
             answer_intermediate_mask_list = [answer_modeling_mask]
+            answer_output_list = []
+            answer_output_mask_list = []
             
             with tf.variable_scope("start", reuse=tf.AUTO_REUSE):
                 answer_start_layer = create_recurrent_layer("bi", answer_start_num_layer,
@@ -376,6 +378,8 @@ class BiDAF(BaseModel):
                 (answer_start_output,
                     answer_start_output_mask) = answer_start_output_layer(answer_start_fusion,
                         answer_start_fusion_mask)
+                answer_output_list.append(answer_start_output)
+                answer_output_mask_list.append(answer_start_output_mask)
             
             answer_intermediate_list.append(answer_start)
             answer_intermediate_mask_list.append(answer_start_mask)
@@ -399,8 +403,10 @@ class BiDAF(BaseModel):
                 (answer_end_output,
                     answer_end_output_mask) = answer_end_output_layer(answer_end_fusion,
                         answer_end_fusion_mask)
+                answer_output_list.append(answer_end_output)
+                answer_output_mask_list.append(answer_end_output_mask)
         
-        return answer_start_output, answer_end_output, answer_start_output_mask, answer_end_output_mask
+        return answer_output_list, answer_output_mask_list
     
     def _build_graph(self,
                      question_word,
@@ -436,8 +442,11 @@ class BiDAF(BaseModel):
             answer_modeling, answer_modeling_mask = self._build_modeling_layer(answer_interaction, answer_interaction_mask)
             
             """build output layer for bidaf model"""
-            (answer_start_output, answer_end_output, answer_start_output_mask,
-                answer_end_output_mask) = self._build_output_layer(answer_modeling, answer_modeling_mask)
+            answer_output_list, answer_output_mask_list = self._build_output_layer(answer_modeling, answer_modeling_mask)
+            answer_start_output = answer_output_list[0]
+            answer_end_output = answer_output_list[1]
+            answer_start_output_mask = answer_output_mask_list[0]
+            answer_end_output_mask = answer_output_mask_list[1]
             
         return answer_start_output, answer_end_output, answer_start_output_mask, answer_end_output_mask
     
