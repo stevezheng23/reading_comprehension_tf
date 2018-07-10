@@ -232,7 +232,7 @@ class RNet(BaseModel):
             
             answer_intermediate_list.append(answer_modeling_sequence)
             answer_intermediate_mask_list.append(answer_modeling_sequence_mask)
-            answer_intermediate_unit_dim = answer_intermediate_unit_dim + answer_interaction_unit_dim
+            answer_intermediate_unit_dim = answer_intermediate_unit_dim + answer_modeling_unit_dim * 2
             
             answer_modeling_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim,
                 fusion_unit_dim, fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
@@ -243,10 +243,83 @@ class RNet(BaseModel):
         return answer_modeling, answer_modeling_mask
     
     def _build_output_layer(self,
+                            question_understanding,
+                            question_understanding_mask,
                             answer_modeling,
                             answer_modeling_mask):
         """build output layer for rnet model"""
-        pass
+        question_understanding_unit_dim = self.hyperparams.model_understanding_question_unit_dim * 2
+        answer_modeling_unit_dim = self.hyperparams.answer_modeling_unit_dim * 2
+        answer_start_num_layer = self.hyperparams.model_output_answer_start_num_layer
+        answer_start_unit_dim = self.hyperparams.model_output_answer_start_unit_dim
+        answer_start_cell_type = self.hyperparams.model_output_answer_start_cell_type
+        answer_start_hidden_activation = self.hyperparams.model_output_answer_start_hidden_activation
+        answer_start_dropout = self.hyperparams.model_output_answer_start_dropout if self.mode == "train" else 0.0
+        answer_start_forget_bias = self.hyperparams.model_output_answer_start_forget_bias
+        answer_start_residual_connect = self.hyperparams.model_output_answer_start_residual_connect
+        answer_start_trainable = self.hyperparams.model_output_answer_start_trainable
+        answer_end_num_layer = self.hyperparams.model_output_answer_end_num_layer
+        answer_end_unit_dim = self.hyperparams.model_output_answer_end_unit_dim
+        answer_end_cell_type = self.hyperparams.model_output_answer_end_cell_type
+        answer_end_hidden_activation = self.hyperparams.model_output_answer_end_hidden_activation
+        answer_end_dropout = self.hyperparams.model_output_answer_end_dropout if self.mode == "train" else 0.0
+        answer_end_forget_bias = self.hyperparams.model_output_answer_end_forget_bias
+        answer_end_residual_connect = self.hyperparams.model_output_answer_end_residual_connect
+        answer_end_trainable = self.hyperparams.model_output_answer_end_trainable
+        default_output_gpu_id = self.default_gpu_id
+        
+        with tf.variable_scope("output", reuse=tf.AUTO_REUSE):
+            self.logger.log_print("# build answer output layer")
+            answer_intermediate_list = [answer_modeling]
+            answer_intermediate_mask_list = [answer_modeling_mask]
+            answer_output_list = []
+            answer_output_mask_list = []
+            
+            with tf.variable_scope("start", reuse=tf.AUTO_REUSE):
+                answer_start_layer = create_recurrent_layer("bi", answer_start_num_layer,
+                    answer_start_unit_dim, answer_start_cell_type, answer_start_hidden_activation,
+                    answer_start_dropout, answer_start_forget_bias, answer_start_residual_connect,
+                    self.num_gpus, default_output_gpu_id, True, answer_start_trainable)
+                answer_start, answer_start_mask = answer_start_layer(answer_modeling, answer_modeling_mask)
+                
+                (answer_start_fusion,
+                    answer_start_fusion_mask) = self._build_fusion_result([answer_modeling, answer_start],
+                        [answer_modeling_mask, answer_start_mask], None)
+                
+                answer_start_output_layer = create_dense_layer(1, 1, "", answer_start_dropout, None, False, False,
+                    self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_start_trainable)
+                (answer_start_output,
+                    answer_start_output_mask) = answer_start_output_layer(answer_start_fusion,
+                        answer_start_fusion_mask)
+                answer_output_list.append(answer_start_output)
+                answer_output_mask_list.append(answer_start_output_mask)
+            
+            answer_intermediate_list.append(answer_start)
+            answer_intermediate_mask_list.append(answer_start_mask)
+            (answer_intermediate,
+                answer_intermediate_mask) = self._build_fusion_result(answer_intermediate_list,
+                    answer_intermediate_mask_list, None)
+            
+            with tf.variable_scope("end", reuse=tf.AUTO_REUSE):
+                answer_end_layer = create_recurrent_layer("bi", answer_end_num_layer,
+                    answer_end_unit_dim, answer_end_cell_type, answer_end_hidden_activation,
+                    answer_end_dropout, answer_end_forget_bias, answer_end_residual_connect,
+                    self.num_gpus, default_output_gpu_id, True, answer_end_trainable)
+                answer_end, answer_end_mask = answer_end_layer(answer_intermediate, answer_intermediate_mask)
+                
+                (answer_end_fusion,
+                    answer_end_fusion_mask) = self._build_fusion_result([answer_modeling, answer_end],
+                        [answer_modeling_mask, answer_end_mask], None)
+                
+                answer_end_output_layer = create_dense_layer(1, 1, "", answer_end_dropout, None, False, False,
+                    self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_end_trainable)
+                (answer_end_output,
+                    answer_end_output_mask) = answer_end_output_layer(answer_end_fusion,
+                        answer_end_fusion_mask)
+                answer_output_list.append(answer_end_output)
+                answer_output_mask_list.append(answer_end_output_mask)
+        
+        return answer_output_list, answer_output_mask_list
     
     def _build_graph(self,
                      question_word,
