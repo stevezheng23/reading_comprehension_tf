@@ -181,7 +181,10 @@ class RNet(BaseModel):
                                  question_understanding_mask,
                                  context_understanding_mask):
         """build interaction layer for rnet model"""
-        pass
+        answer_interaction = context_understanding
+        answer_interaction_mask = context_understanding_mask
+        
+        return answer_interaction, answer_interaction_mask
     
     def _build_modeling_layer(self,
                               answer_interaction,
@@ -247,6 +250,20 @@ class RNet(BaseModel):
                             question_understanding_mask,
                             answer_modeling,
                             answer_modeling_mask):
+        def create_base_variable(batch_size,
+                                 unit_dim,
+                                 num_gpus,
+                                 default_gpu_id,
+                                 regularizer,
+                                 trainable):
+            initializer = create_variable_initializer("glorot_uniform")
+            base_variable = tf.get_variable("base_variable", shape=[1, 1, unit_dim],
+                initializer=initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
+            base_variable = tf.tile(base_variable, multiples=[batch_size, 1, 1])
+            base_variable_mask = tf.ones([batch_size, 1])
+            
+            return base_variable, base_variable_mask
+        
         """build output layer for rnet model"""
         question_understanding_unit_dim = self.hyperparams.model_understanding_question_unit_dim * 2
         answer_modeling_unit_dim = self.hyperparams.answer_modeling_unit_dim * 2
@@ -273,9 +290,11 @@ class RNet(BaseModel):
                     answer_output_attention_dim, answer_output_score_type, 0.0, False, False, False, None,
                     self.num_gpus, default_modeling_gpu_id, True, self.regularizer, answer_output_trainable)
                 
+                question_base, question_base_mask = create_base_variable(self.batch_size, question_understanding_unit_dim,
+                    self.num_gpus, default_modeling_gpu_id, self.regularizer, answer_output_trainable)
                 (answer_output_base,
-                    answer_output_base_mask) = answer_output_base_layer(question_understanding,
-                        question_understanding, question_understanding_mask, question_understanding_mask)
+                    answer_output_base_mask) = answer_output_base_layer(question_base,
+                        question_understanding, question_base_mask, question_understanding_mask)
             
             with tf.variable_scope("start", reuse=tf.AUTO_REUSE):
                 pass
