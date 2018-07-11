@@ -285,22 +285,42 @@ class RNet(BaseModel):
             answer_output_mask_list = []
             
             with tf.variable_scope("base", reuse=tf.AUTO_REUSE):
-                answer_output_base_layer = create_attention_layer("att",
+                question_base, question_base_mask = create_base_variable(self.batch_size, question_understanding_unit_dim,
+                    self.num_gpus, default_modeling_gpu_id, None, answer_output_trainable)
+                
+                answer_base_attention_layer = create_attention_layer("att",
                     question_understanding_unit_dim, question_understanding_unit_dim,
                     answer_output_attention_dim, answer_output_score_type, 0.0, False, False, False, None,
                     self.num_gpus, default_modeling_gpu_id, True, self.regularizer, answer_output_trainable)
-                
-                question_base, question_base_mask = create_base_variable(self.batch_size, question_understanding_unit_dim,
-                    self.num_gpus, default_modeling_gpu_id, self.regularizer, answer_output_trainable)
                 (answer_output_base,
-                    answer_output_base_mask) = answer_output_base_layer(question_base,
+                    answer_output_base_mask) = answer_base_attention_layer(question_base,
                         question_understanding, question_base_mask, question_understanding_mask)
             
             with tf.variable_scope("start", reuse=tf.AUTO_REUSE):
-                pass
-                        
+                answer_start_attention_layer = create_attention_layer("att",
+                    question_understanding_unit_dim, answer_modeling_unit_dim,
+                    answer_output_attention_dim, answer_output_score_type, 0.0, False, False, False, None,
+                    self.num_gpus, default_modeling_gpu_id, True, self.regularizer, answer_output_trainable)
+                (answer_output_start,
+                    answer_output_start_mask) = answer_start_attention_layer(answer_output_base,
+                        answer_modeling, answer_output_base_mask, answer_modeling_mask)
+                
+                answer_start_sequence_layer = create_recurrent_layer("uni", answer_output_num_layer,
+                    answer_output_unit_dim, answer_output_cell_type, answer_output_hidden_activation,
+                    answer_output_dropout, answer_output_forget_bias, answer_output_residual_connect,
+                    self.num_gpus, default_output_gpu_id, True, answer_output_trainable)
+                (answer_output_start,
+                    answer_output_start_mask) = answer_start_sequence_layer(answer_output_start,
+                        answer_output_start_mask)
+            
             with tf.variable_scope("end", reuse=tf.AUTO_REUSE):
-                pass
+                answer_end_attention_layer = create_attention_layer("att",
+                    answer_modeling_unit_dim, answer_modeling_unit_dim,
+                    answer_output_attention_dim, answer_output_score_type, 0.0, False, False, False, None,
+                    self.num_gpus, default_modeling_gpu_id, True, self.regularizer, answer_output_trainable)
+                (answer_output_end,
+                    answer_output_end_mask) = answer_end_attention_layer(answer_output_start,
+                        answer_modeling, answer_output_start_mask, answer_modeling_mask)
         
         return answer_output_list, answer_output_mask_list
     
