@@ -245,8 +245,8 @@ class QANet(BaseModel):
                     if enable_interaction_sharing == True:
                         attention_matrix = context2question_interaction_layer.get_attention_matrix()
                     
-                    (context2question_interaction,
-                        context2question_interaction_mask) = context2question_interaction_layer(context_understanding,
+                    (context2question_interaction, context2question_interaction_mask,
+                        _, _) = context2question_interaction_layer(context_understanding,
                             question_understanding, context_understanding_mask, question_understanding_mask)
                     
                     answer_intermediate_list.append(context2question_interaction)

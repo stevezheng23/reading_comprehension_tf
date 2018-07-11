@@ -432,6 +432,9 @@ class Attention(object):
             input_attention_score = _generate_attention_score(input_src_attention,
                 input_trg_attention, self.attention_matrix, self.score_type)
             input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
+            output_attention_score = input_attention_score
+            output_score_mask = input_attention_mask
+            
             input_attention_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True)
             input_attention = tf.matmul(input_attention_weight, input_trg_attention)
@@ -445,7 +448,7 @@ class Attention(object):
                 output_attention = input_attention
                 output_mask = input_mask
         
-        return output_attention, output_mask
+        return output_attention, output_mask, output_attention_score, output_score_mask
     
     def get_attention_matrix(self):
         return self.attention_matrix
