@@ -219,8 +219,8 @@ class BiDAF(BaseModel):
                     if enable_interaction_sharing == True:
                         attention_matrix = context2question_attention_layer.get_attention_matrix()
                     
-                    (context2question_interaction,
-                        context2question_interaction_mask) = context2question_attention_layer(context_understanding,
+                    (context2question_interaction, context2question_interaction_mask,
+                        _, _) = context2question_attention_layer(context_understanding,
                             question_understanding, context_understanding_mask, question_understanding_mask)
                     
                     answer_intermediate_list.append(context2question_interaction)
@@ -311,8 +311,8 @@ class BiDAF(BaseModel):
                     answer_modeling_attention_dim, answer_modeling_score_type, 0.0, False, False, True,
                     None, self.num_gpus, default_modeling_gpu_id, True, self.regularizer, answer_modeling_trainable)
 
-                (answer_modeling_attention,
-                    answer_modeling_attention_mask) = answer_modeling_attention_layer(answer_modeling_sequence,
+                (answer_modeling_attention, answer_modeling_attention_mask,
+                    _, _) = answer_modeling_attention_layer(answer_modeling_sequence,
                         answer_modeling_sequence, answer_modeling_sequence_mask, answer_modeling_sequence_mask)
                 answer_modeling_attention_unit_dim = answer_modeling_sequence_unit_dim
                 
