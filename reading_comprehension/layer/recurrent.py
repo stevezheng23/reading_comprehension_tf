@@ -1,6 +1,8 @@
 import numpy as np
 import tensorflow as tf
 
+from tensorflow.contrib.rnn import RNNCell
+
 from util.default_util import *
 from util.reading_comprehension_util import *
 
@@ -172,3 +174,54 @@ class BiRNN(object):
             output_mask = input_mask
         
         return output_recurrent, output_mask
+
+class GatedAttentionCellWrapper(RNNCell):
+    def __init__(self,
+                 cell,
+                 attn_length,
+                 attn_size=None,
+                 attn_vec_size=None,
+                 input_size=None,
+                 state_is_tuple=True,
+                 reuse=None):
+    super(GatedAttentionCellWrapper, self).__init__(_reuse=reuse)
+    
+    if attn_length <= 0:
+        raise ValueError("attention length should be greater than 0")
+    
+    if attn_size is None:
+        attn_size = cell.output_size
+    if attn_vec_size is None:
+        attn_vec_size = attn_size
+    
+    self._cell = cell
+    self._attn_length = attn_length
+    self._attn_size = attn_size
+    self._attn_vec_size = attn_vec_size
+    self._input_size = input_size
+    self._state_is_tuple = state_is_tuple
+    self._reuse = reuse
+    
+    @property
+    def state_size(self):
+        size = (self._cell.state_size, self._attn_size,
+            self._attn_size * self._attn_length)
+        
+        if self._state_is_tuple:
+            return size
+        else:
+            return sum(list(size))
+    
+    @property
+    def output_size(self):
+        return self._attn_size
+    
+    def call(self,
+             inputs,
+             state):
+        pass
+    
+    def _attention(self,
+                   query,
+                   attn_states):
+        pass
