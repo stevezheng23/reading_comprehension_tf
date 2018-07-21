@@ -178,29 +178,32 @@ class BiRNN(object):
 class GatedAttentionCellWrapper(RNNCell):
     def __init__(self,
                  cell,
+                 attn_mechanism,
                  attn_length,
                  attn_size=None,
                  attn_vec_size=None,
                  input_size=None,
                  state_is_tuple=True,
                  reuse=None):
-    super(GatedAttentionCellWrapper, self).__init__(_reuse=reuse)
-    
-    if attn_length <= 0:
-        raise ValueError("attention length should be greater than 0")
-    
-    if attn_size is None:
-        attn_size = cell.output_size
-    if attn_vec_size is None:
-        attn_vec_size = attn_size
-    
-    self._cell = cell
-    self._attn_length = attn_length
-    self._attn_size = attn_size
-    self._attn_vec_size = attn_vec_size
-    self._input_size = input_size
-    self._state_is_tuple = state_is_tuple
-    self._reuse = reuse
+        """initialize gated-attention cell wrapper"""
+        super(GatedAttentionCellWrapper, self).__init__(_reuse=reuse)
+
+        if attn_length <= 0:
+            raise ValueError("attention length should be greater than 0")
+
+        if attn_size is None:
+            attn_size = cell.output_size
+        if attn_vec_size is None:
+            attn_vec_size = attn_size
+
+        self._cell = cell
+        self._attn_mechanism = attn_mechanism
+        self._attn_length = attn_length
+        self._attn_size = attn_size
+        self._attn_vec_size = attn_vec_size
+        self._input_size = input_size
+        self._state_is_tuple = state_is_tuple
+        self._reuse = reuse
     
     @property
     def state_size(self):
@@ -216,12 +219,30 @@ class GatedAttentionCellWrapper(RNNCell):
     def output_size(self):
         return self._attn_size
     
-    def call(self,
-             inputs,
-             state):
-        pass
+    def __call__(self,
+                 inputs,
+                 state):
+        """call gated-attention cell wrapper"""
+        inputs = self._attention(self._attn_mechanism.memory, inputs, state)
+        cell_output, new_state = self._cell(inputs, state)
+        
+        return cell_output, new_state
     
     def _attention(self,
-                   query,
-                   attn_states):
+                   memory,
+                   inputs,
+                   state):
         pass
+
+class AttentionMechanism(object):
+    def __init__(self,
+                 unit_dim,
+                 memory,
+                 memory_sequence_length):
+        self._unit_dim = unit_dim
+        self._memory = memory
+        self._memory_sequence_length = memory_sequence_length
+    
+    @property
+    def memory(self):
+        return self._memory
