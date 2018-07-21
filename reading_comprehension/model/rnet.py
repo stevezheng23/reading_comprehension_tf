@@ -301,9 +301,11 @@ class RNet(BaseModel):
                     question_understanding_unit_dim, answer_modeling_unit_dim,
                     answer_output_attention_dim, answer_output_score_type, 0.0, False, False, False, None,
                     self.num_gpus, default_modeling_gpu_id, True, self.regularizer, answer_output_trainable)
-                (answer_start_attention, answer_start_attention_mask, answer_start_attention_score,
-                    answer_start_attention_score_mask) = answer_start_attention_layer(answer_base_state,
+                (answer_start_attention, answer_start_attention_mask, answer_start_output,
+                    answer_start_output_mask) = answer_start_attention_layer(answer_base_state,
                         answer_modeling, answer_base_state_mask, answer_modeling_mask)
+                answer_output_list.append(answer_start_output)
+                answer_output_mask_list.append(answer_start_output_mask)
                 
                 answer_start_sequence_layer = create_recurrent_layer("uni", answer_output_num_layer,
                     answer_output_unit_dim, answer_output_cell_type, answer_output_hidden_activation,
@@ -318,9 +320,11 @@ class RNet(BaseModel):
                     answer_modeling_unit_dim, answer_modeling_unit_dim,
                     answer_output_attention_dim, answer_output_score_type, 0.0, False, False, False, None,
                     self.num_gpus, default_modeling_gpu_id, True, self.regularizer, answer_output_trainable)
-                (answer_end_attention, answer_end_attention_mask, answer_end_attention_score,
-                    answer_end_attention_score_mask) = answer_end_attention_layer(answer_start_state,
+                (answer_end_attention, answer_end_attention_mask, answer_end_output,
+                    answer_end_output_mask) = answer_end_attention_layer(answer_start_state,
                         answer_modeling, answer_start_state_mask, answer_modeling_mask)
+                answer_output_list.append(answer_end_output)
+                answer_output_mask_list.append(answer_end_output_mask)
         
         return answer_output_list, answer_output_mask_list
     
