@@ -178,46 +178,25 @@ class BiRNN(object):
 class GatedAttentionCellWrapper(RNNCell):
     def __init__(self,
                  cell,
-                 attn_mechanism,
-                 attn_length,
-                 attn_size=None,
-                 attn_vec_size=None,
-                 input_size=None,
-                 state_is_tuple=True,
+                 memory,
+                 memory_mask,
+                 attention_mechanism,
                  reuse=None):
         """initialize gated-attention cell wrapper"""
         super(GatedAttentionCellWrapper, self).__init__(_reuse=reuse)
         
-        if attn_length <= 0:
-            raise ValueError("attention length should be greater than 0")
-        
-        if attn_size is None:
-            attn_size = cell.output_size
-        if attn_vec_size is None:
-            attn_vec_size = attn_size
-        
         self._cell = cell
-        self._attn_mechanism = attn_mechanism
-        self._attn_length = attn_length
-        self._attn_size = attn_size
-        self._attn_vec_size = attn_vec_size
-        self._input_size = input_size
-        self._state_is_tuple = state_is_tuple
-        self._reuse = reuse
+        self._memory = memory
+        self._memory_mask = memory_mask
+        self._attention_mechanism = attention_mechanism
     
     @property
     def state_size(self):
-        size = (self._cell.state_size, self._attn_size,
-            self._attn_size * self._attn_length)
-        
-        if self._state_is_tuple:
-            return size
-        else:
-            return sum(list(size))
+        return self._cell.state_size
     
     @property
     def output_size(self):
-        return self._attn_size
+        return self._cell.output_size
     
     def __call__(self,
                  inputs,
