@@ -795,3 +795,53 @@ class MultiHeadAttention(object):
                 output_mask = input_mask
         
         return output_attention, output_mask
+
+class AttentionMechanism(object):
+    def __init__(self,
+                 attention_type,
+                 src_dim,
+                 trg_dim,
+                 att_dim,
+                 score_type,
+                 layer_dropout=0.0,
+                 layer_norm=False,
+                 residual_connect=False,
+                 is_self=False,
+                 external_matrix=None,
+                 num_gpus=1,
+                 default_gpu_id=0,
+                 regularizer=None,
+                 trainable=True,
+                 scope="attention_mechanism"):
+        """initialize attention mechanism"""
+        scope = "attention_mechanism/{0}".format(attention_type)
+        if attention_type == "att":
+            self.attention_layer = Attention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim,
+                score_type=score_type, layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect,
+                is_self=is_self, external_matrix=external_matrix, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
+                regularizer=regularizer, trainable=trainable, scope=scope)
+        elif attention_type == "max_att":
+            self.attention_layer = MaxAttention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim,
+                score_type=score_type, layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect,
+                is_self=is_self, external_matrix=external_matrix, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
+                regularizer=regularizer, trainable=trainable, scope=scope)
+        elif attention_type == "co_att":
+            self.attention_layer = CoAttention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim,
+                score_type=score_type, layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect,
+                is_self=is_self, external_matrix=external_matrix, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
+                 regularizer=regularizer, trainable=trainable, scope=scope)
+        elif attention_type == "multi_head_att":
+            self.attention_layer = MultiHeadAttention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim,
+                score_type=score_type, layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect,
+                is_self=is_self, external_matrix=external_matrix, num_gpus=num_gpus, default_gpu_id=default_gpu_id, 
+                enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, trainable=trainable, scope=scope)
+        else:
+            raise ValueError("unsupported attention type {0}".format(attention_type))
+    
+    def __call__(self,
+                 input_src_data,
+                 input_trg_data,
+                 input_src_mask,
+                 input_trg_mask):
+        """call attention mechanism"""
+        return self.attention_layer(input_src_data, input_trg_data, input_src_mask, input_trg_mask)
