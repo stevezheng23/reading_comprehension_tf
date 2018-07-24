@@ -181,7 +181,10 @@ class GatedAttentionCellWrapper(RNNCell):
                  memory,
                  memory_mask,
                  attention_mechanism,
-                 reuse=None):
+                 reuse=None,
+                 regularizer=None,
+                 trainable=True,
+                 scope="gated_attention"):
         """initialize gated-attention cell wrapper"""
         super(GatedAttentionCellWrapper, self).__init__(_reuse=reuse)
         
@@ -189,6 +192,15 @@ class GatedAttentionCellWrapper(RNNCell):
         self._memory = memory
         self._memory_mask = memory_mask
         self._attention_mechanism = attention_mechanism
+        self._regularizer = regularizer
+        self._trainable = trainable
+        self._scope = scope
+        
+        with tf.variable_scope(self._scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+            weight_initializer = create_variable_initializer("glorot_uniform")
+            gate_activation = create_activation_function("sigmoid")
+            self.gate_layer = tf.layers.Dense(units=self.unit_dim, activation=gate_activation,
+                kernel_initializer=weight_initializer, kernel_regularizer=self._regularizer, trainable=self._trainable)
     
     @property
     def state_size(self):
@@ -210,4 +222,11 @@ class GatedAttentionCellWrapper(RNNCell):
     def _attention(self,
                    inputs,
                    state):
-        pass
+        query = tf.concat([inputs, state], axis=-1)
+        query_mask = tf.cast(tf.reduce_any(query, axis=-1), dtype=tf.float32)
+        context, context_mask = self._attention_mechanism(query, query_mask, self._memory, self._memory_mask)
+        attention = tf.concat([inputs, context], axis=-1)
+        gate = self.gate_layer(attention)
+        attention = gate * attention
+        
+        return attention
