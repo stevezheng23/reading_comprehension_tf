@@ -14,6 +14,7 @@ def _create_single_reccurent_cell(unit_dim,
                                   dropout,
                                   forget_bias,
                                   residual_connect,
+                                  attention_mechanism,
                                   device_spec):
     """create single recurrent cell"""
     weight_initializer = create_variable_initializer("glorot_uniform")
@@ -36,6 +37,9 @@ def _create_single_reccurent_cell(unit_dim,
             kernel_initializer=weight_initializer, bias_initializer=bias_initializer)
     else:
         raise ValueError("unsupported cell type {0}".format(cell_type))
+    
+    if attention_mechanism != None:
+        single_cell = AttentionCellWrapper(cell=single_cell, attention_mechanism=attention_mechanism)
     
     if dropout > 0.0:
         single_cell = tf.contrib.rnn.DropoutWrapper(cell=single_cell, input_keep_prob=1.0-dropout)
@@ -175,32 +179,16 @@ class BiRNN(object):
         
         return output_recurrent, output_mask
 
-class GatedAttentionCellWrapper(RNNCell):
+class AttentionCellWrapper(RNNCell):
     def __init__(self,
                  cell,
-                 memory,
-                 memory_mask,
                  attention_mechanism,
-                 reuse=None,
-                 regularizer=None,
-                 trainable=True,
-                 scope="gated_attention"):
+                 reuse=None):
         """initialize gated-attention cell wrapper"""
-        super(GatedAttentionCellWrapper, self).__init__(_reuse=reuse)
+        super(AttentionCellWrapper, self).__init__(_reuse=reuse)
         
         self._cell = cell
-        self._memory = memory
-        self._memory_mask = memory_mask
         self._attention_mechanism = attention_mechanism
-        self._regularizer = regularizer
-        self._trainable = trainable
-        self._scope = scope
-        
-        with tf.variable_scope(self._scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
-            weight_initializer = create_variable_initializer("glorot_uniform")
-            gate_activation = create_activation_function("sigmoid")
-            self.gate_layer = tf.layers.Dense(units=self.unit_dim, activation=gate_activation,
-                kernel_initializer=weight_initializer, kernel_regularizer=self._regularizer, trainable=self._trainable)
     
     @property
     def state_size(self):
@@ -214,19 +202,10 @@ class GatedAttentionCellWrapper(RNNCell):
                  inputs,
                  state):
         """call gated-attention cell wrapper"""
-        inputs = self._attention(inputs, state)
+        query = tf.expand_dims(tf.concat([inputs, state], axis=-1), axis=1)
+        query_mask = tf.cast(tf.reduce_any(query, axis=-1), dtype=tf.float32)
+        attention, attention_mask = self._attention_mechanism(query, query_mask, self._memory, self._memory_mask)
+        inputs = tf.squeeze(attention, axis=1)
         cell_output, new_state = self._cell(inputs, state)
         
         return cell_output, new_state
-    
-    def _attention(self,
-                   inputs,
-                   state):
-        query = tf.concat([inputs, state], axis=-1)
-        query_mask = tf.cast(tf.reduce_any(query, axis=-1), dtype=tf.float32)
-        context, context_mask = self._attention_mechanism(query, query_mask, self._memory, self._memory_mask)
-        attention = tf.concat([inputs, context], axis=-1)
-        gate = self.gate_layer(attention)
-        attention = gate * attention
-        
-        return attention
