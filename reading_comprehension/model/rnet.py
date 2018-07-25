@@ -181,8 +181,31 @@ class RNet(BaseModel):
                                  question_understanding_mask,
                                  context_understanding_mask):
         """build interaction layer for rnet model"""
-        answer_interaction = context_understanding
-        answer_interaction_mask = context_understanding_mask
+        question_understanding_unit_dim = self.hyperparams.model_understanding_question_unit_dim * 2
+        context_understanding_unit_dim = self.hyperparams.model_understanding_context_unit_dim * 2
+        context2question_interaction_num_layer = self.hyperparams.model_interaction_context2question_num_layer
+        context2question_interaction_unit_dim = self.hyperparams.model_interaction_context2question_unit_dim
+        context2question_interaction_cell_type = self.hyperparams.model_interaction_context2question_cell_type
+        context2question_interaction_hidden_activation = self.hyperparams.model_interaction_context2question_hidden_activation
+        context2question_interaction_dropout = self.hyperparams.model_interaction_context2question_dropout if self.mode == "train" else 0.0
+        context2question_interaction_forget_bias = self.hyperparams.model_interaction_context2question_forget_bias
+        context2question_interaction_residual_connect = self.hyperparams.model_interaction_context2question_residual_connect
+        context2question_interaction_attention_dim = self.hyperparams.model_interaction_context2question_attention_dim
+        context2question_interaction_score_type = self.hyperparams.model_interaction_context2question_score_type
+        context2question_interaction_trainable = self.hyperparams.model_interaction_context2question_trainable
+        default_interaction_gpu_id = self.default_gpu_id + 1
+        
+        context2question_attention_mechanism = None
+        context2question_interaction_layer = create_recurrent_layer("uni", context2question_interaction_num_layer,
+            context2question_interaction_unit_dim, context2question_interaction_cell_type, context2question_interaction_hidden_activation,
+            context2question_interaction_dropout, context2question_interaction_forget_bias, context2question_interaction_residual_connect,
+            context2question_attention_mechanism, self.num_gpus, default_interaction_gpu_id, True, context2question_interaction_trainable)
+        
+        (context2question_interaction,
+            context2question_interaction_mask) = context2question_interaction_layer(context_understanding,
+                context_understanding_mask)
+        answer_interaction = context2question_interaction
+        answer_interaction_mask = context2question_interaction_mask
         
         return answer_interaction, answer_interaction_mask
     
