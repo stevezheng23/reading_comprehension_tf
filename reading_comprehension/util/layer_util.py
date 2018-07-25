@@ -179,6 +179,7 @@ def create_recurrent_layer(recurrent_type,
                            dropout,
                            forget_bias,
                            residual_connect,
+                           attention_mechanism,
                            num_gpus,
                            default_gpu_id,
                            enable_multi_gpu,
@@ -186,12 +187,12 @@ def create_recurrent_layer(recurrent_type,
     """create recurrent layer"""
     scope = "recurrent/{0}".format(recurrent_type)
     if recurrent_type == "uni":
-        recurrent_layer = RNN(num_layer=num_layer, unit_dim=unit_dim, cell_type=cell_type,
-            activation=activation, dropout=dropout, forget_bias=forget_bias, residual_connect=residual_connect,
+        recurrent_layer = RNN(num_layer=num_layer, unit_dim=unit_dim, cell_type=cell_type, activation=activation,
+            dropout=dropout, forget_bias=forget_bias, residual_connect=residual_connect, attention_mechanism=attention_mechanism,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, enable_multi_gpu=enable_multi_gpu, trainable=trainable, scope=scope)
     elif recurrent_type == "bi":
-        recurrent_layer = BiRNN(num_layer=num_layer, unit_dim=unit_dim, cell_type=cell_type,
-            activation=activation, dropout=dropout, forget_bias=forget_bias, residual_connect=residual_connect,
+        recurrent_layer = BiRNN(num_layer=num_layer, unit_dim=unit_dim, cell_type=cell_type, activation=activation,
+            dropout=dropout, forget_bias=forget_bias, residual_connect=residual_connect, attention_mechanism=attention_mechanism,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, enable_multi_gpu=enable_multi_gpu, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported recurrent type {0}".format(recurrent_type))

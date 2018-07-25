@@ -59,6 +59,7 @@ def _creat_recurrent_cell(num_layer,
                           dropout,
                           forget_bias,
                           residual_connect,
+                          attention_mechanism,
                           num_gpus,
                           default_gpu_id,
                           enable_multi_gpu):
@@ -72,13 +73,13 @@ def _creat_recurrent_cell(num_layer,
                 device_spec = get_device_spec(default_gpu_id, num_gpus)
             
             single_cell = _create_single_reccurent_cell(unit_dim, cell_type, activation,
-                dropout, forget_bias, residual_connect, device_spec)
+                dropout, forget_bias, residual_connect, attention_mechanism, device_spec)
         cell_list.append(single_cell)
         cell = tf.contrib.rnn.MultiRNNCell(cell_list)
     else:
         device_spec = get_device_spec(default_gpu_id, num_gpus)
         cell = _create_single_reccurent_cell(unit_dim, cell_type, activation,
-            dropout, forget_bias, residual_connect, device_spec)
+            dropout, forget_bias, residual_connect, attention_mechanism, device_spec)
     
     return cell
 
@@ -92,6 +93,7 @@ class RNN(object):
                  dropout,
                  forget_bias=1.0,
                  residual_connect=False,
+                 attention_mechanism=None,
                  num_gpus=1,
                  default_gpu_id=0,
                  enable_multi_gpu=True,
@@ -105,6 +107,7 @@ class RNN(object):
         self.dropout = dropout
         self.forget_bias = forget_bias
         self.residual_connect = residual_connect
+        self.attention_mechanism = attention_mechanism
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
@@ -113,7 +116,7 @@ class RNN(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             self.cell = _creat_recurrent_cell(self.num_layer, self.unit_dim, self.cell_type,
-                self.activation, self.dropout, self.forget_bias, self.residual_connect,
+                self.activation, self.dropout, self.forget_bias, self.residual_connect, self.attention_mechanism,
                 self.num_gpus, self.default_gpu_id, self.enable_multi_gpu)
     
     def __call__(self,
@@ -138,6 +141,7 @@ class BiRNN(object):
                  dropout,
                  forget_bias=1.0,
                  residual_connect=False,
+                 attention_mechanism=None,
                  num_gpus=1,
                  default_gpu_id=0,
                  enable_multi_gpu=True,
@@ -151,6 +155,7 @@ class BiRNN(object):
         self.dropout = dropout
         self.forget_bias = forget_bias
         self.residual_connect = residual_connect
+        self.attention_mechanism = attention_mechanism
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
@@ -159,10 +164,10 @@ class BiRNN(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             self.fwd_cell = _creat_recurrent_cell(self.num_layer, self.unit_dim, self.cell_type,
-                self.activation, self.dropout, self.forget_bias, self.residual_connect,
+                self.activation, self.dropout, self.forget_bias, self.residual_connect, self.attention_mechanism,
                 self.num_gpus, self.default_gpu_id, self.enable_multi_gpu)
             self.bwd_cell = _creat_recurrent_cell(self.num_layer, self.unit_dim, self.cell_type,
-                self.activation, self.dropout, self.forget_bias, self.residual_connect,
+                self.activation, self.dropout, self.forget_bias, self.residual_connect, self.attention_mechanism,
                 self.num_gpus, self.default_gpu_id + self.num_layer, self.enable_multi_gpu)
     
     def __call__(self,
