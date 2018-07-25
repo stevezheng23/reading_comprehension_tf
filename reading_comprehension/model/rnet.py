@@ -218,7 +218,7 @@ class RNet(BaseModel):
                               answer_interaction,
                               answer_interaction_mask):
         """build modeling layer for rnet model"""
-        answer_interaction_unit_dim = self.hyperparams.model_interaction_fusion_unit_dim
+        answer_interaction_unit_dim = self.hyperparams.model_interaction_context2question_unit_dim * 2
         answer_modeling_num_layer = self.hyperparams.model_modeling_answer_num_layer
         answer_modeling_unit_dim = self.hyperparams.model_modeling_answer_unit_dim
         answer_modeling_cell_type = self.hyperparams.model_modeling_answer_cell_type
@@ -294,7 +294,7 @@ class RNet(BaseModel):
         
         """build output layer for rnet model"""
         question_understanding_unit_dim = self.hyperparams.model_understanding_question_unit_dim * 2
-        answer_modeling_unit_dim = self.hyperparams.answer_modeling_unit_dim * 2
+        answer_modeling_unit_dim = self.hyperparams.model_modeling_answer_unit_dim * 2
         answer_output_num_layer = self.hyperparams.model_output_answer_num_layer
         answer_output_unit_dim = self.hyperparams.model_output_answer_unit_dim
         answer_output_cell_type = self.hyperparams.model_output_answer_cell_type
@@ -314,12 +314,12 @@ class RNet(BaseModel):
             
             with tf.variable_scope("base", reuse=tf.AUTO_REUSE):
                 question_base, question_base_mask = create_base_variable(self.batch_size, question_understanding_unit_dim,
-                    self.num_gpus, default_modeling_gpu_id, None, answer_output_trainable)
+                    self.num_gpus, default_output_gpu_id, None, answer_output_trainable)
                 
                 answer_base_attention_layer = create_attention_layer("att",
                     question_understanding_unit_dim, question_understanding_unit_dim,
                     answer_output_attention_dim, answer_output_score_type, 0.0, False, False, False, None,
-                    self.num_gpus, default_modeling_gpu_id, True, self.regularizer, answer_output_trainable)
+                    self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_output_trainable)
                 (answer_base_state, answer_base_state_mask,
                     _, _) = answer_base_attention_layer(question_base,
                         question_understanding, question_base_mask, question_understanding_mask)
@@ -328,7 +328,7 @@ class RNet(BaseModel):
                 answer_start_attention_layer = create_attention_layer("att",
                     question_understanding_unit_dim, answer_modeling_unit_dim,
                     answer_output_attention_dim, answer_output_score_type, 0.0, False, False, False, None,
-                    self.num_gpus, default_modeling_gpu_id, True, self.regularizer, answer_output_trainable)
+                    self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_output_trainable)
                 (answer_start_attention, answer_start_attention_mask, answer_start_output,
                     answer_start_output_mask) = answer_start_attention_layer(answer_base_state,
                         answer_modeling, answer_base_state_mask, answer_modeling_mask)
@@ -347,7 +347,7 @@ class RNet(BaseModel):
                 answer_end_attention_layer = create_attention_layer("att",
                     answer_modeling_unit_dim, answer_modeling_unit_dim,
                     answer_output_attention_dim, answer_output_score_type, 0.0, False, False, False, None,
-                    self.num_gpus, default_modeling_gpu_id, True, self.regularizer, answer_output_trainable)
+                    self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_output_trainable)
                 (answer_end_attention, answer_end_attention_mask, answer_end_output,
                     answer_end_output_mask) = answer_end_attention_layer(answer_start_state,
                         answer_modeling, answer_start_state_mask, answer_modeling_mask)
@@ -390,7 +390,9 @@ class RNet(BaseModel):
             answer_modeling, answer_modeling_mask = self._build_modeling_layer(answer_interaction, answer_interaction_mask)
             
             """build output layer for rnet model"""
-            answer_output_list, answer_output_mask_list = self._build_output_layer(answer_modeling, answer_modeling_mask)
+            (answer_output_list,
+                answer_output_mask_list) = self._build_output_layer(question_understanding,
+                    question_understanding_mask, answer_modeling, answer_modeling_mask)
             answer_start_output = answer_output_list[0]
             answer_end_output = answer_output_list[1]
             answer_start_output_mask = answer_output_mask_list[0]

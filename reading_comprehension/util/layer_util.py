@@ -271,7 +271,7 @@ class AttentionMechanism(object):
         
         self.attention_layer = create_attention_layer(attention_type, src_dim, trg_dim, att_dim,
             score_type, layer_dropout, layer_norm, residual_connect, is_self, external_matrix,
-            num_gpus, default_gpu_id, enable_multi_gpu, regularizer, trainable)
+            num_gpus, default_gpu_id, False, regularizer, trainable)
     
     def __call__(self,
                  input_data,
