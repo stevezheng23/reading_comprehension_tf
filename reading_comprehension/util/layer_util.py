@@ -231,6 +231,11 @@ def create_attention_layer(attention_type,
             score_type=score_type, layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect,
             is_self=is_self, external_matrix=external_matrix, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
              regularizer=regularizer, trainable=trainable, scope=scope)
+    elif attention_type == "gated_att":
+        attention_layer = GatedAttention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim,
+            score_type=score_type, layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect,
+            is_self=is_self, external_matrix=external_matrix, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
+             regularizer=regularizer, trainable=trainable, scope=scope)
     elif attention_type == "multi_head_att":
         attention_layer = MultiHeadAttention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim,
             score_type=score_type, layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect,
