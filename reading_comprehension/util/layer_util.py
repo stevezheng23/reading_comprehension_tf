@@ -10,8 +10,8 @@ from layer.highway import *
 from layer.recurrent import *
 from layer.attention import *
 
-__all__ = ["create_embedding_layer", "create_position_layer", "create_convolution_layer", "create_pooling_layer",
-           "create_dense_layer", "create_highway_layer", "create_recurrent_layer", "create_attention_layer"]
+__all__ = ["AttentionMechanism", "create_embedding_layer", "create_position_layer", "create_convolution_layer",
+           "create_pooling_layer", "create_dense_layer", "create_highway_layer", "create_recurrent_layer", "create_attention_layer"]
 
 def create_embedding_layer(vocab_size,
                            embed_dim,
@@ -179,6 +179,7 @@ def create_recurrent_layer(recurrent_type,
                            dropout,
                            forget_bias,
                            residual_connect,
+                           attention_mechanism,
                            num_gpus,
                            default_gpu_id,
                            enable_multi_gpu,
@@ -186,12 +187,12 @@ def create_recurrent_layer(recurrent_type,
     """create recurrent layer"""
     scope = "recurrent/{0}".format(recurrent_type)
     if recurrent_type == "uni":
-        recurrent_layer = RNN(num_layer=num_layer, unit_dim=unit_dim, cell_type=cell_type,
-            activation=activation, dropout=dropout, forget_bias=forget_bias, residual_connect=residual_connect,
+        recurrent_layer = RNN(num_layer=num_layer, unit_dim=unit_dim, cell_type=cell_type, activation=activation,
+            dropout=dropout, forget_bias=forget_bias, residual_connect=residual_connect, attention_mechanism=attention_mechanism,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, enable_multi_gpu=enable_multi_gpu, trainable=trainable, scope=scope)
     elif recurrent_type == "bi":
-        recurrent_layer = BiRNN(num_layer=num_layer, unit_dim=unit_dim, cell_type=cell_type,
-            activation=activation, dropout=dropout, forget_bias=forget_bias, residual_connect=residual_connect,
+        recurrent_layer = BiRNN(num_layer=num_layer, unit_dim=unit_dim, cell_type=cell_type, activation=activation,
+            dropout=dropout, forget_bias=forget_bias, residual_connect=residual_connect, attention_mechanism=attention_mechanism,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, enable_multi_gpu=enable_multi_gpu, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported recurrent type {0}".format(recurrent_type))
@@ -239,3 +240,37 @@ def create_attention_layer(attention_type,
         raise ValueError("unsupported attention type {0}".format(attention_type))
     
     return attention_layer
+
+class AttentionMechanism(object):
+    def __init__(self,
+                 memory,
+                 memory_mask,
+                 attention_type,
+                 src_dim,
+                 trg_dim,
+                 att_dim,
+                 score_type,
+                 layer_dropout=0.0,
+                 layer_norm=False,
+                 residual_connect=False,
+                 is_self=False,
+                 external_matrix=None,
+                 num_gpus=1,
+                 default_gpu_id=0,
+                 regularizer=None,
+                 trainable=True,
+                 scope="attention_mechanism"):
+        """initialize attention mechanism"""
+        self.memory = memory
+        self.memory_mask = memory_mask
+        
+        self.attention_layer = create_attention_layer(attention_type, src_dim, trg_dim, att_dim,
+            score_type, layer_dropout, layer_norm, residual_connect, is_self, external_matrix,
+            num_gpus, default_gpu_id, enable_multi_gpu, regularizer, trainable)
+    
+    def __call__(self,
+                 input_data,
+                 input_mask):
+        """call attention mechanism"""
+        output_attention, output_mask = self.attention_layer(input_data, self.memory, input_mask, self.memory_mask)
+        return output_attention, output_mask

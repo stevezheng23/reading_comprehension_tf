@@ -14,6 +14,7 @@ def _create_single_reccurent_cell(unit_dim,
                                   dropout,
                                   forget_bias,
                                   residual_connect,
+                                  attention_mechanism,
                                   device_spec):
     """create single recurrent cell"""
     weight_initializer = create_variable_initializer("glorot_uniform")
@@ -37,6 +38,9 @@ def _create_single_reccurent_cell(unit_dim,
     else:
         raise ValueError("unsupported cell type {0}".format(cell_type))
     
+    if attention_mechanism != None:
+        single_cell = AttentionCellWrapper(cell=single_cell, attention_mechanism=attention_mechanism)
+    
     if dropout > 0.0:
         single_cell = tf.contrib.rnn.DropoutWrapper(cell=single_cell, input_keep_prob=1.0-dropout)
     
@@ -55,6 +59,7 @@ def _creat_recurrent_cell(num_layer,
                           dropout,
                           forget_bias,
                           residual_connect,
+                          attention_mechanism,
                           num_gpus,
                           default_gpu_id,
                           enable_multi_gpu):
@@ -68,13 +73,13 @@ def _creat_recurrent_cell(num_layer,
                 device_spec = get_device_spec(default_gpu_id, num_gpus)
             
             single_cell = _create_single_reccurent_cell(unit_dim, cell_type, activation,
-                dropout, forget_bias, residual_connect, device_spec)
+                dropout, forget_bias, residual_connect, attention_mechanism, device_spec)
         cell_list.append(single_cell)
         cell = tf.contrib.rnn.MultiRNNCell(cell_list)
     else:
         device_spec = get_device_spec(default_gpu_id, num_gpus)
         cell = _create_single_reccurent_cell(unit_dim, cell_type, activation,
-            dropout, forget_bias, residual_connect, device_spec)
+            dropout, forget_bias, residual_connect, attention_mechanism, device_spec)
     
     return cell
 
@@ -88,6 +93,7 @@ class RNN(object):
                  dropout,
                  forget_bias=1.0,
                  residual_connect=False,
+                 attention_mechanism=None,
                  num_gpus=1,
                  default_gpu_id=0,
                  enable_multi_gpu=True,
@@ -101,6 +107,7 @@ class RNN(object):
         self.dropout = dropout
         self.forget_bias = forget_bias
         self.residual_connect = residual_connect
+        self.attention_mechanism = attention_mechanism
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
@@ -109,7 +116,7 @@ class RNN(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             self.cell = _creat_recurrent_cell(self.num_layer, self.unit_dim, self.cell_type,
-                self.activation, self.dropout, self.forget_bias, self.residual_connect,
+                self.activation, self.dropout, self.forget_bias, self.residual_connect, self.attention_mechanism,
                 self.num_gpus, self.default_gpu_id, self.enable_multi_gpu)
     
     def __call__(self,
@@ -134,6 +141,7 @@ class BiRNN(object):
                  dropout,
                  forget_bias=1.0,
                  residual_connect=False,
+                 attention_mechanism=None,
                  num_gpus=1,
                  default_gpu_id=0,
                  enable_multi_gpu=True,
@@ -147,6 +155,7 @@ class BiRNN(object):
         self.dropout = dropout
         self.forget_bias = forget_bias
         self.residual_connect = residual_connect
+        self.attention_mechanism = attention_mechanism
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
@@ -155,10 +164,10 @@ class BiRNN(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             self.fwd_cell = _creat_recurrent_cell(self.num_layer, self.unit_dim, self.cell_type,
-                self.activation, self.dropout, self.forget_bias, self.residual_connect,
+                self.activation, self.dropout, self.forget_bias, self.residual_connect, self.attention_mechanism,
                 self.num_gpus, self.default_gpu_id, self.enable_multi_gpu)
             self.bwd_cell = _creat_recurrent_cell(self.num_layer, self.unit_dim, self.cell_type,
-                self.activation, self.dropout, self.forget_bias, self.residual_connect,
+                self.activation, self.dropout, self.forget_bias, self.residual_connect, self.attention_mechanism,
                 self.num_gpus, self.default_gpu_id + self.num_layer, self.enable_multi_gpu)
     
     def __call__(self,
@@ -175,32 +184,16 @@ class BiRNN(object):
         
         return output_recurrent, output_mask
 
-class GatedAttentionCellWrapper(RNNCell):
+class AttentionCellWrapper(RNNCell):
     def __init__(self,
                  cell,
-                 memory,
-                 memory_mask,
                  attention_mechanism,
-                 reuse=None,
-                 regularizer=None,
-                 trainable=True,
-                 scope="gated_attention"):
+                 reuse=None):
         """initialize gated-attention cell wrapper"""
-        super(GatedAttentionCellWrapper, self).__init__(_reuse=reuse)
+        super(AttentionCellWrapper, self).__init__(_reuse=reuse)
         
         self._cell = cell
-        self._memory = memory
-        self._memory_mask = memory_mask
         self._attention_mechanism = attention_mechanism
-        self._regularizer = regularizer
-        self._trainable = trainable
-        self._scope = scope
-        
-        with tf.variable_scope(self._scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
-            weight_initializer = create_variable_initializer("glorot_uniform")
-            gate_activation = create_activation_function("sigmoid")
-            self.gate_layer = tf.layers.Dense(units=self.unit_dim, activation=gate_activation,
-                kernel_initializer=weight_initializer, kernel_regularizer=self._regularizer, trainable=self._trainable)
     
     @property
     def state_size(self):
@@ -214,19 +207,10 @@ class GatedAttentionCellWrapper(RNNCell):
                  inputs,
                  state):
         """call gated-attention cell wrapper"""
-        inputs = self._attention(inputs, state)
+        query = tf.expand_dims(tf.concat([inputs, state], axis=-1), axis=1)
+        query_mask = tf.cast(tf.reduce_any(query, axis=-1), dtype=tf.float32)
+        attention, attention_mask = self._attention_mechanism(query, query_mask, self._memory, self._memory_mask)
+        inputs = tf.squeeze(attention, axis=1)
         cell_output, new_state = self._cell(inputs, state)
         
         return cell_output, new_state
-    
-    def _attention(self,
-                   inputs,
-                   state):
-        query = tf.concat([inputs, state], axis=-1)
-        query_mask = tf.cast(tf.reduce_any(query, axis=-1), dtype=tf.float32)
-        context, context_mask = self._attention_mechanism(query, query_mask, self._memory, self._memory_mask)
-        attention = tf.concat([inputs, context], axis=-1)
-        gate = self.gate_layer(attention)
-        attention = gate * attention
-        
-        return attention

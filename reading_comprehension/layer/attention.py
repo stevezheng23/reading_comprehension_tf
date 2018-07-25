@@ -6,7 +6,7 @@ from util.reading_comprehension_util import *
 
 from layer.basic import *
 
-__all__ = ["Attention", "MaxAttention", "CoAttention", "HeadAttention", "MultiHeadAttention"]
+__all__ = ["Attention", "MaxAttention", "CoAttention", "GatedAttention", "HeadAttention", "MultiHeadAttention"]
 
 def _create_attention_matrix(src_unit_dim,
                              trg_unit_dim,
@@ -632,6 +632,103 @@ class CoAttention(object):
     def get_attention_matrix(self):
         return self.attention_matrix
 
+class GatedAttention(object):
+    """gated-attention layer"""
+    def __init__(self,
+                 src_dim,
+                 trg_dim,
+                 att_dim,
+                 score_type,
+                 layer_dropout=0.0,
+                 layer_norm=False,
+                 residual_connect=False,
+                 is_self=False,
+                 external_matrix=None,
+                 num_gpus=1,
+                 default_gpu_id=0,
+                 regularizer=None,
+                 trainable=True,
+                 scope="attention"):
+        """initialize gated-attention layer"""
+        self.src_dim = src_dim
+        self.trg_dim = trg_dim
+        self.att_dim = att_dim
+        self.score_type = score_type
+        self.layer_dropout = layer_dropout
+        self.layer_norm = layer_norm
+        self.residual_connect = residual_connect
+        self.is_self = is_self
+        self.regularizer = regularizer
+        self.trainable = trainable
+        self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+            if external_matrix == None:
+                self.attention_matrix = _create_attention_matrix(self.src_dim, self.trg_dim,
+                    self.att_dim, self.score_type, self.regularizer, self.trainable)
+            else:
+                self.attention_matrix = external_matrix
+            
+            if self.layer_norm == True:
+                self.src_norm_layer = LayerNorm(layer_dim=self.src_dim, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
+                    regularizer=self.regularizer, trainable=self.trainable, scope="src_layer_norm")
+                
+                if self.is_self == True:
+                    self.trg_norm_layer = self.src_norm_layer
+                else:
+                    self.trg_norm_layer = LayerNorm(layer_dim=self.trg_dim, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
+                    regularizer=self.regularizer, trainable=self.trainable, scope="trg_layer_norm")
+            
+            weight_initializer = create_variable_initializer("glorot_uniform")
+            gate_activation = create_activation_function("sigmoid")
+            if self.residual_connect == True and self.is_self == True:
+                self.gate_layer = tf.layers.Dense(units=self.trg_dim, activation=gate_activation,
+                    kernel_initializer=weight_initializer, kernel_regularizer=self.regularizer, trainable=self.trainable)
+            else:
+                self.gate_layer = tf.layers.Dense(units=self.src_dim+self.trg_dim, activation=gate_activation,
+                    kernel_initializer=weight_initializer, kernel_regularizer=self.regularizer, trainable=self.trainable)
+    
+    def __call__(self,
+                 input_src_data,
+                 input_trg_data,
+                 input_src_mask,
+                 input_trg_mask):
+        """call gated-attention layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            input_src_attention = input_src_data
+            input_trg_attention = input_trg_data
+            input_src_attention_mask = input_src_mask
+            input_trg_attention_mask = input_trg_mask
+            
+            if self.layer_norm == True:
+                input_src_attention, input_src_attention_mask = self.src_norm_layer(input_src_attention, input_src_attention_mask)
+                input_trg_attention, input_trg_attention_mask = self.trg_norm_layer(input_trg_attention, input_trg_attention_mask)
+            
+            input_attention_score = _generate_attention_score(input_src_attention,
+                input_trg_attention, self.attention_matrix, self.score_type)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
+            
+            input_attention_weight = softmax_with_mask(input_attention_score,
+                input_attention_mask, axis=-1, keepdims=True)
+            input_attention = tf.matmul(input_attention_weight, input_trg_attention)
+            input_mask = input_src_attention_mask
+            
+            if self.residual_connect == True and self.is_self == True:
+                output_attention, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
+                    lambda: (input_src_data, input_src_mask),
+                    lambda: (self.gate_layer(input_attention) * input_attention + input_src_data, input_mask * input_src_mask))
+            else:
+                input_attention = tf.concat([input_src_data, input_attention], axis=-1) 
+                gate = self.gate_layer(input_attention)
+                output_attention = gate * input_attention
+                output_mask = input_mask * input_src_mask
+        
+        return output_attention, output_mask
+    
+    def get_attention_matrix(self):
+        return self.attention_matrix
+
 class HeadAttention(object):
     """head-attention layer"""
     def __init__(self,
@@ -795,53 +892,3 @@ class MultiHeadAttention(object):
                 output_mask = input_mask
         
         return output_attention, output_mask
-
-class AttentionMechanism(object):
-    def __init__(self,
-                 attention_type,
-                 src_dim,
-                 trg_dim,
-                 att_dim,
-                 score_type,
-                 layer_dropout=0.0,
-                 layer_norm=False,
-                 residual_connect=False,
-                 is_self=False,
-                 external_matrix=None,
-                 num_gpus=1,
-                 default_gpu_id=0,
-                 regularizer=None,
-                 trainable=True,
-                 scope="attention_mechanism"):
-        """initialize attention mechanism"""
-        scope = "attention_mechanism/{0}".format(attention_type)
-        if attention_type == "att":
-            self.attention_layer = Attention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim,
-                score_type=score_type, layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect,
-                is_self=is_self, external_matrix=external_matrix, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-                regularizer=regularizer, trainable=trainable, scope=scope)
-        elif attention_type == "max_att":
-            self.attention_layer = MaxAttention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim,
-                score_type=score_type, layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect,
-                is_self=is_self, external_matrix=external_matrix, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-                regularizer=regularizer, trainable=trainable, scope=scope)
-        elif attention_type == "co_att":
-            self.attention_layer = CoAttention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim,
-                score_type=score_type, layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect,
-                is_self=is_self, external_matrix=external_matrix, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-                 regularizer=regularizer, trainable=trainable, scope=scope)
-        elif attention_type == "multi_head_att":
-            self.attention_layer = MultiHeadAttention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim,
-                score_type=score_type, layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect,
-                is_self=is_self, external_matrix=external_matrix, num_gpus=num_gpus, default_gpu_id=default_gpu_id, 
-                enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, trainable=trainable, scope=scope)
-        else:
-            raise ValueError("unsupported attention type {0}".format(attention_type))
-    
-    def __call__(self,
-                 input_src_data,
-                 input_trg_data,
-                 input_src_mask,
-                 input_trg_mask):
-        """call attention mechanism"""
-        return self.attention_layer(input_src_data, input_trg_data, input_src_mask, input_trg_mask)
