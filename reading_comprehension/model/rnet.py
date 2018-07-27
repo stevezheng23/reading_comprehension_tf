@@ -206,7 +206,7 @@ class RNet(BaseModel):
             context2question_interaction_num_layer, context2question_interaction_unit_dim,
             context2question_interaction_cell_type, context2question_interaction_hidden_activation,
             context2question_interaction_dropout, context2question_interaction_forget_bias,
-            context2question_interaction_residual_connect, context2question_attention_mechanism,
+            context2question_interaction_residual_connect, None,
             self.num_gpus, default_interaction_gpu_id, True, context2question_interaction_trainable)
         
         (context2question_interaction,
@@ -291,7 +291,7 @@ class RNet(BaseModel):
             base_variable = tf.get_variable("base_variable", shape=[1, 1, unit_dim],
                 initializer=initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
             base_variable = tf.tile(base_variable, multiples=[batch_size, 1, 1])
-            base_variable_mask = tf.ones([batch_size, 1])
+            base_variable_mask = tf.ones([batch_size, 1, 1])
             
             return base_variable, base_variable_mask
         
