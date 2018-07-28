@@ -252,7 +252,7 @@ class RNet(BaseModel):
                 self.num_gpus, default_modeling_gpu_id, True, self.regularizer, answer_modeling_trainable)
             
             (answer_modeling_attention,
-                answer_modeling_attention_mask,) = answer_modeling_attention_layer(answer_interaction,
+                answer_modeling_attention_mask) = answer_modeling_attention_layer(answer_interaction,
                     answer_interaction, answer_interaction_mask, answer_interaction_mask)
             
             answer_modeling_sequence_layer = create_recurrent_layer("bi", answer_modeling_num_layer,

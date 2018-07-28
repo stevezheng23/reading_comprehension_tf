@@ -263,8 +263,7 @@ class AttentionMechanism(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
-                 trainable=True,
-                 scope="attention_mechanism"):
+                 trainable=True):
         """initialize attention mechanism"""
         self.memory = memory
         self.memory_mask = memory_mask

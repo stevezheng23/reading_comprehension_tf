@@ -187,10 +187,9 @@ class BiRNN(object):
 class AttentionCellWrapper(RNNCell):
     def __init__(self,
                  cell,
-                 attention_mechanism,
-                 reuse=None):
-        """initialize gated-attention cell wrapper"""
-        super(AttentionCellWrapper, self).__init__(_reuse=reuse)
+                 attention_mechanism):
+        """initialize attention cell wrapper"""
+        super(AttentionCellWrapper, self).__init__()
         
         self._cell = cell
         self._attention_mechanism = attention_mechanism
@@ -205,12 +204,14 @@ class AttentionCellWrapper(RNNCell):
     
     def __call__(self,
                  inputs,
-                 state):
-        """call gated-attention cell wrapper"""
+                 state,
+                 scope=None):
+        """call attention cell wrapper"""
         query = tf.expand_dims(tf.concat([inputs, state], axis=-1), axis=1)
-        query_mask = tf.cast(tf.reduce_any(query, axis=-1), dtype=tf.float32)
-        attention, attention_mask = self._attention_mechanism(query, query_mask, self._memory, self._memory_mask)
+        query_mask = tf.reduce_sum(query, axis=-1, keep_dims=True)
+        query_mask = tf.cast(tf.greater(query_mask, tf.constant(0, shape=[], dtype=tf.float32)), dtype=tf.float32)
+        attention, attention_mask = self._attention_mechanism(query, query_mask)
         inputs = tf.squeeze(attention, axis=1)
-        cell_output, new_state = self._cell(inputs, state)
+        cell_output, new_state = self._cell(inputs, state, scope)
         
         return cell_output, new_state
