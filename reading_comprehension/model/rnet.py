@@ -246,13 +246,13 @@ class RNet(BaseModel):
             answer_intermediate_mask_list = [answer_interaction_mask]
             answer_intermediate_unit_dim = answer_interaction_unit_dim
             
-            answer_modeling_attention_layer = create_attention_layer("att",
+            answer_modeling_attention_layer = create_attention_layer("gated_att",
                 answer_interaction_unit_dim, answer_interaction_unit_dim,
                 answer_modeling_attention_dim, answer_modeling_score_type, 0.0, False, False, True, None,
                 self.num_gpus, default_modeling_gpu_id, True, self.regularizer, answer_modeling_trainable)
             
-            (answer_modeling_attention, answer_modeling_attention_mask,
-                _, _) = answer_modeling_attention_layer(answer_interaction,
+            (answer_modeling_attention,
+                answer_modeling_attention_mask,) = answer_modeling_attention_layer(answer_interaction,
                     answer_interaction, answer_interaction_mask, answer_interaction_mask)
             
             answer_modeling_sequence_layer = create_recurrent_layer("bi", answer_modeling_num_layer,
