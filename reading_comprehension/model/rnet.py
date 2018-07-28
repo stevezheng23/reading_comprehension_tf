@@ -297,7 +297,7 @@ class RNet(BaseModel):
         
         """build output layer for rnet model"""
         question_understanding_unit_dim = self.hyperparams.model_understanding_question_unit_dim * 2
-        answer_modeling_unit_dim = self.hyperparams.model_modeling_answer_unit_dim * 2
+        answer_modeling_unit_dim = self.hyperparams.model_modeling_fusion_unit_dim
         answer_output_num_layer = self.hyperparams.model_output_answer_num_layer
         answer_output_unit_dim = self.hyperparams.model_output_answer_unit_dim
         answer_output_cell_type = self.hyperparams.model_output_answer_cell_type
@@ -348,7 +348,7 @@ class RNet(BaseModel):
             
             with tf.variable_scope("end", reuse=tf.AUTO_REUSE):
                 answer_end_attention_layer = create_attention_layer("att",
-                    answer_modeling_unit_dim, answer_modeling_unit_dim,
+                    answer_output_unit_dim, answer_modeling_unit_dim,
                     answer_output_attention_dim, answer_output_score_type, 0.0, False, False, False, None,
                     self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_output_trainable)
                 (answer_end_attention, answer_end_attention_mask, answer_end_output,
