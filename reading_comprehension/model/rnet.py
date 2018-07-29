@@ -232,20 +232,10 @@ class RNet(BaseModel):
         answer_modeling_attention_dim = self.hyperparams.model_modeling_answer_attention_dim
         answer_modeling_score_type = self.hyperparams.model_modeling_answer_score_type
         answer_modeling_trainable = self.hyperparams.model_modeling_answer_trainable
-        fusion_type = self.hyperparams.model_modeling_fusion_type
-        fusion_num_layer = self.hyperparams.model_modeling_fusion_num_layer
-        fusion_unit_dim = self.hyperparams.model_modeling_fusion_unit_dim
-        fusion_hidden_activation = self.hyperparams.model_modeling_fusion_hidden_activation
-        fusion_dropout = self.hyperparams.model_modeling_fusion_dropout if self.mode == "train" else 0.0
-        fusion_trainable = self.hyperparams.model_modeling_fusion_trainable
         default_modeling_gpu_id = self.default_gpu_id + 2
         
         with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE):
             self.logger.log_print("# build answer modeling layer")
-            answer_intermediate_list = [answer_interaction]
-            answer_intermediate_mask_list = [answer_interaction_mask]
-            answer_intermediate_unit_dim = answer_interaction_unit_dim
-            
             answer_modeling_attention_layer = create_attention_layer("gated_att",
                 answer_interaction_unit_dim, answer_interaction_unit_dim,
                 answer_modeling_attention_dim, answer_modeling_score_type, 0.0, False, False, True, None,
@@ -263,16 +253,8 @@ class RNet(BaseModel):
             (answer_modeling_sequence,
                 answer_modeling_sequence_mask) = answer_modeling_sequence_layer(answer_modeling_attention,
                     answer_modeling_attention_mask)
-            
-            answer_intermediate_list.append(answer_modeling_sequence)
-            answer_intermediate_mask_list.append(answer_modeling_sequence_mask)
-            answer_intermediate_unit_dim = answer_intermediate_unit_dim + answer_modeling_unit_dim * 2
-            
-            answer_modeling_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim,
-                fusion_unit_dim, fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_modeling_gpu_id, self.regularizer, fusion_trainable)
-            answer_modeling, answer_modeling_mask = self._build_fusion_result(answer_intermediate_list,
-                answer_intermediate_mask_list, answer_modeling_fusion_layer)
+            answer_modeling = answer_modeling_sequence
+            answer_modeling_mask = answer_modeling_sequence_mask
         
         return answer_modeling, answer_modeling_mask
     
@@ -297,7 +279,7 @@ class RNet(BaseModel):
         
         """build output layer for rnet model"""
         question_understanding_unit_dim = self.hyperparams.model_understanding_question_unit_dim * 2
-        answer_modeling_unit_dim = self.hyperparams.model_modeling_fusion_unit_dim
+        answer_modeling_unit_dim = self.hyperparams.model_modeling_answer_unit_dim * 2
         answer_output_num_layer = self.hyperparams.model_output_answer_num_layer
         answer_output_unit_dim = self.hyperparams.model_output_answer_unit_dim
         answer_output_cell_type = self.hyperparams.model_output_answer_cell_type
