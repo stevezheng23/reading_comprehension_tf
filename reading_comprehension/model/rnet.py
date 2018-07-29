@@ -195,8 +195,8 @@ class RNet(BaseModel):
         context2question_interaction_trainable = self.hyperparams.model_interaction_context2question_trainable
         default_interaction_gpu_id = self.default_gpu_id + 1
         
-        context2question_attention_mechanism = AttentionMechanism(memory=question_understanding,
-            memory_mask=question_understanding_mask, attention_type="gated_att", src_dim=context_understanding_unit_dim,
+        context2question_attention_mechanism = AttentionMechanism(memory=question_understanding, memory_mask=question_understanding_mask,
+            attention_type="gated_att", src_dim=context_understanding_unit_dim + context2question_interaction_unit_dim,
             trg_dim=question_understanding_unit_dim, att_dim=context2question_interaction_attention_dim,
             score_type=context2question_interaction_score_type, layer_dropout=False, layer_norm=False, residual_connect=False,
             is_self=False, external_matrix=None, num_gpus=self.num_gpus, default_gpu_id=default_interaction_gpu_id,
@@ -206,7 +206,7 @@ class RNet(BaseModel):
             context2question_interaction_num_layer, context2question_interaction_unit_dim,
             context2question_interaction_cell_type, context2question_interaction_hidden_activation,
             context2question_interaction_dropout, context2question_interaction_forget_bias,
-            context2question_interaction_residual_connect, None,
+            context2question_interaction_residual_connect, context2question_attention_mechanism,
             self.num_gpus, default_interaction_gpu_id, True, context2question_interaction_trainable)
         
         (context2question_interaction,
