@@ -33,6 +33,16 @@ class BaseModel(object):
         self.mode = mode
         self.scope = scope
         
+        self.update_op = None
+        self.train_loss = None
+        self.decayed_learning_rate = None
+        self.global_step = None
+        self.train_summary = None
+        self.infer_answer_start = None
+        self.infer_answer_start_mask = None
+        self.infer_answer_end = None
+        self.infer_answer_end_mask = None
+        self.infer_summary = None
         self.word_embedding_placeholder = None
         self.batch_size = tf.size(tf.reduce_max(self.data_pipeline.input_answer_mask, axis=-2))
         
@@ -297,6 +307,84 @@ class BaseModel(object):
         update_model = self.optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
         
         return update_model, clipped_gradients, gradient_norm
+    
+    def _compute_loss(self,
+                      label,
+                      logit,
+                      logit_mask):
+        """compute optimization loss"""
+        logit = tf.squeeze(-1.0 * tf.log(logit * logit_mask + EPSILON) * logit_mask)
+        label = tf.one_hot(tf.squeeze(label), depth=tf.shape(logit)[1], on_value=1.0, off_value=0.0, dtype=tf.float32)
+        loss = tf.reduce_sum(logit * label) / tf.to_float(self.batch_size)
+        
+        return loss
+    
+    def train(self,
+              sess,
+              word_embedding):
+        """train rnet model"""
+        word_embed_pretrained = self.hyperparams.model_representation_word_embed_pretrained
+        
+        if word_embed_pretrained == True:
+            (_, loss, learning_rate, global_step, batch_size, summary) = sess.run([self.update_op,
+                self.train_loss, self.decayed_learning_rate, self.global_step, self.batch_size, self.train_summary],
+                feed_dict={self.word_embedding_placeholder: word_embedding})
+        else:
+            _, loss, learning_rate, global_step, batch_size, summary = sess.run([self.update_op,
+                self.train_loss, self.decayed_learning_rate, self.global_step, self.batch_size, self.train_summary])
+        
+        return TrainResult(loss=loss, learning_rate=learning_rate,
+            global_step=global_step, batch_size=batch_size, summary=summary)
+    
+    def infer(self,
+              sess,
+              word_embedding):
+        """infer rnet model"""
+        word_embed_pretrained = self.hyperparams.model_representation_word_embed_pretrained
+        
+        if word_embed_pretrained == True:
+            (answer_start, answer_end, answer_start_mask, answer_end_mask,
+                batch_size, summary) = sess.run([self.infer_answer_start, self.infer_answer_end,
+                    self.infer_answer_start_mask, self.infer_answer_end_mask, self.batch_size, self.infer_summary],
+                    feed_dict={self.word_embedding_placeholder: word_embedding})
+        else:
+            (answer_start, answer_end, answer_start_mask, answer_end_mask,
+                batch_size, summary) = sess.run([self.infer_answer_start, self.infer_answer_end,
+                    self.infer_answer_start_mask, self.infer_answer_end_mask, self.batch_size, self.infer_summary])
+        
+        max_length = self.hyperparams.data_max_context_length
+        
+        predict = np.full((batch_size, 2), -1)
+        for k in range(batch_size):
+            curr_max_value = np.full((max_length), float('-inf'))
+            curr_max_span = np.full((max_length, 2), -1)
+            
+            start_max_length = np.count_nonzero(answer_start_mask[k, :])
+            for i in range(start_max_length):
+                if i == 0:
+                    curr_max_value[i] = answer_start[k, i]
+                    curr_max_span[i, 0] = i
+                else:
+                    if answer_start[k, i] < curr_max_value[i-1]:
+                        curr_max_value[i] = curr_max_value[i-1]
+                        curr_max_span[i, 0] = curr_max_span[i-1, 0]
+                    else:
+                        curr_max_value[i] = answer_start[k, i]
+                        curr_max_span[i, 0] = i
+            
+            end_max_length = np.count_nonzero(answer_end_mask[k, :])
+            for j in range(end_max_length):
+                curr_max_value[j] = curr_max_value[j] * answer_end[k, j]
+                curr_max_span[j, 1] = j
+            
+            index = np.argmax(curr_max_value)
+            predict[k, :] = curr_max_span[index, :]
+        
+        predict_start = np.expand_dims(answer_start, axis=1)
+        predict_end = np.expand_dims(answer_end, axis=1)
+        predict_detail = np.concatenate((predict_start, predict_end), axis=1)
+        
+        return InferResult(predict=predict, predict_detail=predict_detail, batch_size=batch_size, summary=summary)
     
     def _get_train_summary(self):
         """get train summary"""
