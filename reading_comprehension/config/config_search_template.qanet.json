@@ -2,12 +2,12 @@
     "hyperparams": {
         "data_max_question_length": {
             "stype": "discrete",
-            "set": [40],
+            "set": [50],
             "dtype": "int"
         },
         "data_max_context_length": {
             "stype": "discrete",
-            "set": [500],
+            "set": [400],
             "dtype": "int"
         },
         "data_max_answer_length": {
@@ -56,8 +56,8 @@
             "dtype": "int"
         },
         "model_representation_subword_window_size": {
-            "stype": "discrete",
-            "set": [[3, 5]],
+            "stype": "lookup",
+            "key": "window_size",
             "dtype": "list"
         },
         "model_representation_subword_hidden_activation": {
@@ -88,8 +88,8 @@
             "dtype": "int"
         },
         "model_representation_char_window_size": {
-            "stype": "discrete",
-            "set": [[3, 5]],
+            "stype": "lookup",
+            "key": "window_size",
             "dtype": "list"
         },
         "model_representation_char_hidden_activation": {
@@ -121,7 +121,7 @@
         },
         "model_representation_fusion_unit_dim": {
             "stype": "discrete",
-            "set": [500],
+            "set": [400],
             "dtype": "int"
         },
         "model_representation_fusion_hidden_activation": {
@@ -362,6 +362,11 @@
             "stype": "discrete",
             "set": ["tanh", "relu"],
             "dtype": "string"
+        },
+        "window_size": {
+            "stype": "discrete",
+            "set": [[3], [5]],
+            "dtype": "list"
         },
         "pooling_type": {
             "stype": "discrete",
