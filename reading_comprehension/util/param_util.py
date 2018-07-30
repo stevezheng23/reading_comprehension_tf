@@ -600,5 +600,6 @@ def create_hyperparams_file(hyperparams_group, config_dir):
     for i in range(len(hyperparams_group)):
         config_file = os.path.join(config_dir, "config_hyperparams_{0}.json".format(i))
         with codecs.getwriter("utf-8")(tf.gfile.GFile(config_file, "w")) as file:
-            hyperparams_json = json.dumps(hyperparams_group[i].values(), indent=4)
+            hyperparam_dict = hyperparams_group[i].values()
+            hyperparams_json = json.dumps(hyperparam_dict, indent=4)
             file.write(hyperparams_json)
