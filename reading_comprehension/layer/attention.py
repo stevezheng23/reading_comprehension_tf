@@ -648,7 +648,7 @@ class GatedAttention(object):
                  default_gpu_id=0,
                  regularizer=None,
                  trainable=True,
-                 scope="attention"):
+                 scope="gated_att"):
         """initialize gated-attention layer"""
         self.src_dim = src_dim
         self.trg_dim = trg_dim
