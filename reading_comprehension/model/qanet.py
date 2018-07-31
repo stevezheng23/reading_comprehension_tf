@@ -184,7 +184,7 @@ class QANet(BaseModel):
                 context_understanding_fusion, context_understanding_fusion_mask = self._build_fusion_result([context_feat],
                     [context_feat_mask], context_understanding_fusion_layer)
                 
-                if enable_understanding_sharing == True:
+                if enable_understanding_sharing == True and question_understanding_unit_dim == context_understanding_unit_dim:
                     context_understanding_layer = question_understanding_layer
                 else:
                     context_understanding_layer = StackedEncoderBlock(num_layer=context_understanding_num_layer,
@@ -560,7 +560,7 @@ class StackedEncoderBlock(object):
                  enable_multi_gpu=True,
                  regularizer=None,
                  trainable=True,
-                 scope="encoder_block"):
+                 scope="stacked_encoder_block"):
         """initialize stacked encoder-block layer"""
         self.num_layer = num_layer
         self.num_conv = num_conv
