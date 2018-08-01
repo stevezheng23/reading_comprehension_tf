@@ -6,7 +6,7 @@ from util.reading_comprehension_util import *
 
 from layer.basic import *
 
-__all__ = ["Dense", "BiDense", "StackedDense"]
+__all__ = ["Dense", "DoubleDense", "StackedDense"]
 
 class Dense(object):
     """dense layer"""
@@ -80,8 +80,8 @@ class Dense(object):
         
         return output_dense, output_mask
 
-class BiDense(object):
-    """bi-dense layer"""
+class DoubleDense(object):
+    """double-dense layer"""
     def __init__(self,
                  unit_dim,
                  activation,
@@ -93,8 +93,8 @@ class BiDense(object):
                  default_gpu_id=0,
                  regularizer=None,
                  trainable=True,
-                 scope="bi_dense"):
-        """initialize bi-dense layer"""
+                 scope="double_dense"):
+        """initialize double-dense layer"""
         self.unit_dim = unit_dim
         self.activation = activation
         self.dropout = dropout
@@ -129,7 +129,7 @@ class BiDense(object):
     def __call__(self,
                  input_data,
                  input_mask):
-        """call bi-dense layer"""
+        """call double-dense layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_dense = input_data
             input_dense_mask = input_mask
@@ -160,6 +160,7 @@ class BiDense(object):
 class StackedDense(object):
     """stacked dense layer"""
     def __init__(self,
+                 layer_creator,
                  num_layer,
                  unit_dim,
                  activation,
@@ -174,6 +175,7 @@ class StackedDense(object):
                  trainable=True,
                  scope="stacked_dense"):
         """initialize stacked dense layer"""
+        self.layer_creator = layer_creator
         self.num_layer = num_layer
         self.unit_dim = unit_dim
         self.activation = activation
@@ -195,7 +197,7 @@ class StackedDense(object):
                 layer_scope = "layer_{0}".format(i)
                 layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
                 sublayer_dropout = self.layer_dropout[i] if self.layer_dropout != None else 0.0
-                dense_layer = Dense(unit_dim=self.unit_dim, activation=self.activation,
+                dense_layer = self.layer_creator(unit_dim=self.unit_dim, activation=self.activation,
                     dropout=self.dropout, layer_dropout=sublayer_dropout, layer_norm=self.layer_norm,
                     residual_connect=self.residual_connect, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
                     regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
