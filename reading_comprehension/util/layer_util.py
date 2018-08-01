@@ -136,7 +136,8 @@ def create_pooling_layer(pooling_type,
     
     return pooling_layer
 
-def create_dense_layer(num_layer,
+def create_dense_layer(dense_type,
+                       num_layer,
                        unit_dim,
                        activation,
                        dropout,
@@ -149,9 +150,17 @@ def create_dense_layer(num_layer,
                        regularizer,
                        trainable):
     """create dense layer"""
-    dense_layer = StackedDense(num_layer=num_layer, unit_dim=unit_dim, activation=activation, 
-        dropout=dropout, layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, 
-        default_gpu_id=default_gpu_id, enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, trainable=trainable)
+    scope = "dense/{0}".format(dense_type)
+    if dense_type == "single":
+        dense_layer = StackedDense(layer_creator=Dense, num_layer=num_layer, unit_dim=unit_dim, activation=activation, 
+            dropout=dropout, layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, 
+            default_gpu_id=default_gpu_id, enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, trainable=trainable, scope=scope)
+    elif dense_type == "double":
+        dense_layer = StackedDense(layer_creator=DoubleDense, num_layer=num_layer, unit_dim=unit_dim, activation=activation, 
+            dropout=dropout, layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, 
+            default_gpu_id=default_gpu_id, enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, trainable=trainable, scope=scope)
+    else:
+        raise ValueError("unsupported dense type {0}".format(dense_type))
     
     return dense_layer
 

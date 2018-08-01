@@ -373,8 +373,8 @@ class BiDAF(BaseModel):
                     answer_start_fusion_mask) = self._build_fusion_result([answer_modeling, answer_start],
                         [answer_modeling_mask, answer_start_mask], None)
                 
-                answer_start_output_layer = create_dense_layer(1, 1, "", answer_start_dropout, None, False, False,
-                    self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_start_trainable)
+                answer_start_output_layer = create_dense_layer("single", 1, 1, "", answer_start_dropout, None,
+                    False, False, self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_start_trainable)
                 (answer_start_output,
                     answer_start_output_mask) = answer_start_output_layer(answer_start_fusion,
                         answer_start_fusion_mask)
@@ -398,8 +398,8 @@ class BiDAF(BaseModel):
                     answer_end_fusion_mask) = self._build_fusion_result([answer_modeling, answer_end],
                         [answer_modeling_mask, answer_end_mask], None)
                 
-                answer_end_output_layer = create_dense_layer(1, 1, "", answer_end_dropout, None, False, False,
-                    self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_end_trainable)
+                answer_end_output_layer = create_dense_layer("single", 1, 1, "", answer_end_dropout, None,
+                    False, False, self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_end_trainable)
                 (answer_end_output,
                     answer_end_output_mask) = answer_end_output_layer(answer_end_fusion,
                         answer_end_fusion_mask)
