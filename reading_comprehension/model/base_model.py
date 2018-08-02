@@ -394,6 +394,57 @@ class BaseModel(object):
     def _get_infer_summary(self):
         """get infer summary"""
         return tf.no_op()
+    
+    def _create_word_feat_layer(self,
+                                layer_creator,
+                                vocab_size,
+                                embed_dim,
+                                pretrained,
+                                trainable):
+        """create word-feat layer"""
+        word_feat_layer = layer_creator(vocab_size=vocab_size, embed_dim=embed_dim,
+            pretrained=pretrained, trainable=trainable, scope="word_feat")
+        return word_feat_layer
+    
+    def _create_subword_feat_layer(self,
+                                   layer_creator,
+                                   vocab_size,
+                                   embed_dim,
+                                   unit_dim,
+                                   window_size,
+                                   hidden_activation,
+                                   pooling_type,
+                                   dropout,
+                                   num_gpus,
+                                   default_gpu_id,
+                                   regularizer,
+                                   trainable):
+        """create subword-feat layer"""
+        subword_feat_layer = layer_creator(vocab_size=vocab_size, embed_dim=embed_dim,
+            unit_dim=unit_dim, window_size=window_size, hidden_activation=hidden_activation,
+            pooling_type=pooling_type, dropout=dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
+            regularizer=regularizer, trainable=trainable, scope="subword_feat")
+        return subword_feat_layer
+    
+    def _create_char_feat_layer(self,
+                                layer_creator,
+                                vocab_size,
+                                embed_dim,
+                                unit_dim,
+                                window_size,
+                                hidden_activation,
+                                pooling_type,
+                                dropout,
+                                num_gpus,
+                                default_gpu_id,
+                                regularizer,
+                                trainable):
+        """create char-feat layer"""
+        char_feat_layer = layer_creator(vocab_size=vocab_size, embed_dim=embed_dim,
+            unit_dim=unit_dim, window_size=window_size, hidden_activation=hidden_activation,
+            pooling_type=pooling_type, dropout=dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
+            regularizer=regularizer, trainable=trainable, scope="char_feat")
+        return char_feat_layer
 
 class WordFeat(object):
     """word-level featurization layer"""
