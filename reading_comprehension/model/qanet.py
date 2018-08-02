@@ -28,6 +28,11 @@ class QANet(BaseModel):
             self.global_step = tf.get_variable("global_step", shape=[], dtype=tf.int32,
                 initializer=tf.zeros_initializer, trainable=False)
             
+            """use qanet feature layer"""
+            self.word_feat_creator = WordFeat
+            self.subword_feat_creator = SubwordFeat
+            self.char_feat_creator = CharFeat
+            
             """get batch input from data pipeline"""
             question_word = self.data_pipeline.input_question_word
             question_subword = self.data_pipeline.input_question_subword
