@@ -399,54 +399,153 @@ class BaseModel(object):
     def _get_infer_summary(self):
         """get infer summary"""
         return tf.no_op()
+
+class WordFeat(object):
+    """word-level featurization layer"""
+    def __init__(self,
+                 vocab_size,
+                 embed_dim,
+                 pretrained,
+                 trainable=True,
+                 scope="word_feat"):
+        """initialize word-level featurization layer"""
+        self.vocab_size = vocab_size
+        self.embed_dim = embed_dim
+        self.pretrained = pretrained
+        self.trainable = trainable
+        self.scope = scope
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            self.embedding_layer = create_embedding_layer(self.vocab_size,
+                self.embed_dim, self.pretrained, 0, 0, self.trainable)
     
-    def _create_word_feat_layer(self,
-                                layer_creator,
-                                vocab_size,
-                                embed_dim,
-                                pretrained,
-                                trainable):
-        """create word-feat layer"""
-        word_feat_layer = layer_creator(vocab_size=vocab_size, embed_dim=embed_dim,
-            pretrained=pretrained, trainable=trainable, scope="word_feat")
-        return word_feat_layer
+    def __call__(self,
+                 input_word,
+                 input_word_mask):
+        """call word-level featurization layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            input_word_embedding = self.embedding_layer(input_word)
+            input_word_feat = tf.squeeze(input_word_embedding, axis=-2)
+            input_word_feat_mask = input_word_mask
+        
+        return input_word_feat, input_word_feat_mask
     
-    def _create_subword_feat_layer(self,
-                                   layer_creator,
-                                   vocab_size,
-                                   embed_dim,
-                                   unit_dim,
-                                   window_size,
-                                   hidden_activation,
-                                   pooling_type,
-                                   dropout,
-                                   num_gpus,
-                                   default_gpu_id,
-                                   regularizer,
-                                   trainable):
-        """create subword-feat layer"""
-        subword_feat_layer = layer_creator(vocab_size=vocab_size, embed_dim=embed_dim,
-            unit_dim=unit_dim, window_size=window_size, hidden_activation=hidden_activation,
-            pooling_type=pooling_type, dropout=dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            regularizer=regularizer, trainable=trainable, scope="subword_feat")
-        return subword_feat_layer
+    def get_embedding_placeholder(self):
+        """get word-level embedding placeholder"""
+        return self.embedding_layer.get_embedding_placeholder()
+
+class SubwordFeat(object):
+    """subword-level featurization layer"""
+    def __init__(self,
+                 vocab_size,
+                 embed_dim,
+                 unit_dim,
+                 window_size,
+                 hidden_activation,
+                 pooling_type,
+                 dropout,
+                 num_gpus=1,
+                 default_gpu_id=0,
+                 regularizer=None,
+                 trainable=True,
+                 scope="subword_feat"):
+        """initialize subword-level featurization layer"""
+        self.vocab_size = vocab_size
+        self.embed_dim = embed_dim
+        self.unit_dim = unit_dim
+        self.window_size = window_size
+        self.hidden_activation = hidden_activation
+        self.pooling_type = pooling_type
+        self.dropout = dropout
+        self.num_gpus = num_gpus
+        self.default_gpu_id = default_gpu_id
+        self.regularizer = regularizer
+        self.trainable = trainable
+        self.scope = scope
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            self.embedding_layer = create_embedding_layer(self.vocab_size,
+                self.embed_dim, False, 0, 0, self.trainable)
+            
+            self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
+                self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, self.dropout, None,
+                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.trainable)
+            
+            self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
-    def _create_char_feat_layer(self,
-                                layer_creator,
-                                vocab_size,
-                                embed_dim,
-                                unit_dim,
-                                window_size,
-                                hidden_activation,
-                                pooling_type,
-                                dropout,
-                                num_gpus,
-                                default_gpu_id,
-                                regularizer,
-                                trainable):
-        """create char-feat layer"""
-        char_feat_layer = layer_creator(vocab_size=vocab_size, embed_dim=embed_dim,
-            unit_dim=unit_dim, window_size=window_size, hidden_activation=hidden_activation,
-            pooling_type=pooling_type, dropout=dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            regularizer=regularizer, trainable=trainable, scope="char_feat")
-        return char_feat_layer
+    def __call__(self,
+                 input_subword,
+                 input_subword_mask):
+        """call subword-level featurization layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            input_subword_embedding = self.embedding_layer(input_subword)
+            input_subword_embedding_mask = tf.expand_dims(input_subword_mask, axis=-1)
+            
+            (input_subword_conv,
+                input_subword_conv_mask) = self.conv_layer(input_subword_embedding, input_subword_embedding_mask)
+            
+            (input_subword_pool,
+                input_subword_pool_mask) = self.pooling_layer(input_subword_conv, input_subword_conv_mask)
+            
+            input_subword_feat = input_subword_pool
+            input_subword_feat_mask = input_subword_pool_mask
+        
+        return input_subword_feat, input_subword_feat_mask
+
+class CharFeat(object):
+    """char-level featurization layer"""
+    def __init__(self,
+                 vocab_size,
+                 embed_dim,
+                 unit_dim,
+                 window_size,
+                 hidden_activation,
+                 pooling_type,
+                 dropout,
+                 num_gpus=1,
+                 default_gpu_id=0,
+                 regularizer=None,
+                 trainable=True,
+                 scope="char_feat"):
+        """initialize char-level featurization layer"""
+        self.vocab_size = vocab_size
+        self.embed_dim = embed_dim
+        self.unit_dim = unit_dim
+        self.window_size = window_size
+        self.hidden_activation = hidden_activation
+        self.pooling_type = pooling_type
+        self.dropout = dropout
+        self.num_gpus = num_gpus
+        self.default_gpu_id = default_gpu_id
+        self.regularizer = regularizer
+        self.trainable = trainable
+        self.scope = scope
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            self.embedding_layer = create_embedding_layer(self.vocab_size,
+                self.embed_dim, False, 0, 0, self.trainable)
+            
+            self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
+                self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, self.dropout, None,
+                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.trainable)
+            
+            self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
+    
+    def __call__(self,
+                 input_char,
+                 input_char_mask):
+        """call char-level featurization layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            input_char_embedding = self.embedding_layer(input_char)
+            input_char_embedding_mask = tf.expand_dims(input_char_mask, axis=-1)
+            
+            (input_char_conv,
+                input_char_conv_mask) = self.conv_layer(input_char_embedding, input_char_embedding_mask)
+            
+            (input_char_pool,
+                input_char_pool_mask) = self.pooling_layer(input_char_conv, input_char_conv_mask)
+            
+            input_char_feat = input_char_pool
+            input_char_feat_mask = input_char_pool_mask
+        
+        return input_char_feat, input_char_feat_mask
