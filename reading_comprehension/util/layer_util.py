@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
+from layer.basic import *
 from layer.embedding import *
 from layer.position import *
 from layer.convolution import *
@@ -10,8 +11,15 @@ from layer.highway import *
 from layer.recurrent import *
 from layer.attention import *
 
-__all__ = ["AttentionMechanism", "create_embedding_layer", "create_position_layer", "create_convolution_layer",
+__all__ = ["AttentionMechanism", "create_dropout_layer", "create_embedding_layer", "create_position_layer", "create_convolution_layer",
            "create_pooling_layer", "create_dense_layer", "create_highway_layer", "create_recurrent_layer", "create_attention_layer"]
+
+def create_dropout_layer(dropout,
+                         num_gpus,
+                         default_gpu_id):
+    """create dropout layer"""
+    dropout_layer = Dropout(keep_prob=1.0-dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id)
+    return dropout_layer
 
 def create_embedding_layer(vocab_size,
                            embed_dim,
