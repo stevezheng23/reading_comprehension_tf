@@ -27,12 +27,7 @@ class BiDAF(BaseModel):
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
             self.global_step = tf.get_variable("global_step", shape=[], dtype=tf.int32,
                 initializer=tf.zeros_initializer, trainable=False)
-            
-            """use bidaf feature layer"""
-            self.word_feat_creator = WordFeat
-            self.subword_feat_creator = SubwordFeat
-            self.char_feat_creator = CharFeat
-            
+                        
             """get batch input from data pipeline"""
             question_word = self.data_pipeline.input_question_word
             question_subword = self.data_pipeline.input_question_subword
@@ -130,6 +125,128 @@ class BiDAF(BaseModel):
             self.ckpt_dir = self.hyperparams.train_ckpt_output_dir
             self.ckpt_name = os.path.join(self.ckpt_dir, "model_ckpt")
             self.ckpt_saver = tf.train.Saver(self.variable_lookup)
+    
+    def _build_representation_layer(self,
+                                    input_question_word,
+                                    input_question_word_mask,
+                                    input_question_subword,
+                                    input_question_subword_mask,
+                                    input_question_char,
+                                    input_question_char_mask,
+                                    input_context_word,
+                                    input_context_word_mask,
+                                    input_context_subword,
+                                    input_context_subword_mask,
+                                    input_context_char,
+                                    input_context_char_mask):
+        """build representation layer for bidaf model"""
+        word_vocab_size = self.hyperparams.data_word_vocab_size
+        word_embed_dim = self.hyperparams.model_representation_word_embed_dim
+        word_embed_pretrained = self.hyperparams.model_representation_word_embed_pretrained
+        word_feat_trainable = self.hyperparams.model_representation_word_feat_trainable
+        word_feat_enable = self.hyperparams.model_representation_word_feat_enable
+        subword_vocab_size = self.hyperparams.data_subword_vocab_size
+        subword_embed_dim = self.hyperparams.model_representation_subword_embed_dim
+        subword_unit_dim = self.hyperparams.model_representation_subword_unit_dim
+        subword_feat_trainable = self.hyperparams.model_representation_subword_feat_trainable
+        subword_window_size = self.hyperparams.model_representation_subword_window_size
+        subword_hidden_activation = self.hyperparams.model_representation_subword_hidden_activation
+        subword_dropout = self.hyperparams.model_representation_subword_dropout if self.mode == "train" else 0.0
+        subword_pooling_type = self.hyperparams.model_representation_subword_pooling_type
+        subword_feat_enable = self.hyperparams.model_representation_subword_feat_enable
+        char_vocab_size = self.hyperparams.data_char_vocab_size
+        char_embed_dim = self.hyperparams.model_representation_char_embed_dim
+        char_unit_dim = self.hyperparams.model_representation_char_unit_dim
+        char_feat_trainable = self.hyperparams.model_representation_char_feat_trainable
+        char_window_size = self.hyperparams.model_representation_char_window_size
+        char_hidden_activation = self.hyperparams.model_representation_char_hidden_activation
+        char_dropout = self.hyperparams.model_representation_char_dropout if self.mode == "train" else 0.0
+        char_pooling_type = self.hyperparams.model_representation_char_pooling_type
+        char_feat_enable = self.hyperparams.model_representation_char_feat_enable
+        fusion_type = self.hyperparams.model_representation_fusion_type
+        fusion_num_layer = self.hyperparams.model_representation_fusion_num_layer
+        fusion_unit_dim = self.hyperparams.model_representation_fusion_unit_dim
+        fusion_hidden_activation = self.hyperparams.model_representation_fusion_hidden_activation
+        fusion_dropout = self.hyperparams.model_representation_fusion_dropout if self.mode == "train" else 0.0
+        fusion_trainable = self.hyperparams.model_representation_fusion_trainable
+        default_representation_gpu_id = self.default_gpu_id
+        
+        with tf.variable_scope("representation", reuse=tf.AUTO_REUSE):
+            input_question_feat_list = []
+            input_question_feat_mask_list = []
+            input_context_feat_list = []
+            input_context_feat_mask_list = []
+            
+            if word_feat_enable == True:
+                self.logger.log_print("# build word-level representation layer")
+                word_feat_layer = WordFeat(vocab_size=word_vocab_size, embed_dim=word_embed_dim,
+                    pretrained=word_embed_pretrained, trainable=word_feat_trainable)
+                
+                (input_question_word_feat,
+                    input_question_word_feat_mask) = word_feat_layer(input_question_word, input_question_word_mask)
+                (input_context_word_feat,
+                    input_context_word_feat_mask) = word_feat_layer(input_context_word, input_context_word_mask)
+                
+                input_question_feat_list.append(input_question_word_feat)
+                input_question_feat_mask_list.append(input_question_word_feat_mask)
+                input_context_feat_list.append(input_context_word_feat)
+                input_context_feat_mask_list.append(input_context_word_feat_mask)
+                
+                word_unit_dim = word_embed_dim
+                self.word_embedding_placeholder = word_feat_layer.get_embedding_placeholder()
+            else:
+                word_unit_dim = 0
+                self.word_embedding_placeholder = None
+            
+            if subword_feat_enable == True:
+                self.logger.log_print("# build subword-level representation layer")
+                subword_feat_layer = SubwordFeat(vocab_size=subword_vocab_size, embed_dim=subword_embed_dim,
+                    unit_dim=subword_unit_dim, window_size=subword_window_size, hidden_activation=subword_hidden_activation,
+                    pooling_type=subword_pooling_type, dropout=subword_dropout, num_gpus=self.num_gpus,
+                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer, trainable=subword_feat_trainable)
+                
+                (input_question_subword_feat,
+                    input_question_subword_feat_mask) = subword_feat_layer(input_question_subword, input_question_subword_mask)
+                (input_context_subword_feat,
+                    input_context_subword_feat_mask) = subword_feat_layer(input_context_subword, input_context_subword_mask)
+                
+                input_question_feat_list.append(input_question_subword_feat)
+                input_question_feat_mask_list.append(input_question_subword_feat_mask)
+                input_context_feat_list.append(input_context_subword_feat)
+                input_context_feat_mask_list.append(input_context_subword_feat_mask)
+            else:
+                subword_unit_dim = 0
+            
+            if char_feat_enable == True:
+                self.logger.log_print("# build char-level representation layer")
+                char_feat_layer = CharFeat(vocab_size=char_vocab_size, embed_dim=char_embed_dim,
+                    unit_dim=char_unit_dim, window_size=char_window_size, hidden_activation=char_hidden_activation,
+                    pooling_type=char_pooling_type, dropout=char_dropout, num_gpus=self.num_gpus,
+                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer, trainable=char_feat_trainable)
+                
+                (input_question_char_feat,
+                    input_question_char_feat_mask) = char_feat_layer(input_question_char, input_question_char_mask)
+                (input_context_char_feat,
+                    input_context_char_feat_mask) = char_feat_layer(input_context_char, input_context_char_mask)
+                
+                input_question_feat_list.append(input_question_char_feat)
+                input_question_feat_mask_list.append(input_question_char_feat_mask)
+                input_context_feat_list.append(input_context_char_feat)
+                input_context_feat_mask_list.append(input_context_char_feat_mask)
+            else:
+                char_unit_dim = 0
+            
+            feat_unit_dim = word_unit_dim + subword_unit_dim + char_unit_dim
+            feat_fusion_layer = self._create_fusion_layer(feat_unit_dim, fusion_unit_dim,
+                fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
+                self.num_gpus, default_representation_gpu_id, self.regularizer, fusion_trainable)
+            
+            input_question_feat, input_question_feat_mask = self._build_fusion_result(input_question_feat_list,
+                input_question_feat_mask_list, feat_fusion_layer)
+            input_context_feat, input_context_feat_mask = self._build_fusion_result(input_context_feat_list,
+                input_context_feat_mask_list, feat_fusion_layer)
+        
+        return input_question_feat, input_question_feat_mask, input_context_feat, input_context_feat_mask
     
     def _build_understanding_layer(self,
                                    question_feat,

@@ -45,10 +45,6 @@ class BaseModel(object):
         self.infer_summary = None
         self.word_embedding_placeholder = None
         
-        self.word_feat_creator = None
-        self.subword_feat_creator = None
-        self.char_feat_creator = None
-        
         self.batch_size = tf.size(tf.reduce_max(self.data_pipeline.input_answer_mask, axis=-2))
         
         self.num_gpus = self.hyperparams.device_num_gpus
@@ -171,7 +167,7 @@ class BaseModel(object):
             
             if word_feat_enable == True:
                 self.logger.log_print("# build word-level representation layer")
-                word_feat_layer = self.word_feat_creator(vocab_size=word_vocab_size, embed_dim=word_embed_dim,
+                word_feat_layer = WordFeat(vocab_size=word_vocab_size, embed_dim=word_embed_dim,
                     pretrained=word_embed_pretrained, trainable=word_feat_trainable)
                 
                 (input_question_word_feat,
@@ -192,7 +188,7 @@ class BaseModel(object):
             
             if subword_feat_enable == True:
                 self.logger.log_print("# build subword-level representation layer")
-                subword_feat_layer = self.subword_feat_creator(vocab_size=subword_vocab_size, embed_dim=subword_embed_dim,
+                subword_feat_layer = SubwordFeat(vocab_size=subword_vocab_size, embed_dim=subword_embed_dim,
                     unit_dim=subword_unit_dim, window_size=subword_window_size, hidden_activation=subword_hidden_activation,
                     pooling_type=subword_pooling_type, dropout=subword_dropout, num_gpus=self.num_gpus,
                     default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer, trainable=subword_feat_trainable)
@@ -211,7 +207,7 @@ class BaseModel(object):
             
             if char_feat_enable == True:
                 self.logger.log_print("# build char-level representation layer")
-                char_feat_layer = self.char_feat_creator(vocab_size=char_vocab_size, embed_dim=char_embed_dim,
+                char_feat_layer = CharFeat(vocab_size=char_vocab_size, embed_dim=char_embed_dim,
                     unit_dim=char_unit_dim, window_size=char_window_size, hidden_activation=char_hidden_activation,
                     pooling_type=char_pooling_type, dropout=char_dropout, num_gpus=self.num_gpus,
                     default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer, trainable=char_feat_trainable)

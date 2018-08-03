@@ -27,12 +27,7 @@ class QANet(BaseModel):
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
             self.global_step = tf.get_variable("global_step", shape=[], dtype=tf.int32,
                 initializer=tf.zeros_initializer, trainable=False)
-            
-            """use qanet feature layer"""
-            self.word_feat_creator = WordFeat
-            self.subword_feat_creator = SubwordFeat
-            self.char_feat_creator = CharFeat
-            
+                        
             """get batch input from data pipeline"""
             question_word = self.data_pipeline.input_question_word
             question_subword = self.data_pipeline.input_question_subword
@@ -178,7 +173,7 @@ class QANet(BaseModel):
             
             if word_feat_enable == True:
                 self.logger.log_print("# build word-level representation layer")
-                word_feat_layer = self.word_feat_creator(vocab_size=word_vocab_size, embed_dim=word_embed_dim,
+                word_feat_layer = WordFeat(vocab_size=word_vocab_size, embed_dim=word_embed_dim,
                     pretrained=word_embed_pretrained, trainable=word_feat_trainable)
                 
                 (input_question_word_feat,
@@ -199,7 +194,7 @@ class QANet(BaseModel):
             
             if subword_feat_enable == True:
                 self.logger.log_print("# build subword-level representation layer")
-                subword_feat_layer = self.subword_feat_creator(vocab_size=subword_vocab_size, embed_dim=subword_embed_dim,
+                subword_feat_layer = SubwordFeat(vocab_size=subword_vocab_size, embed_dim=subword_embed_dim,
                     pooling_type=subword_pooling_type, dropout=subword_dropout, num_gpus=self.num_gpus,
                     default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer, trainable=subword_feat_trainable)
                 
@@ -218,7 +213,7 @@ class QANet(BaseModel):
             
             if char_feat_enable == True:
                 self.logger.log_print("# build char-level representation layer")
-                char_feat_layer = self.char_feat_creator(vocab_size=char_vocab_size, embed_dim=char_embed_dim,
+                char_feat_layer = CharFeat(vocab_size=char_vocab_size, embed_dim=char_embed_dim,
                     pooling_type=char_pooling_type, dropout=char_dropout, num_gpus=self.num_gpus,
                     default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer, trainable=char_feat_trainable)
                 
