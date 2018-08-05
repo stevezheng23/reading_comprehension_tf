@@ -142,6 +142,7 @@ class QANet(BaseModel):
         """build representation layer for qanet model"""
         word_vocab_size = self.hyperparams.data_word_vocab_size
         word_embed_dim = self.hyperparams.model_representation_word_embed_dim
+        word_dropout = self.hyperparams.model_representation_word_dropout if self.mode == "train" else 0.0
         word_embed_pretrained = self.hyperparams.model_representation_word_embed_pretrained
         word_feat_trainable = self.hyperparams.model_representation_word_feat_trainable
         word_feat_enable = self.hyperparams.model_representation_word_feat_enable
@@ -174,7 +175,7 @@ class QANet(BaseModel):
             if word_feat_enable == True:
                 self.logger.log_print("# build word-level representation layer")
                 word_feat_layer = WordFeat(vocab_size=word_vocab_size, embed_dim=word_embed_dim,
-                    pretrained=word_embed_pretrained, trainable=word_feat_trainable)
+                    dropout=word_dropout, pretrained=word_embed_pretrained, trainable=word_feat_trainable)
                 
                 (input_question_word_feat,
                     input_question_word_feat_mask) = word_feat_layer(input_question_word, input_question_word_mask)
@@ -727,12 +728,14 @@ class WordFeat(object):
     def __init__(self,
                  vocab_size,
                  embed_dim,
+                 dropout,
                  pretrained,
                  trainable=True,
                  scope="word_feat"):
         """initialize word-level featurization layer"""
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim
+        self.dropout = dropout
         self.pretrained = pretrained
         self.trainable = trainable
         self.scope = scope
@@ -740,15 +743,22 @@ class WordFeat(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
                 self.embed_dim, self.pretrained, 0, 0, self.trainable)
+            
+            self.dropout_layer = create_dropout_layer(self.dropout, 0, 0)
     
     def __call__(self,
                  input_word,
                  input_word_mask):
         """call word-level featurization layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            input_word_embedding = self.embedding_layer(input_word)
-            input_word_feat = tf.squeeze(input_word_embedding, axis=-2)
-            input_word_feat_mask = input_word_mask
+            input_word_embedding = tf.squeeze(self.embedding_layer(input_word), axis=-2)
+            input_word_embedding_mask = input_word_mask
+            
+            (input_word_dropout,
+                input_word_dropout_mask) = self.dropout_layer(input_word_embedding, input_word_embedding_mask)
+            
+            input_word_feat = input_word_dropout
+            input_word_feat_mask = input_word_dropout_mask
         
         return input_word_feat, input_word_feat_mask
     

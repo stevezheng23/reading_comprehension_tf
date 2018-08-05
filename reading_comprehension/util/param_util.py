@@ -258,6 +258,7 @@ def create_default_hyperparams(config_type):
             model_type="qanet",
             model_scope="mrc",
             model_representation_word_embed_dim=300,
+            model_representation_word_dropout=0.1,
             model_representation_word_embed_pretrained=True,
             model_representation_word_feat_trainable=False,
             model_representation_word_feat_enable=True,
