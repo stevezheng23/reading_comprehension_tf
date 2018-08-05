@@ -13,26 +13,6 @@ def _extract_hidden_state(state,
     """extract hidden state"""
     return state[1] if cell_type == "lstm" or cell_type == "peephole_lstm" else state
 
-def _convert_recurrent_state(state,
-                             recurrent_type,
-                             num_layer,
-                             cell_type):
-    """convert recurrent state"""
-    if recurrent_type == "bi":
-        fwd_state = _extract_hidden_state(state[0], cell_type)
-        bwd_state = _extract_hidden_state(state[1], cell_type)
-        
-        state_list = []
-        for i in range(num_layer):
-            state_list.append(fwd_state[i])
-            state_list.append(bwd_state[i])
-        
-        state = tf.concat(state_list, -1)
-    elif recurrent_type == "uni":
-        state = _extract_hidden_state(state[0], cell_type)
-    
-    return state
-
 def _create_single_reccurent_cell(unit_dim,
                                   cell_type,
                                   activation,
@@ -150,6 +130,8 @@ class RNN(object):
             output_recurrent, final_state_recurrent = tf.nn.dynamic_rnn(cell=self.cell,
                 inputs=input_data, sequence_length=input_length, dtype=input_data.dtype)
             output_mask = input_mask
+            final_state_recurrent = _extract_hidden_state(final_state_recurrent, self.cell_type)
+            final_state_mask = tf.squeeze(tf.reduce_max(input_mask, axis=1, keep_dims=True), axis=1)
         
         return output_recurrent, output_mask
 
@@ -201,8 +183,19 @@ class BiRNN(object):
             output_recurrent, final_state_recurrent = tf.nn.bidirectional_dynamic_rnn(cell_fw=self.fwd_cell,
                 cell_bw=self.bwd_cell, inputs=input_data, sequence_length=input_length, dtype=input_data.dtype)
             
-            output_recurrent = tf.concat(output_recurrent, -1)
+            output_recurrent = tf.concat(output_recurrent, axis=-1)
             output_mask = input_mask
+            
+            fwd_state = _extract_hidden_state(final_state_recurrent[0], self.cell_type)
+            bwd_state = _extract_hidden_state(final_state_recurrent[1], self.cell_type)
+            
+            state_list = []
+            for i in range(self.num_layer):
+                state_list.append(fwd_state[i])
+                state_list.append(bwd_state[i])
+
+            final_state_recurrent = tf.concat(state_list, axis=-1)
+            final_state_mask = tf.squeeze(tf.reduce_max(input_mask, axis=1, keep_dims=True), axis=1)
         
         return output_recurrent, output_mask
 
