@@ -8,6 +8,31 @@ from util.reading_comprehension_util import *
 
 __all__ = ["RNN", "BiRNN"]
 
+def _extract_hidden_state(state,
+                          cell_type):
+    """extract hidden state"""
+    return state[1] if cell_type == "lstm" or cell_type == "peephole_lstm" else state
+
+def _convert_recurrent_state(state,
+                             recurrent_type,
+                             num_layer,
+                             cell_type):
+    """convert recurrent state"""
+    if recurrent_type == "bi":
+        fwd_state = _extract_hidden_state(state[0], cell_type)
+        bwd_state = _extract_hidden_state(state[1], cell_type)
+        
+        state_list = []
+        for i in range(num_layer):
+            state_list.append(fwd_state[i])
+            state_list.append(bwd_state[i])
+        
+        state = tf.concat(state_list, -1)
+    elif recurrent_type == "uni":
+        state = _extract_hidden_state(state[0], cell_type)
+    
+    return state
+
 def _create_single_reccurent_cell(unit_dim,
                                   cell_type,
                                   activation,
@@ -64,22 +89,19 @@ def _creat_recurrent_cell(num_layer,
                           default_gpu_id,
                           enable_multi_gpu):
     """create recurrent cell"""
-    if num_layer > 1:
-        cell_list = []
-        for i in range(num_layer):
-            if enable_multi_gpu == True:
-                device_spec = get_device_spec(default_gpu_id + i, num_gpus)
-            else:
-                device_spec = get_device_spec(default_gpu_id, num_gpus)
-            
-            single_cell = _create_single_reccurent_cell(unit_dim, cell_type, activation,
-                dropout, forget_bias, residual_connect, attention_mechanism, device_spec)
-        cell_list.append(single_cell)
-        cell = tf.contrib.rnn.MultiRNNCell(cell_list)
-    else:
-        device_spec = get_device_spec(default_gpu_id, num_gpus)
-        cell = _create_single_reccurent_cell(unit_dim, cell_type, activation,
+    cell_list = []
+    for i in range(num_layer):
+        if enable_multi_gpu == True:
+            device_spec = get_device_spec(default_gpu_id + i, num_gpus)
+        else:
+            device_spec = get_device_spec(default_gpu_id, num_gpus)
+
+        single_cell = _create_single_reccurent_cell(unit_dim, cell_type, activation,
             dropout, forget_bias, residual_connect, attention_mechanism, device_spec)
+
+        cell_list.append(single_cell)
+
+    cell = tf.contrib.rnn.MultiRNNCell(cell_list)
     
     return cell
 
