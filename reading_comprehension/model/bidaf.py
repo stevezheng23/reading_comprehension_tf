@@ -281,7 +281,8 @@ class BiDAF(BaseModel):
                     question_understanding_dropout, question_understanding_forget_bias, question_understanding_residual_connect,
                     None, self.num_gpus, default_understanding_gpu_id, True, question_understanding_trainable)
                 
-                question_understanding, question_understanding_mask = question_understanding_layer(question_feat, question_feat_mask)
+                (question_understanding, question_understanding_mask,
+                    _, _) = question_understanding_layer(question_feat, question_feat_mask)
             
             with tf.variable_scope("context", reuse=tf.AUTO_REUSE):
                 self.logger.log_print("# build context understanding layer")
@@ -293,7 +294,8 @@ class BiDAF(BaseModel):
                         context_understanding_dropout, context_understanding_forget_bias, context_understanding_residual_connect,
                         None, self.num_gpus, default_understanding_gpu_id, True, context_understanding_trainable)
                 
-                context_understanding, context_understanding_mask = context_understanding_layer(context_feat, context_feat_mask)
+                (context_understanding, context_understanding_mask,
+                    _, _) = context_understanding_layer(context_feat, context_feat_mask)
         
         return question_understanding, context_understanding, question_understanding_mask, context_understanding_mask
     
@@ -420,8 +422,8 @@ class BiDAF(BaseModel):
                 answer_modeling_dropout, answer_modeling_forget_bias, answer_modeling_residual_connect,
                 None, self.num_gpus, default_modeling_gpu_id, True, answer_modeling_trainable)
             
-            (answer_modeling_sequence,
-                answer_modeling_sequence_mask) = answer_modeling_sequence_layer(answer_interaction, answer_interaction_mask)
+            (answer_modeling_sequence, answer_modeling_sequence_mask,
+                _, _) = answer_modeling_sequence_layer(answer_interaction, answer_interaction_mask)
             answer_modeling_sequence_unit_dim = answer_modeling_unit_dim * 2
             
             answer_intermediate_list = [answer_interaction]
@@ -489,7 +491,7 @@ class BiDAF(BaseModel):
                     answer_start_unit_dim, answer_start_cell_type, answer_start_hidden_activation,
                     answer_start_dropout, answer_start_forget_bias, answer_start_residual_connect,
                     None, self.num_gpus, default_output_gpu_id, True, answer_start_trainable)
-                answer_start, answer_start_mask = answer_start_layer(answer_modeling, answer_modeling_mask)
+                answer_start, answer_start_mask, _, _ = answer_start_layer(answer_modeling, answer_modeling_mask)
                 
                 (answer_start_fusion,
                     answer_start_fusion_mask) = self._build_fusion_result([answer_modeling, answer_start],
@@ -514,7 +516,7 @@ class BiDAF(BaseModel):
                     answer_end_unit_dim, answer_end_cell_type, answer_end_hidden_activation,
                     answer_end_dropout, answer_end_forget_bias, answer_end_residual_connect,
                     None, self.num_gpus, default_output_gpu_id, True, answer_end_trainable)
-                answer_end, answer_end_mask = answer_end_layer(answer_intermediate, answer_intermediate_mask)
+                answer_end, answer_end_mask, _, _ = answer_end_layer(answer_intermediate, answer_intermediate_mask)
                 
                 (answer_end_fusion,
                     answer_end_fusion_mask) = self._build_fusion_result([answer_modeling, answer_end],
