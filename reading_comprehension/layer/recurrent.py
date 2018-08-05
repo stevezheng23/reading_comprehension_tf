@@ -11,7 +11,7 @@ __all__ = ["RNN", "BiRNN"]
 def _extract_hidden_state(state,
                           cell_type):
     """extract hidden state"""
-    return state[1] if cell_type == "lstm" or cell_type == "peephole_lstm" else state
+    return state.h if "lstm" in cell_type else state
 
 def _create_single_reccurent_cell(unit_dim,
                                   cell_type,
@@ -28,7 +28,7 @@ def _create_single_reccurent_cell(unit_dim,
 
     if cell_type == "lstm":
         single_cell = tf.contrib.rnn.LSTMCell(num_units=unit_dim, use_peepholes=False,
-            activation=recurrent_activation, forget_bias=forget_bias, initializer=weight_initializer)
+            activation=recurrent_activation, forget_bias=forget_bias, initializer=weight_initializer, state_is_tuple=True)
     elif cell_type == "peephole_lstm":
         single_cell = tf.contrib.rnn.LSTMCell(num_units=unit_dim, use_peepholes=True,
             activation=recurrent_activation, forget_bias=forget_bias, initializer=weight_initializer)
@@ -130,10 +130,10 @@ class RNN(object):
             output_recurrent, final_state_recurrent = tf.nn.dynamic_rnn(cell=self.cell,
                 inputs=input_data, sequence_length=input_length, dtype=input_data.dtype)
             output_mask = input_mask
-            final_state_recurrent = _extract_hidden_state(final_state_recurrent, self.cell_type)
+            final_state_recurrent = [_extract_hidden_state(final_state, self.cell_type) for final_state in final_state_recurrent]
             final_state_mask = tf.squeeze(tf.reduce_max(input_mask, axis=1, keep_dims=True), axis=1)
         
-        return output_recurrent, output_mask
+        return output_recurrent, output_mask, final_state_recurrent, final_state_mask
 
 class BiRNN(object):
     """bi-directional recurrent layer"""
@@ -186,18 +186,18 @@ class BiRNN(object):
             output_recurrent = tf.concat(output_recurrent, axis=-1)
             output_mask = input_mask
             
-            fwd_state = _extract_hidden_state(final_state_recurrent[0], self.cell_type)
-            bwd_state = _extract_hidden_state(final_state_recurrent[1], self.cell_type)
+            fwd_state = final_state_recurrent[0]
+            bwd_state = final_state_recurrent[1]
             
             state_list = []
             for i in range(self.num_layer):
-                state_list.append(fwd_state[i])
-                state_list.append(bwd_state[i])
+                state_list.append(_extract_hidden_state(fwd_state[i], self.cell_type))
+                state_list.append(_extract_hidden_state(bwd_state[i], self.cell_type))
 
             final_state_recurrent = tf.concat(state_list, axis=-1)
             final_state_mask = tf.squeeze(tf.reduce_max(input_mask, axis=1, keep_dims=True), axis=1)
         
-        return output_recurrent, output_mask
+        return output_recurrent, output_mask, final_state_recurrent, final_state_mask
 
 class AttentionCellWrapper(RNNCell):
     def __init__(self,
