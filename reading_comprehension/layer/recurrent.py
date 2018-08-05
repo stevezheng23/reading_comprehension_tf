@@ -130,7 +130,9 @@ class RNN(object):
             output_recurrent, final_state_recurrent = tf.nn.dynamic_rnn(cell=self.cell,
                 inputs=input_data, sequence_length=input_length, dtype=input_data.dtype)
             output_mask = input_mask
-            final_state_recurrent = [_extract_hidden_state(final_state, self.cell_type) for final_state in final_state_recurrent]
+            
+            state_list = [_extract_hidden_state(state, self.cell_type) for state in final_state_recurrent]
+            final_state_recurrent = tf.concat(state_list, axis=-1)
             final_state_mask = tf.squeeze(tf.reduce_max(input_mask, axis=1, keep_dims=True), axis=1)
         
         return output_recurrent, output_mask, final_state_recurrent, final_state_mask
