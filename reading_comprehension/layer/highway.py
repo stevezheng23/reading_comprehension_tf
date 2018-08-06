@@ -6,7 +6,7 @@ from util.reading_comprehension_util import *
 
 from layer.basic import *
 
-__all__ = ["Highway", "StackedHighway"]
+__all__ = ["Highway", "ConvHighway", "StackedHighway"]
 
 class Highway(object):
     """highway layer"""
@@ -48,6 +48,62 @@ class Highway(object):
                  input_data,
                  input_mask):
         """call highway layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            if self.dropout > 0.0:
+                input_data, input_mask = self.dropout_layer(input_data, input_mask)
+            
+            transform = self.transform_layer(input_data)
+            gate = self.gate_layer(input_data)
+            output_highway = transform * gate + input_data * (1 - gate)
+            output_mask = input_mask
+        
+        return output_highway, output_mask
+
+class ConvHighway(object):
+    """convolutional highway layer"""
+    def __init__(self,
+                 num_filter,
+                 window_size,
+                 activation,
+                 dropout,
+                 num_gpus=1,
+                 default_gpu_id=0,
+                 regularizer=None,
+                 trainable=True,
+                 scope="highway"):
+        """initialize convolutional highway layer"""
+        self.num_filter = num_filter
+        self.window_size = window_size
+        self.activation = activation
+        self.dropout = dropout
+        self.regularizer = regularizer
+        self.trainable = trainable
+        self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+            weight_initializer = create_variable_initializer("glorot_uniform")
+            bias_initializer = create_variable_initializer("zero")
+            transform_activation = create_activation_function(self.activation)
+            gate_activation = create_activation_function("sigmoid")
+            
+            self.transform_layer = tf.layers.Conv1D(filters=self.num_filter, kernel_size=window_size,
+                strides=1, padding="SAME", activation=transform_activation, use_bias=True,
+                kernel_initializer=weight_initializer, bias_initializer=bias_initializer,
+                kernel_regularizer=self.regularizer, bias_regularizer=self.regularizer, trainable=trainable)
+            self.gate_layer = tf.layers.Conv1D(filters=self.num_filter, kernel_size=window_size,
+                strides=1, padding="SAME", activation=gate_activation, use_bias=True,
+                kernel_initializer=weight_initializer, bias_initializer=bias_initializer,
+                kernel_regularizer=self.regularizer, bias_regularizer=self.regularizer, trainable=trainable)
+            
+            if self.dropout > 0.0:
+                self.dropout_layer = Dropout(keep_prob=1.0-self.dropout,
+                    num_gpus=num_gpus, default_gpu_id=default_gpu_id)
+    
+    def __call__(self,
+                 input_data,
+                 input_mask):
+        """call convolutional highway layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if self.dropout > 0.0:
                 input_data, input_mask = self.dropout_layer(input_data, input_mask)
