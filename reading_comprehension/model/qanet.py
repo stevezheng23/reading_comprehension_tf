@@ -95,7 +95,7 @@ class QANet(BaseModel):
                 
                 if self.hyperparams.train_optimizer_warmup_enable == True:
                     self.logger.log_print("# setup learning rate warm-up mechanism")
-                    self.warmup_learning_rate = self._apply_learning_warmup_decay(self.initial_learning_rate)
+                    self.warmup_learning_rate = self._apply_learning_rate_warmup(self.initial_learning_rate)
                 else:
                     self.warmup_learning_rate = self.initial_learning_rate
                 
