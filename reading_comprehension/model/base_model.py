@@ -35,7 +35,7 @@ class BaseModel(object):
         
         self.update_op = None
         self.train_loss = None
-        self.decayed_learning_rate = None
+        self.learning_rate = None
         self.global_step = None
         self.train_summary = None
         self.infer_answer_start = None
@@ -410,7 +410,7 @@ class BaseModel(object):
     
     def _get_train_summary(self):
         """get train summary"""
-        return tf.summary.merge([tf.summary.scalar("learning_rate", self.decayed_learning_rate),
+        return tf.summary.merge([tf.summary.scalar("learning_rate", self.learning_rate),
             tf.summary.scalar("train_loss", self.train_loss), tf.summary.scalar("gradient_norm", self.gradient_norm)])
     
     def _get_infer_summary(self):
