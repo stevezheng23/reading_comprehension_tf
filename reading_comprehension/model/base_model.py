@@ -236,6 +236,27 @@ class BaseModel(object):
         
         return input_question_feat, input_question_feat_mask, input_context_feat, input_context_feat_mask
     
+    def _apply_learning_rate_warmup(self,
+                                    learning_rate):
+        """apply learning rate warmup"""
+        warmup_mode = self.hyperparams.train_optimizer_warmup_mode
+        warmup_rate = self.hyperparams.train_optimizer_warmup_rate
+        warmup_end_step = self.hyperparams.train_optimizer_warmup_end_step
+        
+        if warmup_mode == "exponential_warmup":
+            warmup_factor = warmup_rate ** (1 - tf.to_float(self.global_step) / warmup_end_step)
+            warmup_learning_rate = warmup_factor * learning_rate
+        elif warmup_mode == "inverse_exponential_warmup":
+            warmup_factor = tf.log(self.global_step + 1) / tf.log(warmup_end_step)
+            warmup_learning_rate = warmup_factor * learning_rate
+        else:
+            raise ValueError("unsupported warm-up mode {0}".format(warmup_mode))
+        
+        warmup_learning_rate = tf.cond(tf.less(self.global_step, warmup_end_step),
+            lambda: warmup_learning_rate, lambda: learning_rate)
+        
+        return decayed_learning_rate
+    
     def _apply_learning_rate_decay(self,
                                    learning_rate):
         """apply learning rate decay"""
