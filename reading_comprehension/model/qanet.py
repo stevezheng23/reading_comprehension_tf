@@ -90,18 +90,26 @@ class QANet(BaseModel):
                     regularization_loss = tf.contrib.layers.apply_regularization(self.regularizer, regularization_variables)
                     self.train_loss = self.train_loss + regularization_loss
                 
-                """apply learning rate decay"""
-                self.learning_rate = tf.constant(self.hyperparams.train_optimizer_learning_rate)
+                """apply learning rate warm-up & decay"""
+                self.initial_learning_rate = tf.constant(self.hyperparams.train_optimizer_learning_rate)
+                
+                if self.hyperparams.train_optimizer_warmup_enable == True:
+                    self.logger.log_print("# setup learning rate warm-up mechanism")
+                    self.warmup_learning_rate = self._apply_learning_warmup_decay(self.initial_learning_rate)
+                else:
+                    self.warmup_learning_rate = self.initial_learning_rate
                 
                 if self.hyperparams.train_optimizer_decay_enable == True:
                     self.logger.log_print("# setup learning rate decay mechanism")
-                    self.decayed_learning_rate = self._apply_learning_rate_decay(self.learning_rate)
+                    self.decayed_learning_rate = self._apply_learning_rate_decay(self.warmup_learning_rate)
                 else:
-                    self.decayed_learning_rate = self.learning_rate
+                    self.decayed_learning_rate = self.warmup_learning_rate
+                
+                self.learning_rate = self.decayed_learning_rate
                 
                 """initialize optimizer"""
                 self.logger.log_print("# initialize optimizer")
-                self.optimizer = self._initialize_optimizer(self.decayed_learning_rate)
+                self.optimizer = self._initialize_optimizer(self.learning_rate)
                 
                 """minimize optimization loss"""
                 self.logger.log_print("# setup loss minimization mechanism")
