@@ -6,7 +6,7 @@ from util.reading_comprehension_util import *
 
 from layer.basic import *
 
-__all__ = ["Dense", "DoubleDense", "StackedDense"]
+__all__ = ["Dense", "DoubleDense", "StackedDense", "StackedDoubleDense"]
 
 class Dense(object):
     """dense layer"""
@@ -84,6 +84,7 @@ class DoubleDense(object):
     """double-dense layer"""
     def __init__(self,
                  unit_dim,
+                 inner_scale,
                  activation,
                  dropout,
                  layer_dropout=0.0,
@@ -96,6 +97,7 @@ class DoubleDense(object):
                  scope="double_dense"):
         """initialize double-dense layer"""
         self.unit_dim = unit_dim
+        self.inner_scale = inner_scale
         self.activation = activation
         self.dropout = dropout
         self.layer_dropout = layer_dropout
@@ -109,7 +111,7 @@ class DoubleDense(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             weight_initializer = create_variable_initializer("glorot_uniform")
             bias_initializer = create_variable_initializer("zero")
-            self.inner_dense_layer = tf.layers.Dense(units=self.unit_dim * 4, activation=None, use_bias=True,
+            self.inner_dense_layer = tf.layers.Dense(units=self.unit_dim * self.inner_scale, activation=None, use_bias=True,
                 kernel_initializer=weight_initializer, bias_initializer=bias_initializer,
                 kernel_regularizer=self.regularizer, bias_regularizer=self.regularizer, trainable=self.trainable)
             self.outer_dense_layer = tf.layers.Dense(units=self.unit_dim, activation=None, use_bias=True,
@@ -207,6 +209,70 @@ class StackedDense(object):
                  input_data,
                  input_mask):
         """call stacked dense layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            input_dense = input_data
+            input_dense_mask = input_mask
+            
+            for dense_layer in self.dense_layer_list:
+                input_dense, input_dense_mask = dense_layer(input_dense, input_dense_mask)
+            
+            output_dense = input_dense
+            output_mask = input_dense_mask
+        
+        return output_dense, output_mask
+
+class StackedDoubleDense(object):
+    """stacked double-dense layer"""
+    def __init__(self,
+                 layer_creator,
+                 num_layer,
+                 unit_dim,
+                 inner_scale,
+                 activation,
+                 dropout,
+                 layer_dropout=None,
+                 layer_norm=False,
+                 residual_connect=False,
+                 num_gpus=1,
+                 default_gpu_id=0,
+                 enable_multi_gpu=True,
+                 regularizer=None,
+                 trainable=True,
+                 scope="stacked_double_dense"):
+        """initialize stacked double-dense layer"""
+        self.layer_creator = layer_creator
+        self.num_layer = num_layer
+        self.unit_dim = unit_dim
+        self.inner_scale = inner_scale
+        self.activation = activation
+        self.dropout = dropout
+        self.layer_dropout = layer_dropout
+        self.layer_norm = layer_norm
+        self.residual_connect = residual_connect
+        self.num_gpus = num_gpus
+        self.default_gpu_id = default_gpu_id
+        self.enable_multi_gpu = enable_multi_gpu
+        self.regularizer = regularizer
+        self.trainable = trainable
+        self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+            self.dense_layer_list = []
+            for i in range(self.num_layer):
+                layer_scope = "layer_{0}".format(i)
+                layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
+                sublayer_dropout = self.layer_dropout[i] if self.layer_dropout != None else 0.0
+                dense_layer = self.layer_creator(unit_dim=self.unit_dim, inner_scale=self.inner_scale,
+                    activation=self.activation, dropout=self.dropout, layer_dropout=sublayer_dropout, layer_norm=self.layer_norm,
+                    residual_connect=self.residual_connect, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
+                    regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
+                self.dense_layer_list.append(dense_layer)
+    
+    def __call__(self,
+                 input_data,
+                 input_mask):
+        """call stacked double-dense layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_dense = input_data
             input_dense_mask = input_mask
