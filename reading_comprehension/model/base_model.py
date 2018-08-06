@@ -244,10 +244,10 @@ class BaseModel(object):
         warmup_end_step = self.hyperparams.train_optimizer_warmup_end_step
         
         if warmup_mode == "exponential_warmup":
-            warmup_factor = warmup_rate ** (1 - tf.to_float(self.global_step) / warmup_end_step)
+            warmup_factor = warmup_rate ** (1 - tf.to_float(self.global_step) / tf.to_float(warmup_end_step))
             warmup_learning_rate = warmup_factor * learning_rate
         elif warmup_mode == "inverse_exponential_warmup":
-            warmup_factor = tf.log(self.global_step + 1) / tf.log(warmup_end_step)
+            warmup_factor = tf.log(tf.to_float(self.global_step + 1)) / tf.log(tf.to_float(warmup_end_step))
             warmup_learning_rate = warmup_factor * learning_rate
         else:
             raise ValueError("unsupported warm-up mode {0}".format(warmup_mode))
@@ -255,7 +255,7 @@ class BaseModel(object):
         warmup_learning_rate = tf.cond(tf.less(self.global_step, warmup_end_step),
             lambda: warmup_learning_rate, lambda: learning_rate)
         
-        return decayed_learning_rate
+        return warmup_learning_rate
     
     def _apply_learning_rate_decay(self,
                                    learning_rate):
