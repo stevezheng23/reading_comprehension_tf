@@ -126,6 +126,13 @@ class RNN(object):
                  input_mask):
         """call uni-directional recurrent layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            input_data_shape = tf.shape(input_data)
+            input_mask_shape = tf.shape(input_mask)
+            shape_size = len(input_data.get_shape().as_list())
+            if shape_size > 3:
+                input_data = tf.reshape(input_data, shape=tf.concat([[-1], input_data_shape[-2:]], axis=0))
+                input_mask = tf.reshape(input_mask, shape=tf.concat([[-1], input_mask_shape[-2:]], axis=0))
+            
             input_length = tf.cast(tf.reduce_sum(tf.squeeze(input_mask, axis=-1), axis=-1), dtype=tf.int32)
             output_recurrent, final_state_recurrent = tf.nn.dynamic_rnn(cell=self.cell,
                 inputs=input_data, sequence_length=input_length, dtype=input_data.dtype)
@@ -134,6 +141,20 @@ class RNN(object):
             state_list = [_extract_hidden_state(state, self.cell_type) for state in final_state_recurrent]
             final_state_recurrent = tf.concat(state_list, axis=-1)
             final_state_mask = tf.squeeze(tf.reduce_max(input_mask, axis=1, keep_dims=True), axis=1)
+            
+            if shape_size > 3:
+                output_recurrent_shape = tf.shape(output_recurrent)
+                output_mask_shape = tf.shape(output_mask)
+                final_state_recurrent_shape = tf.shape(final_state_recurrent)
+                final_state_mask_shape = tf.shape(final_state_mask)
+                output_recurrent = tf.reshape(output_recurrent,
+                    shape=tf.concat([input_data_shape[:-2], output_recurrent_shape[-2:]], axis=0))
+                output_mask = tf.reshape(output_mask,
+                    shape=tf.concat([input_mask_shape[:-2], output_mask_shape[-2:]], axis=0))
+                final_state_recurrent = tf.reshape(final_state_recurrent,
+                    shape=tf.concat([input_data_shape[:-2], final_state_recurrent_shape[-1:]], axis=0))
+                final_state_mask = tf.reshape(final_state_mask,
+                    shape=tf.concat([input_mask_shape[:-2], final_state_mask_shape[-1:]], axis=0))
         
         return output_recurrent, output_mask, final_state_recurrent, final_state_mask
 
@@ -181,6 +202,13 @@ class BiRNN(object):
                  input_mask):
         """call bi-directional recurrent layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            input_data_shape = tf.shape(input_data)
+            input_mask_shape = tf.shape(input_mask)
+            shape_size = len(input_data.get_shape().as_list())
+            if shape_size > 3:
+                input_data = tf.reshape(input_data, shape=tf.concat([[-1], input_data_shape[-2:]], axis=0))
+                input_mask = tf.reshape(input_mask, shape=tf.concat([[-1], input_mask_shape[-2:]], axis=0))
+            
             input_length = tf.cast(tf.reduce_sum(tf.squeeze(input_mask, axis=-1), axis=-1), dtype=tf.int32)
             output_recurrent, final_state_recurrent = tf.nn.bidirectional_dynamic_rnn(cell_fw=self.fwd_cell,
                 cell_bw=self.bwd_cell, inputs=input_data, sequence_length=input_length, dtype=input_data.dtype)
@@ -198,6 +226,20 @@ class BiRNN(object):
 
             final_state_recurrent = tf.concat(state_list, axis=-1)
             final_state_mask = tf.squeeze(tf.reduce_max(input_mask, axis=1, keep_dims=True), axis=1)
+            
+            if shape_size > 3:
+                output_recurrent_shape = tf.shape(output_recurrent)
+                output_mask_shape = tf.shape(output_mask)
+                final_state_recurrent_shape = tf.shape(final_state_recurrent)
+                final_state_mask_shape = tf.shape(final_state_mask)
+                output_recurrent = tf.reshape(output_recurrent,
+                    shape=tf.concat([input_data_shape[:-2], output_recurrent_shape[-2:]], axis=0))
+                output_mask = tf.reshape(output_mask,
+                    shape=tf.concat([input_mask_shape[:-2], output_mask_shape[-2:]], axis=0))
+                final_state_recurrent = tf.reshape(final_state_recurrent,
+                    shape=tf.concat([input_data_shape[:-2], final_state_recurrent_shape[-1:]], axis=0))
+                final_state_mask = tf.reshape(final_state_mask,
+                    shape=tf.concat([input_mask_shape[:-2], final_state_mask_shape[-1:]], axis=0))
         
         return output_recurrent, output_mask, final_state_recurrent, final_state_mask
 
