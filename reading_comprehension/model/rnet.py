@@ -157,19 +157,17 @@ class RNet(BaseModel):
         subword_embed_dim = self.hyperparams.model_representation_subword_embed_dim
         subword_unit_dim = self.hyperparams.model_representation_subword_unit_dim
         subword_feat_trainable = self.hyperparams.model_representation_subword_feat_trainable
-        subword_window_size = self.hyperparams.model_representation_subword_window_size
+        subword_cell_type = self.hyperparams.model_representation_subword_cell_type
         subword_hidden_activation = self.hyperparams.model_representation_subword_hidden_activation
         subword_dropout = self.hyperparams.model_representation_subword_dropout if self.mode == "train" else 0.0
-        subword_pooling_type = self.hyperparams.model_representation_subword_pooling_type
         subword_feat_enable = self.hyperparams.model_representation_subword_feat_enable
         char_vocab_size = self.hyperparams.data_char_vocab_size
         char_embed_dim = self.hyperparams.model_representation_char_embed_dim
         char_unit_dim = self.hyperparams.model_representation_char_unit_dim
         char_feat_trainable = self.hyperparams.model_representation_char_feat_trainable
-        char_window_size = self.hyperparams.model_representation_char_window_size
+        char_cell_type = self.hyperparams.model_representation_char_cell_type
         char_hidden_activation = self.hyperparams.model_representation_char_hidden_activation
         char_dropout = self.hyperparams.model_representation_char_dropout if self.mode == "train" else 0.0
-        char_pooling_type = self.hyperparams.model_representation_char_pooling_type
         char_feat_enable = self.hyperparams.model_representation_char_feat_enable
         fusion_type = self.hyperparams.model_representation_fusion_type
         fusion_num_layer = self.hyperparams.model_representation_fusion_num_layer
@@ -209,9 +207,9 @@ class RNet(BaseModel):
             if subword_feat_enable == True:
                 self.logger.log_print("# build subword-level representation layer")
                 subword_feat_layer = SubwordFeat(vocab_size=subword_vocab_size, embed_dim=subword_embed_dim,
-                    unit_dim=subword_unit_dim, window_size=subword_window_size, hidden_activation=subword_hidden_activation,
-                    pooling_type=subword_pooling_type, dropout=subword_dropout, num_gpus=self.num_gpus,
-                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer, trainable=subword_feat_trainable)
+                    unit_dim=subword_unit_dim, cell_type=subword_cell_type, hidden_activation=subword_hidden_activation,
+                    dropout=subword_dropout, num_gpus=self.num_gpus, default_gpu_id=default_representation_gpu_id,
+                    regularizer=self.regularizer, trainable=subword_feat_trainable)
                 
                 (input_question_subword_feat,
                     input_question_subword_feat_mask) = subword_feat_layer(input_question_subword, input_question_subword_mask)
@@ -228,9 +226,9 @@ class RNet(BaseModel):
             if char_feat_enable == True:
                 self.logger.log_print("# build char-level representation layer")
                 char_feat_layer = CharFeat(vocab_size=char_vocab_size, embed_dim=char_embed_dim,
-                    unit_dim=char_unit_dim, window_size=char_window_size, hidden_activation=char_hidden_activation,
-                    pooling_type=char_pooling_type, dropout=char_dropout, num_gpus=self.num_gpus,
-                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer, trainable=char_feat_trainable)
+                    unit_dim=char_unit_dim, cell_type=char_cell_type, hidden_activation=char_hidden_activation,
+                    dropout=char_dropout, num_gpus=self.num_gpus, default_gpu_id=default_representation_gpu_id,
+                    regularizer=self.regularizer, trainable=char_feat_trainable)
                 
                 (input_question_char_feat,
                     input_question_char_feat_mask) = char_feat_layer(input_question_char, input_question_char_mask)
@@ -570,9 +568,8 @@ class SubwordFeat(object):
                  vocab_size,
                  embed_dim,
                  unit_dim,
-                 window_size,
+                 cell_type,
                  hidden_activation,
-                 pooling_type,
                  dropout,
                  num_gpus=1,
                  default_gpu_id=0,
@@ -583,9 +580,8 @@ class SubwordFeat(object):
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim
         self.unit_dim = unit_dim
-        self.window_size = window_size
+        self.cell_type = cell_type
         self.hidden_activation = hidden_activation
-        self.pooling_type = pooling_type
         self.dropout = dropout
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
@@ -597,11 +593,9 @@ class SubwordFeat(object):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
                 self.embed_dim, False, 0, 0, self.trainable)
             
-            self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
-                self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, self.dropout, None,
-                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.trainable)
-            
-            self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
+            self.recurrent_layer = create_recurrent_layer("bi", 1, self.unit_dim,
+                self.cell_type, self.hidden_activation, self.dropout, 1.0, False, None,
+                self.num_gpus, self.default_gpu_id, False, self.trainable)
     
     def __call__(self,
                  input_subword,
@@ -611,14 +605,11 @@ class SubwordFeat(object):
             input_subword_embedding = self.embedding_layer(input_subword)
             input_subword_embedding_mask = tf.expand_dims(input_subword_mask, axis=-1)
             
-            (input_subword_conv,
-                input_subword_conv_mask) = self.conv_layer(input_subword_embedding, input_subword_embedding_mask)
+            (_, _, input_subword_recurrent,
+                input_subword_recurrent_mask) = self.recurrent_layer(input_subword_embedding, input_subword_embedding_mask)
             
-            (input_subword_pool,
-                input_subword_pool_mask) = self.pooling_layer(input_subword_conv, input_subword_conv_mask)
-            
-            input_subword_feat = input_subword_pool
-            input_subword_feat_mask = input_subword_pool_mask
+            input_subword_feat = input_subword_recurrent
+            input_subword_feat_mask = input_subword_recurrent_mask
         
         return input_subword_feat, input_subword_feat_mask
 
@@ -628,9 +619,8 @@ class CharFeat(object):
                  vocab_size,
                  embed_dim,
                  unit_dim,
-                 window_size,
+                 cell_type,
                  hidden_activation,
-                 pooling_type,
                  dropout,
                  num_gpus=1,
                  default_gpu_id=0,
@@ -641,9 +631,8 @@ class CharFeat(object):
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim
         self.unit_dim = unit_dim
-        self.window_size = window_size
+        self.cell_type = cell_type
         self.hidden_activation = hidden_activation
-        self.pooling_type = pooling_type
         self.dropout = dropout
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
@@ -655,11 +644,9 @@ class CharFeat(object):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
                 self.embed_dim, False, 0, 0, self.trainable)
             
-            self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
-                self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, self.dropout, None,
-                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.trainable)
-            
-            self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
+            self.recurrent_layer = create_recurrent_layer("bi", 1, self.unit_dim,
+                self.cell_type, self.hidden_activation, self.dropout, 1.0, False, None,
+                self.num_gpus, self.default_gpu_id, False, self.trainable)
     
     def __call__(self,
                  input_char,
@@ -669,13 +656,10 @@ class CharFeat(object):
             input_char_embedding = self.embedding_layer(input_char)
             input_char_embedding_mask = tf.expand_dims(input_char_mask, axis=-1)
             
-            (input_char_conv,
-                input_char_conv_mask) = self.conv_layer(input_char_embedding, input_char_embedding_mask)
+            (_, _, input_char_recurrent,
+                input_char_recurrent_mask) = self.recurrent_layer(input_char_embedding, input_char_embedding_mask)
             
-            (input_char_pool,
-                input_char_pool_mask) = self.pooling_layer(input_char_conv, input_char_conv_mask)
-            
-            input_char_feat = input_char_pool
-            input_char_feat_mask = input_char_pool_mask
+            input_char_feat = input_char_recurrent
+            input_char_feat_mask = input_char_recurrent_mask
         
         return input_char_feat, input_char_feat_mask
