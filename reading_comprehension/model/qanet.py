@@ -624,6 +624,8 @@ class EncoderBlock(object):
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
+            self.dropout_layer = create_dropout_layer(self.dropout, self.num_gpus, self.default_gpu_id)
+            
             self.position_layer = create_position_layer("sin_pos", self.unit_dim, 0, 10000,
                 self.num_gpus, self.default_gpu_id, self.trainable)
             
@@ -659,7 +661,8 @@ class EncoderBlock(object):
             input_block = input_data
             input_block_mask = input_mask
             
-            input_position, input_position_mask = self.position_layer(input_block, input_block_mask)
+            input_dropout, input_dropout_mask = self.dropout_layer(input_block, input_block_mask)
+            input_position, input_position_mask = self.position_layer(input_dropout, input_dropout_mask)
             input_conv, input_conv_mask = self.conv_layer(input_position, input_position_mask)
             input_attention, input_attention_mask = self.attention_layer(input_conv, input_conv, input_conv_mask, input_conv_mask)
             input_dense, input_dense_mask = self.dense_layer(input_attention, input_attention_mask)
