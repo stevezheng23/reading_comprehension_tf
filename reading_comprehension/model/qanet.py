@@ -286,9 +286,6 @@ class QANet(BaseModel):
                 question_understanding_fusion_layer = self._create_fusion_layer(question_representation_unit_dim,
                     question_understanding_unit_dim, "conv", 1, question_understanding_hidden_activation, question_understanding_dropout,
                     self.num_gpus, default_understanding_gpu_id, self.regularizer, question_understanding_trainable)
-                question_understanding_fusion, question_understanding_fusion_mask = self._build_fusion_result([question_feat],
-                    [question_feat_mask], question_understanding_fusion_layer)
-                
                 question_understanding_layer = StackedEncoderBlock(num_layer=question_understanding_num_layer,
                     num_conv=question_understanding_num_conv, num_head=question_understanding_num_head,
                     unit_dim=question_understanding_unit_dim, window_size=question_understanding_window_size,
@@ -297,21 +294,22 @@ class QANet(BaseModel):
                     default_gpu_id=default_understanding_gpu_id, enable_multi_gpu=True,
                     regularizer=self.regularizer, trainable=question_understanding_trainable)
                 
+                question_understanding_fusion, question_understanding_fusion_mask = self._build_fusion_result([question_feat],
+                    [question_feat_mask], question_understanding_fusion_layer)
                 (question_understanding,
                     question_understanding_mask) = question_understanding_layer(question_understanding_fusion,
                         question_understanding_fusion_mask)
             
             with tf.variable_scope("context", reuse=tf.AUTO_REUSE):
                 self.logger.log_print("# build context understanding layer")
-                context_understanding_fusion_layer = self._create_fusion_layer(context_representation_unit_dim,
-                    context_understanding_unit_dim, "conv", 1, context_understanding_hidden_activation, context_understanding_dropout,
-                    self.num_gpus, default_understanding_gpu_id, self.regularizer, context_understanding_trainable)
-                context_understanding_fusion, context_understanding_fusion_mask = self._build_fusion_result([context_feat],
-                    [context_feat_mask], context_understanding_fusion_layer)
-                
-                if enable_understanding_sharing == True and question_understanding_unit_dim == context_understanding_unit_dim:
+                if (enable_understanding_sharing == True and question_representation_unit_dim == context_representation_unit_dim and
+                    question_understanding_unit_dim == context_understanding_unit_dim):
+                    context_understanding_fusion_layer = question_understanding_fusion_layer
                     context_understanding_layer = question_understanding_layer
                 else:
+                    context_understanding_fusion_layer = self._create_fusion_layer(context_representation_unit_dim,
+                        context_understanding_unit_dim, "conv", 1, context_understanding_hidden_activation, context_understanding_dropout,
+                        self.num_gpus, default_understanding_gpu_id, self.regularizer, context_understanding_trainable)
                     context_understanding_layer = StackedEncoderBlock(num_layer=context_understanding_num_layer,
                         num_conv=context_understanding_num_conv, num_head=context_understanding_num_head,
                         unit_dim=context_understanding_unit_dim, window_size=context_understanding_window_size,
@@ -320,6 +318,8 @@ class QANet(BaseModel):
                         default_gpu_id=default_understanding_gpu_id, enable_multi_gpu=True,
                         regularizer=self.regularizer, trainable=context_understanding_trainable)
                 
+                context_understanding_fusion, context_understanding_fusion_mask = self._build_fusion_result([context_feat],
+                    [context_feat_mask], context_understanding_fusion_layer)
                 (context_understanding,
                     context_understanding_mask) = context_understanding_layer(context_understanding_fusion,
                         context_understanding_fusion_mask)
