@@ -43,9 +43,7 @@ class Dense(object):
             
             self.dense_activation = create_activation_function(self.activation)
             
-            if self.dropout > 0.0:
-                self.dropout_layer = Dropout(keep_prob=1.0-self.dropout,
-                    num_gpus=num_gpus, default_gpu_id=default_gpu_id)
+            self.dropout_layer = Dropout(keep_prob=1.0-self.dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id)
             
             if self.layer_norm == True:
                 self.norm_layer = LayerNorm(layer_dim=self.unit_dim,
@@ -59,8 +57,7 @@ class Dense(object):
             input_dense = input_data
             input_dense_mask = input_mask
             
-            if self.dropout > 0.0:
-                input_dense, input_dense_mask = self.dropout_layer(input_dense, input_dense_mask)
+            input_dense, input_dense_mask = self.dropout_layer(input_dense, input_dense_mask)
             
             input_dense = self.dense_layer(input_dense)
             
@@ -120,9 +117,7 @@ class DoubleDense(object):
             
             self.dense_activation = create_activation_function(self.activation)
             
-            if self.dropout > 0.0:
-                self.dropout_layer = Dropout(keep_prob=1.0-self.dropout,
-                    num_gpus=num_gpus, default_gpu_id=default_gpu_id)
+            self.dropout_layer = Dropout(keep_prob=1.0-self.dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id)
             
             if self.layer_norm == True:
                 self.norm_layer = LayerNorm(layer_dim=self.unit_dim,
@@ -136,8 +131,7 @@ class DoubleDense(object):
             input_dense = input_data
             input_dense_mask = input_mask
             
-            if self.dropout > 0.0:
-                input_dense, input_dense_mask = self.dropout_layer(input_dense, input_dense_mask)
+            input_dense, input_dense_mask = self.dropout_layer(input_dense, input_dense_mask)
             
             input_dense = self.inner_dense_layer(input_dense)
             

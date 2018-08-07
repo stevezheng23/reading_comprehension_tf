@@ -40,17 +40,14 @@ class Highway(object):
                 kernel_initializer=weight_initializer, bias_initializer=bias_initializer,
                 kernel_regularizer=self.regularizer, bias_regularizer=self.regularizer, trainable=self.trainable)
             
-            if self.dropout > 0.0:
-                self.dropout_layer = Dropout(keep_prob=1.0-self.dropout,
-                    num_gpus=num_gpus, default_gpu_id=default_gpu_id)
+            self.dropout_layer = Dropout(keep_prob=1.0-self.dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id)
     
     def __call__(self,
                  input_data,
                  input_mask):
         """call highway layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            if self.dropout > 0.0:
-                input_data, input_mask = self.dropout_layer(input_data, input_mask)
+            input_data, input_mask = self.dropout_layer(input_data, input_mask)
             
             transform = self.transform_layer(input_data)
             gate = self.gate_layer(input_data)
@@ -96,17 +93,14 @@ class ConvHighway(object):
                 kernel_initializer=weight_initializer, bias_initializer=bias_initializer,
                 kernel_regularizer=self.regularizer, bias_regularizer=self.regularizer, trainable=trainable)
             
-            if self.dropout > 0.0:
-                self.dropout_layer = Dropout(keep_prob=1.0-self.dropout,
-                    num_gpus=num_gpus, default_gpu_id=default_gpu_id)
+            self.dropout_layer = Dropout(keep_prob=1.0-self.dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id)
     
     def __call__(self,
                  input_data,
                  input_mask):
         """call convolutional highway layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            if self.dropout > 0.0:
-                input_data, input_mask = self.dropout_layer(input_data, input_mask)
+            input_data, input_mask = self.dropout_layer(input_data, input_mask)
             
             transform = self.transform_layer(input_data)
             gate = self.gate_layer(input_data)

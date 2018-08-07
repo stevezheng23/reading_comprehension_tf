@@ -53,9 +53,7 @@ class Conv1D(object):
                 kernel_initializer=weight_initializer, bias_initializer=bias_initializer,
                 kernel_regularizer=self.regularizer, bias_regularizer=self.regularizer, trainable=trainable)
             
-            if self.dropout > 0.0:
-                self.dropout_layer = Dropout(keep_prob=1.0-self.dropout,
-                    num_gpus=num_gpus, default_gpu_id=default_gpu_id)
+            self.dropout_layer = Dropout(keep_prob=1.0-self.dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id)
             
             if self.layer_norm == True:
                 self.norm_layer = LayerNorm(layer_dim=self.num_channel, num_gpus=num_gpus,
@@ -69,8 +67,7 @@ class Conv1D(object):
             input_conv = input_data
             input_conv_mask = input_mask
             
-            if self.dropout > 0.0:
-                input_conv, input_conv_mask = self.dropout_layer(input_conv, input_conv_mask)
+            input_conv, input_conv_mask = self.dropout_layer(input_conv, input_conv_mask)
             
             if self.layer_norm == True:
                 input_conv, input_conv_mask = self.norm_layer(input_conv, input_conv_mask)
@@ -130,9 +127,7 @@ class Conv2D(object):
                 kernel_initializer=weight_initializer, bias_initializer=bias_initializer,
                 kernel_regularizer=self.regularizer, bias_regularizer=self.regularizer, trainable=trainable)
             
-            if self.dropout > 0.0:
-                self.dropout_layer = Dropout(keep_prob=1.0-self.dropout,
-                    num_gpus=num_gpus, default_gpu_id=default_gpu_id)
+            self.dropout_layer = Dropout(keep_prob=1.0-self.dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id)
             
             if self.layer_norm == True:
                 self.norm_layer = LayerNorm(layer_dim=self.num_channel, num_gpus=num_gpus,
@@ -146,8 +141,7 @@ class Conv2D(object):
             input_conv = input_data
             input_conv_mask = input_mask
             
-            if self.dropout > 0.0:
-                input_conv, input_conv_mask = self.dropout_layer(input_conv, input_conv_mask)
+            input_conv, input_conv_mask = self.dropout_layer(input_conv, input_conv_mask)
             
             if self.layer_norm == True:
                 input_conv, input_conv_mask = self.norm_layer(input_conv, input_conv_mask)
@@ -349,9 +343,7 @@ class SeparableConv(object):
             self.strides = [1, 1, self.stride_size, 1]
             self.conv_activation = create_activation_function(self.activation)
             
-            if self.dropout > 0.0:
-                self.dropout_layer = Dropout(keep_prob=1.0-self.dropout,
-                    num_gpus=num_gpus, default_gpu_id=default_gpu_id)
+            self.dropout_layer = Dropout(keep_prob=1.0-self.dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id)
             
             if self.layer_norm == True:
                 self.norm_layer = LayerNorm(layer_dim=self.num_channel, num_gpus=num_gpus,
@@ -390,8 +382,7 @@ class SeparableConv1D(SeparableConv):
             input_conv = input_data
             input_conv_mask = input_mask
             
-            if self.dropout > 0.0:
-                input_conv, input_conv_mask = self.dropout_layer(input_conv, input_conv_mask)
+            input_conv, input_conv_mask = self.dropout_layer(input_conv, input_conv_mask)
             
             if self.layer_norm == True:
                 input_conv, input_conv_mask = self.norm_layer(input_conv, input_conv_mask)
@@ -447,8 +438,7 @@ class SeparableConv2D(SeparableConv):
             input_conv = input_data
             input_conv_mask = input_mask
             
-            if self.dropout > 0.0:
-                input_conv, input_conv_mask = self.dropout_layer(input_conv, input_conv_mask)
+            input_conv, input_conv_mask = self.dropout_layer(input_conv, input_conv_mask)
             
             if self.layer_norm == True:
                 input_conv, input_conv_mask = self.norm_layer(input_conv, input_conv_mask)
