@@ -615,8 +615,8 @@ class EncoderBlock(object):
         self.unit_dim = unit_dim
         self.window_size = window_size
         self.activation = activation
-        self.dropout = dropout
-        self.layer_dropout = layer_dropout
+        self.enable_dropout, self.dropout = dropout
+        self.sublayer_skip, self.num_sublayer, self.layer_dropout = layer_dropout
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.regularizer = regularizer
@@ -624,13 +624,13 @@ class EncoderBlock(object):
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            self.dropout_layer = create_dropout_layer(self.dropout, self.num_gpus, self.default_gpu_id)
+            if self.enable_dropout == True:
+                self.dropout_layer = create_dropout_layer(self.dropout, self.num_gpus, self.default_gpu_id)
             
             self.position_layer = create_position_layer("sin_pos", self.unit_dim, 0, 10000,
                 self.num_gpus, self.default_gpu_id, self.trainable)
             
-            sublayer_skip, num_sublayer, overall_dropout = self.layer_dropout
-            conv_layer_dropout = [overall_dropout * float(i + sublayer_skip) / num_sublayer for i in range(self.num_conv)]
+            conv_layer_dropout = [self.layer_dropout * float(i + self.sublayer_skip) / self.num_sublayer for i in range(self.num_conv)]
             self.conv_layer = create_convolution_layer("multi_sep_1d", self.num_conv, self.unit_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.activation, self.dropout, conv_layer_dropout,
                 True, True, self.num_gpus, self.default_gpu_id, False, self.regularizer, self.trainable)
@@ -644,12 +644,12 @@ class EncoderBlock(object):
                 att_dim = [head_dim, head_dim, head_dim]
                 att_dim_list.append(att_dim)
             
-            attention_layer_dropout = overall_dropout * float(self.num_conv + sublayer_skip) / num_sublayer
+            attention_layer_dropout = self.layer_dropout * float(self.num_conv + self.sublayer_skip) / self.num_sublayer
             self.attention_layer = create_attention_layer("multi_head_att", self.unit_dim,
                 self.unit_dim, att_dim_list, "scaled_dot", attention_layer_dropout, True, True, True,
                 None, self.num_gpus, self.default_gpu_id, False, self.regularizer, self.trainable)
             
-            dense_layer_dropout = [overall_dropout * float(self.num_conv + 1 + sublayer_skip) / num_sublayer]
+            dense_layer_dropout = [self.layer_dropout * float(self.num_conv + 1 + self.sublayer_skip) / self.num_sublayer]
             self.dense_layer = create_dense_layer("double", 1, self.unit_dim, 4, self.activation, self.dropout,
                 dense_layer_dropout, True, True, num_gpus, default_gpu_id, False, self.regularizer, self.trainable)
     
@@ -658,11 +658,13 @@ class EncoderBlock(object):
                  input_mask):
         """call encoder-block layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            input_block = input_data
-            input_block_mask = input_mask
+            if self.enable_dropout == True:
+                input_block, input_block_mask = self.dropout_layer(input_data, input_mask)
+            else:
+                input_block = input_data
+                input_block_mask = input_mask
             
-            input_dropout, input_dropout_mask = self.dropout_layer(input_block, input_block_mask)
-            input_position, input_position_mask = self.position_layer(input_dropout, input_dropout_mask)
+            input_position, input_position_mask = self.position_layer(input_block, input_block_mask)
             input_conv, input_conv_mask = self.conv_layer(input_position, input_position_mask)
             input_attention, input_attention_mask = self.attention_layer(input_conv, input_conv, input_conv_mask, input_conv_mask)
             input_dense, input_dense_mask = self.dense_layer(input_attention, input_attention_mask)
@@ -710,11 +712,12 @@ class StackedEncoderBlock(object):
             num_sublayer = (self.num_conv + 2) * self.num_layer
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
+                enable_dropout = True if i % 2 == 0 else False
                 sublayer_skip = (self.num_conv + 2) * i
                 layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
-                block_layer = EncoderBlock(num_conv=self.num_conv, num_head=self.num_head,
-                    unit_dim=self.unit_dim, window_size=self.window_size, activation=self.activation,
-                    dropout=self.dropout, layer_dropout=(sublayer_skip, num_sublayer, self.layer_dropout), num_gpus=self.num_gpus,
+                block_layer = EncoderBlock(num_conv=self.num_conv, num_head=self.num_head, unit_dim=self.unit_dim,
+                    window_size=self.window_size, activation=self.activation, dropout=(enable_dropout, self.dropout),
+                    layer_dropout=(sublayer_skip, num_sublayer, self.layer_dropout), num_gpus=self.num_gpus,
                     default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
                 self.block_layer_list.append(block_layer)
     
