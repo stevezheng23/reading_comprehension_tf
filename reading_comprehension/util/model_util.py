@@ -166,6 +166,7 @@ def init_model(sess,
         sess.run(tf.tables_initializer())
 
 def load_model(sess,
-               model):
+               model,
+               load_mode):
     with model.graph.as_default():
-        model.model.restore(sess)
+        model.model.restore(sess, load_mode)
