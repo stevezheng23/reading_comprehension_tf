@@ -130,9 +130,19 @@ class BiDAF(BaseModel):
             if not tf.gfile.Exists(self.hyperparams.train_ckpt_output_dir):
                 tf.gfile.MakeDirs(self.hyperparams.train_ckpt_output_dir)
             
-            self.ckpt_dir = self.hyperparams.train_ckpt_output_dir
-            self.ckpt_name = os.path.join(self.ckpt_dir, "model_ckpt")
-            self.ckpt_saver = tf.train.Saver(self.variable_lookup)
+            self.ckpt_debug_dir = os.path.join(self.hyperparams.train_ckpt_output_dir, "debug")
+            self.ckpt_epoch_dir = os.path.join(self.hyperparams.train_ckpt_output_dir, "epoch")
+            
+            if not tf.gfile.Exists(self.ckpt_debug_dir):
+                tf.gfile.MakeDirs(self.ckpt_debug_dir)
+            
+            if not tf.gfile.Exists(self.ckpt_epoch_dir):
+                tf.gfile.MakeDirs(self.ckpt_epoch_dir)
+            
+            self.ckpt_debug_name = os.path.join(self.ckpt_debug_dir, "model_debug_ckpt")
+            self.ckpt_epoch_name = os.path.join(self.ckpt_epoch_dir, "model_epoch_ckpt")
+            self.ckpt_debug_saver = tf.train.Saver(self.variable_lookup)
+            self.ckpt_epoch_saver = tf.train.Saver(self.variable_lookup, max_to_keep=self.hyperparams.train_num_epoch)
     
     def _build_representation_layer(self,
                                     input_question_word,
@@ -584,18 +594,34 @@ class BiDAF(BaseModel):
     
     def save(self,
              sess,
-             global_step):
-        """save checkpoint for bidaf model"""
-        self.ckpt_saver.save(sess, self.ckpt_name, global_step=global_step)
+             global_step,
+             save_mode):
+        """save checkpoint for qanet model"""
+        if save_mode == "debug":
+            self.ckpt_debug_saver.save(sess, self.ckpt_debug_name, global_step=global_step)
+        elif save_mode == "epoch":
+            self.ckpt_epoch_saver.save(sess, self.ckpt_epoch_name, global_step=global_step)
+        else:
+            raise ValueError("unsupported save mode {0}".format(save_mode))
     
     def restore(self,
-                sess):
-        """restore bidaf model from checkpoint"""
-        ckpt_file = tf.train.latest_checkpoint(self.ckpt_dir)
-        if ckpt_file is not None:
-            self.ckpt_saver.restore(sess, ckpt_file)
+                sess,
+                restore_mode):
+        """restore qanet model from checkpoint"""
+        if restore_mode == "debug":
+            ckpt_debug_file = tf.train.latest_checkpoint(self.ckpt_debug_dir)
+            if ckpt_debug_file is None:
+                raise FileNotFoundError("latest checkpoint file doesn't exist")
+            
+            self.ckpt_debug_saver.restore(sess, ckpt_debug_file)
+        elif restore_mode == "epoch":
+            ckpt_epoch_file = tf.train.latest_checkpoint(self.ckpt_epoch_dir)
+            if ckpt_epoch_file is None:
+                raise FileNotFoundError("latest checkpoint file doesn't exist")
+                        
+            self.ckpt_epoch_saver.restore(sess, ckpt_epoch_file)
         else:
-            raise FileNotFoundError("latest checkpoint file doesn't exist")
+            raise ValueError("unsupported restore mode {0}".format(restore_mode))
 
 class WordFeat(object):
     """word-level featurization layer"""
