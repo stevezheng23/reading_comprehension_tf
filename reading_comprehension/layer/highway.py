@@ -6,7 +6,7 @@ from util.reading_comprehension_util import *
 
 from layer.basic import *
 
-__all__ = ["Highway", "ConvHighway", "StackedHighway"]
+__all__ = ["Highway", "ConvHighway", "StackedHighway", "StackedHighway"]
 
 class Highway(object):
     """highway layer"""
@@ -176,7 +176,7 @@ class StackedConvHighway(object):
                  regularizer=None,
                  trainable=True,
                  scope="stacked_conv_highway"):
-        """initialize stacked highway layer"""
+        """initialize stacked convolution highway layer"""
         self.num_layer = num_layer
         self.num_filter = num_filter
         self.unit_dim = unit_dim
