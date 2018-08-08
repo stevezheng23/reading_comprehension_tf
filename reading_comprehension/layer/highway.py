@@ -6,7 +6,7 @@ from util.reading_comprehension_util import *
 
 from layer.basic import *
 
-__all__ = ["Highway", "ConvHighway", "StackedHighway"]
+__all__ = ["Highway", "ConvHighway", "StackedHighway", "StackedHighway"]
 
 class Highway(object):
     """highway layer"""
@@ -67,7 +67,7 @@ class ConvHighway(object):
                  default_gpu_id=0,
                  regularizer=None,
                  trainable=True,
-                 scope="highway"):
+                 scope="conv_highway"):
         """initialize convolutional highway layer"""
         self.num_filter = num_filter
         self.window_size = window_size
@@ -150,6 +150,61 @@ class StackedHighway(object):
                  input_data,
                  input_mask):
         """call stacked highway layer"""
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
+            input_highway = input_data
+            input_highway_mask = input_mask
+            
+            for highway_layer in self.highway_layer_list:
+                input_highway, input_highway_mask = highway_layer(input_highway, input_highway_mask)
+            
+            output_highway = input_highway
+            output_mask = input_highway_mask
+        
+        return output_highway, output_mask
+
+class StackedConvHighway(object):
+    """stacked convolution highway layer"""
+    def __init__(self,
+                 num_layer,
+                 num_filter,
+                 window_size,
+                 activation,
+                 dropout,
+                 num_gpus=1,
+                 default_gpu_id=0,
+                 enable_multi_gpu=True,
+                 regularizer=None,
+                 trainable=True,
+                 scope="stacked_conv_highway"):
+        """initialize stacked convolution highway layer"""
+        self.num_layer = num_layer
+        self.num_filter = num_filter
+        self.unit_dim = unit_dim
+        self.window_size = window_size
+        self.dropout = dropout
+        self.num_gpus = num_gpus
+        self.default_gpu_id = default_gpu_id
+        self.enable_multi_gpu = enable_multi_gpu
+        self.regularizer = regularizer
+        self.trainable = trainable
+        self.scope = scope
+        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
+        
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+            self.highway_layer_list = []
+            for i in range(self.num_layer):
+                layer_scope = "layer_{0}".format(i)
+                layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
+                sublayer_dropout = self.dropout[i] if self.dropout != None else 0.0
+                highway_layer = ConvHighway(num_filter=self.num_filter, window_size=self.window_size,
+                    activation=self.activation, dropout=sublayer_dropout, num_gpus=self.num_gpus,
+                    default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
+                self.highway_layer_list.append(highway_layer)
+    
+    def __call__(self,
+                 input_data,
+                 input_mask):
+        """call stacked convolution highway layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             input_highway = input_data
             input_highway_mask = input_mask
