@@ -140,8 +140,9 @@ class StackedHighway(object):
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
                 layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
+                sublayer_dropout = self.dropout[i] if self.dropout != None else 0.0
                 highway_layer = Highway(unit_dim=self.unit_dim, activation=self.activation,
-                    dropout=self.dropout, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
+                    dropout=sublayer_dropout, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
                     regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
                 self.highway_layer_list.append(highway_layer)
     
