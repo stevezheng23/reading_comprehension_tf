@@ -345,7 +345,7 @@ class BaseModel(object):
     def train(self,
               sess,
               word_embedding):
-        """train rnet model"""
+        """train model"""
         word_embed_pretrained = self.hyperparams.model_representation_word_embed_pretrained
         
         if word_embed_pretrained == True:
@@ -362,7 +362,7 @@ class BaseModel(object):
     def infer(self,
               sess,
               word_embedding):
-        """infer rnet model"""
+        """infer model"""
         word_embed_pretrained = self.hyperparams.model_representation_word_embed_pretrained
         
         if word_embed_pretrained == True:
