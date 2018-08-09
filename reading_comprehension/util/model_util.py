@@ -71,8 +71,9 @@ def create_train_model(logger,
             input_context_subword_dataset, input_context_char_dataset, input_answer_dataset, hyperparams.data_answer_type,
             word_vocab_index, hyperparams.data_word_pad, hyperparams.model_representation_word_feat_enable,
             subword_vocab_index, hyperparams.data_subword_pad, hyperparams.model_representation_subword_feat_enable,
-            char_vocab_index, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable, len(input_answer_data),
-            hyperparams.train_batch_size, hyperparams.train_random_seed, hyperparams.train_enable_shuffle)
+            char_vocab_index, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable,
+            hyperparams.train_enable_shuffle, hyperparams.train_shuffle_buffer_size, len(input_answer_data),
+            hyperparams.train_batch_size, hyperparams.train_random_seed)
         
         model_creator = get_model_creator(hyperparams.model_type)
         model = model_creator(logger=logger, hyperparams=hyperparams, data_pipeline=data_pipeline,
