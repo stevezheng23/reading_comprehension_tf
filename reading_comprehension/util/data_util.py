@@ -163,10 +163,11 @@ def create_data_pipeline(input_question_word_dataset,
                          char_vocab_index,
                          char_pad,
                          char_feat_enable,
+                         enable_shuffle,
+                         buffer_size,
                          data_size,
                          batch_size,
-                         random_seed,
-                         enable_shuffle):
+                         random_seed):
     """create data pipeline for reading comprehension model"""
     default_pad_id = tf.constant(0, shape=[], dtype=tf.int64)
     default_dataset_tensor = tf.constant(0, shape=[1,1], dtype=tf.int64)
@@ -197,7 +198,7 @@ def create_data_pipeline(input_question_word_dataset,
         input_context_word_dataset, input_context_subword_dataset, input_context_char_dataset, input_answer_dataset))
     
     if enable_shuffle == True:
-        buffer_size = data_size
+        buffer_size = min(buffer_size, data_size)
         dataset = dataset.shuffle(buffer_size, random_seed)
     
     dataset = dataset.batch(batch_size=batch_size)
