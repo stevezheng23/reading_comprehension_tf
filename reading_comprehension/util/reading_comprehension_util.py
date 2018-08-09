@@ -3,7 +3,8 @@ import tensorflow as tf
 
 from util.default_util import *
 
-__all__ = ["create_variable_initializer", "create_weight_regularizer", "create_activation_function", "softmax_with_mask"]
+__all__ = ["create_variable_initializer", "create_weight_regularizer", "create_activation_function",
+           "softmax_with_mask", "generate_masked_logit", "generate_onehot_label"]
 
 def create_variable_initializer(initializer_type,
                                 random_seed=None,
@@ -61,3 +62,13 @@ def softmax_with_mask(input_data,
                       keepdims=True):
     """compute softmax with masking"""    
     return tf.nn.softmax(input_data + MIN_FLOAT * (1 - input_mask), dim=axis)
+
+def generate_masked_logit(input_data,
+                          input_mask):
+    """generate masked logit"""
+    return input_data + MIN_FLOAT * (1 - input_mask)
+
+def generate_onehot_label(input_data,
+                          input_depth):
+    """generate one-hot label"""
+    return tf.one_hot(input_data, depth=input_depth, on_value=1.0, off_value=0.0, dtype=tf.float32)
