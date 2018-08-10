@@ -50,12 +50,12 @@ class BiDAF(BaseModel):
                 answer_end_output_mask) = self._build_graph(question_word, question_word_mask,
                     question_subword, question_subword_mask, question_char, question_char_mask,
                     context_word, context_word_mask, context_subword, context_subword_mask, context_char, context_char_mask)
+            self.answer_start_output = tf.squeeze(answer_start_output)
+            self.answer_end_output = tf.squeeze(answer_end_output)
             self.answer_start_mask = tf.squeeze(answer_start_output_mask)
             self.answer_end_mask = tf.squeeze(answer_end_output_mask)
-            self.answer_start = softmax_with_mask(tf.squeeze(answer_start_output),
-                self.answer_start_mask, axis=-1)
-            self.answer_end = softmax_with_mask(tf.squeeze(answer_end_output),
-                self.answer_end_mask, axis=-1)
+            self.answer_start = softmax_with_mask(self.answer_start_output, self.answer_start_mask, axis=-1)
+            self.answer_end = softmax_with_mask(self.answer_end_output, self.answer_end_mask, axis=-1)
             
             self.variable_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
             self.variable_lookup = {v.op.name: v for v in self.variable_list}
@@ -79,11 +79,11 @@ class BiDAF(BaseModel):
             if self.mode == "train":
                 """compute optimization loss"""
                 self.logger.log_print("# setup loss computation mechanism")
-                answer_start_result = answer_result[:,0,:]
-                answer_end_result = answer_result[:,1,:]
-                start_loss = self._compute_loss(answer_start_result, self.answer_start, self.answer_start_mask)
-                end_loss = self._compute_loss(answer_end_result, self.answer_end, self.answer_end_mask)
-                self.train_loss = start_loss + end_loss
+                answer_start_result = tf.squeeze(answer_result[:,0,:])
+                answer_end_result = tf.squeeze(answer_result[:,1,:])
+                start_loss = self._compute_loss(answer_start_result, self.answer_start_output, self.answer_start_mask)
+                end_loss = self._compute_loss(answer_end_result, self.answer_end_output, self.answer_end_mask)
+                self.train_loss = tf.reduce_mean(start_loss + end_loss)
                 
                 if self.hyperparams.train_regularization_enable == True:
                     regularization_variables = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -591,6 +591,17 @@ class BiDAF(BaseModel):
             answer_end_output_mask = answer_output_mask_list[1]
             
         return answer_start_output, answer_end_output, answer_start_output_mask, answer_end_output_mask
+    
+    def _compute_loss(self,
+                      label,
+                      logit,
+                      logit_mask):
+        """compute optimization loss"""
+        masked_logit = generate_masked_logit(logit, logit_mask)
+        onehot_label = generate_onehot_label(label, tf.shape(logit)[1])
+        loss = tf.nn.softmax_cross_entropy_with_logits(logits=masked_logit, labels=onehot_label)
+        
+        return loss
     
     def save(self,
              sess,
