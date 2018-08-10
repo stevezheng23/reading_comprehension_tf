@@ -331,17 +331,6 @@ class BaseModel(object):
         
         return update_model, clipped_gradients, gradient_norm
     
-    def _compute_loss(self,
-                      label,
-                      logit,
-                      logit_mask):
-        """compute optimization loss"""
-        logit = tf.squeeze(-1.0 * tf.log(logit * logit_mask + EPSILON) * logit_mask)
-        label = tf.one_hot(tf.squeeze(label), depth=tf.shape(logit)[1], on_value=1.0, off_value=0.0, dtype=tf.float32)
-        loss = tf.reduce_sum(logit * label) / tf.to_float(self.batch_size)
-        
-        return loss
-    
     def train(self,
               sess,
               word_embedding):
