@@ -48,17 +48,19 @@ class AbsolutePosition(object):
                  max_length,
                  num_gpus=1,
                  default_gpu_id=0,
+                 random_seed=0,
                  trainable=True,
                  scope="abs_pos"):
         """initialize absolute position layer"""
         self.unit_dim = unit_dim
         self.max_length = max_length
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
-            weight_initializer = create_variable_initializer("glorot_uniform")
+            weight_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
             self.position_embedding = tf.get_variable("position_embedding", shape=[1, self.max_length, self.unit_dim],
                 initializer=weight_initializer, trainable=self.trainable, dtype=tf.float32)
     

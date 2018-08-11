@@ -39,17 +39,19 @@ class LayerNorm(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="layer_norm"):
         """initialize layer norm layer"""
         self.layer_dim = layer_dim
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
-            gamma_initializer = create_variable_initializer("glorot_uniform")
+            gamma_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
             beta_initializer = create_variable_initializer("zero")
             self.gamma = tf.get_variable("gamma", shape=[self.layer_dim], initializer=gamma_initializer,
                 regularizer=self.regularizer, trainable=self.trainable, dtype=tf.float32)

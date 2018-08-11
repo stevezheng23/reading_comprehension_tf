@@ -13,17 +13,19 @@ class Embedding(object):
                  embed_dim,
                  num_gpus=0,
                  default_gpu_id=0,
+                 random_seed=0,
                  trainable=True,
                  scope="embedding"):
         """initialize embedding layer"""
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
-            initializer = create_variable_initializer("glorot_uniform")
+            initializer = create_variable_initializer("glorot_uniform", self.random_seed)
             self.embedding = tf.get_variable("embedding", shape=[self.vocab_size, self.embed_dim],
                 initializer=initializer, trainable=self.trainable, dtype=tf.float32)
             self.embedding_placeholder = None

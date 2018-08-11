@@ -20,6 +20,7 @@ class Dense(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="dense"):
         """initialize dense layer"""
@@ -30,12 +31,13 @@ class Dense(object):
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
-            weight_initializer = create_variable_initializer("glorot_uniform")
+            weight_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
             bias_initializer = create_variable_initializer("zero")
             self.dense_layer = tf.layers.Dense(units=self.unit_dim, activation=None, use_bias=True,
                 kernel_initializer=weight_initializer, bias_initializer=bias_initializer,
@@ -90,6 +92,7 @@ class DoubleDense(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="double_dense"):
         """initialize double-dense layer"""
@@ -101,12 +104,13 @@ class DoubleDense(object):
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
-            weight_initializer = create_variable_initializer("glorot_uniform")
+            weight_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
             bias_initializer = create_variable_initializer("zero")
             self.inner_dense_layer = tf.layers.Dense(units=self.unit_dim * self.inner_scale, activation=None, use_bias=True,
                 kernel_initializer=weight_initializer, bias_initializer=bias_initializer,
@@ -168,6 +172,7 @@ class StackedDense(object):
                  default_gpu_id=0,
                  enable_multi_gpu=True,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="stacked_dense"):
         """initialize stacked dense layer"""
@@ -183,6 +188,7 @@ class StackedDense(object):
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -197,7 +203,7 @@ class StackedDense(object):
                 dense_layer = self.layer_creator(unit_dim=self.unit_dim, activation=self.activation,
                     dropout=sublayer_dropout, layer_dropout=sublayer_layer_dropout, layer_norm=self.layer_norm,
                     residual_connect=self.residual_connect, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
-                    regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
+                    regularizer=self.regularizer, random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.dense_layer_list.append(dense_layer)
     
     def __call__(self,
@@ -232,6 +238,7 @@ class StackedDoubleDense(object):
                  default_gpu_id=0,
                  enable_multi_gpu=True,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="stacked_double_dense"):
         """initialize stacked double-dense layer"""
@@ -248,6 +255,7 @@ class StackedDoubleDense(object):
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -259,10 +267,10 @@ class StackedDoubleDense(object):
                 layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
                 sublayer_dropout = self.dropout[i] if self.dropout != None else 0.0
                 sublayer_layer_dropout = self.layer_dropout[i] if self.layer_dropout != None else 0.0
-                dense_layer = self.layer_creator(unit_dim=self.unit_dim, inner_scale=self.inner_scale,
-                    activation=self.activation, dropout=sublayer_dropout, layer_dropout=sublayer_layer_dropout,
-                    layer_norm=self.layer_norm, residual_connect=self.residual_connect, num_gpus=self.num_gpus,
-                    default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
+                dense_layer = self.layer_creator(unit_dim=self.unit_dim, inner_scale=self.inner_scale, activation=self.activation,
+                    dropout=sublayer_dropout, layer_dropout=sublayer_layer_dropout, layer_norm=self.layer_norm,
+                    residual_connect=self.residual_connect, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, 
+                    regularizer=self.regularizer, random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.dense_layer_list.append(dense_layer)
     
     def __call__(self,
