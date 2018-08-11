@@ -376,6 +376,7 @@ class SeparableConv1D(SeparableConv):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="sep_conv1d"):
         """initialize depthwise-separable 1d convolution layer"""
@@ -432,6 +433,7 @@ class SeparableConv2D(SeparableConv):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="sep_conv2d"):
         """initialize depthwise-separable 2d convolution layer"""
