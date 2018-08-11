@@ -283,7 +283,7 @@ def evaluate(logger,
     decoding_eval(eval_logger, infer_summary_writer, infer_sess,
         infer_model, infer_model.input_data, infer_model.input_question,
         infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
-        hyperparams.train_decoding_sample_size, hyperparams.train_random_seed, global_step, eval_mode)
+        hyperparams.train_decoding_sample_size, hyperparams.train_random_seed, 0, global_step, eval_mode)
     
     infer_summary_writer.close_writer()
     logger.log_print("##### finish evaluation #####")
