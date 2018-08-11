@@ -13,6 +13,7 @@ def _create_attention_matrix(src_unit_dim,
                              attention_unit_dim,
                              attention_score_type,
                              regularizer,
+                             random_seed,
                              trainable):
     """create attetnion matrix"""
     if attention_score_type == "dot":
@@ -20,17 +21,17 @@ def _create_attention_matrix(src_unit_dim,
     elif attention_score_type == "scaled_dot":
         attention_matrix = []
     elif attention_score_type == "linear":
-        attention_matrix = _create_linear_attention_matrix(src_unit_dim, trg_unit_dim, regularizer, trainable)
+        attention_matrix = _create_linear_attention_matrix(src_unit_dim, trg_unit_dim, regularizer, random_seed, trainable)
     elif attention_score_type == "bilinear":
-        attention_matrix = _create_bilinear_attention_matrix(src_unit_dim, trg_unit_dim, regularizer, trainable)
+        attention_matrix = _create_bilinear_attention_matrix(src_unit_dim, trg_unit_dim, regularizer, random_seed, trainable)
     elif attention_score_type == "nonlinear":
         attention_matrix = _create_nonlinear_attention_matrix(src_unit_dim,
-            trg_unit_dim, attention_unit_dim, regularizer, trainable)
+            trg_unit_dim, attention_unit_dim, regularizer, random_seed, trainable)
     elif attention_score_type == "linear_plus":
-        attention_matrix = _create_linear_plus_attention_matrix(src_unit_dim, trg_unit_dim, regularizer, trainable)
+        attention_matrix = _create_linear_plus_attention_matrix(src_unit_dim, trg_unit_dim, regularizer, random_seed, trainable)
     elif attention_score_type == "nonlinear_plus":
         attention_matrix = _create_nonlinear_plus_attention_matrix(src_unit_dim,
-            trg_unit_dim, attention_unit_dim, regularizer, trainable)
+            trg_unit_dim, attention_unit_dim, regularizer, random_seed, trainable)
     else:
         raise ValueError("unsupported attention score type {0}".format(attention_score_type))
     
@@ -39,9 +40,10 @@ def _create_attention_matrix(src_unit_dim,
 def _create_linear_attention_matrix(src_unit_dim,
                                     trg_unit_dim,
                                     regularizer,
+                                    random_seed,
                                     trainable):
     """create linear attetnion matrix"""
-    weight_initializer = create_variable_initializer("glorot_uniform")
+    weight_initializer = create_variable_initializer("glorot_uniform", random_seed)
     
     linear_src_weight = tf.get_variable("linear_src_weight", shape=[1, src_unit_dim],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
@@ -54,9 +56,10 @@ def _create_linear_attention_matrix(src_unit_dim,
 def _create_bilinear_attention_matrix(src_unit_dim,
                                       trg_unit_dim,
                                       regularizer,
+                                      random_seed,
                                       trainable):
     """create bilinear attetnion matrix"""
-    weight_initializer = create_variable_initializer("glorot_uniform")
+    weight_initializer = create_variable_initializer("glorot_uniform", random_seed)
     
     bilinear_weight = tf.get_variable("bilinear_weight", shape=[src_unit_dim, trg_unit_dim],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
@@ -68,9 +71,10 @@ def _create_nonlinear_attention_matrix(src_unit_dim,
                                        trg_unit_dim,
                                        attention_unit_dim,
                                        regularizer,
+                                       random_seed,
                                        trainable):
     """create nonlinear attetnion matrix"""
-    weight_initializer = create_variable_initializer("glorot_uniform")
+    weight_initializer = create_variable_initializer("glorot_uniform", random_seed)
     bias_initializer = create_variable_initializer("zero")
     
     pre_nonlinear_src_weight = tf.get_variable("pre_nonlinear_src_weight", shape=[attention_unit_dim, src_unit_dim],
@@ -88,9 +92,10 @@ def _create_nonlinear_attention_matrix(src_unit_dim,
 def _create_linear_plus_attention_matrix(src_unit_dim,
                                          trg_unit_dim,
                                          regularizer,
+                                         random_seed,
                                          trainable):
     """create linear plus attetnion matrix"""
-    weight_initializer = create_variable_initializer("glorot_uniform")
+    weight_initializer = create_variable_initializer("glorot_uniform", random_seed)
     
     if src_unit_dim != trg_unit_dim:
         raise ValueError("src dim {0} and trg dim must be the same for linear plus attention".format(src_unit_dim, trg_unit_dim))
@@ -111,9 +116,10 @@ def _create_nonlinear_plus_attention_matrix(src_unit_dim,
                                             trg_unit_dim,
                                             attention_unit_dim,
                                             regularizer,
+                                            random_seed,
                                             trainable):
     """create nonlinear plus attetnion matrix"""
-    weight_initializer = create_variable_initializer("glorot_uniform")
+    weight_initializer = create_variable_initializer("glorot_uniform", random_seed)
     bias_initializer = create_variable_initializer("zero")
     
     if src_unit_dim != trg_unit_dim:
@@ -139,9 +145,10 @@ def _create_nonlinear_plus_attention_matrix(src_unit_dim,
 def _create_projection_matrix(input_unit_dim,
                               projection_unit_dim,
                               regularizer,
+                              random_seed,
                               trainable):
     """create projection matrix"""
-    weight_initializer = create_variable_initializer("glorot_uniform")
+    weight_initializer = create_variable_initializer("glorot_uniform", random_seed)
     projection_weight = tf.get_variable("projection_weight", shape=[input_unit_dim, projection_unit_dim],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
     
@@ -380,6 +387,7 @@ class Attention(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="attention"):
         """initialize attention layer"""
@@ -392,6 +400,7 @@ class Attention(object):
         self.residual_connect = residual_connect
         self.is_self = is_self
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -399,7 +408,7 @@ class Attention(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim, self.trg_dim,
-                    self.att_dim, self.score_type, self.regularizer, self.trainable)
+                    self.att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable)
             else:
                 self.attention_matrix = external_matrix
             
@@ -468,6 +477,7 @@ class MaxAttention(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="max_att"):
         """initialize max-attention layer"""       
@@ -480,6 +490,7 @@ class MaxAttention(object):
         self.residual_connect = residual_connect
         self.is_self = is_self
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -487,7 +498,7 @@ class MaxAttention(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim, self.trg_dim,
-                    self.att_dim, self.regularizer, self.score_type, self.trainable)
+                    self.att_dim, self.regularizer, self.score_type, self.random_seed, self.trainable)
             else:
                 self.attention_matrix = external_matrix
             
@@ -558,6 +569,7 @@ class CoAttention(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="co_att"):
         """initialize co-attention layer"""       
@@ -570,6 +582,7 @@ class CoAttention(object):
         self.residual_connect = residual_connect
         self.is_self = is_self
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -577,7 +590,7 @@ class CoAttention(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim, self.trg_dim,
-                    self.att_dim, self.score_type, self.regularizer, self.trainable)
+                    self.att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable)
             else:
                 self.attention_matrix = external_matrix
             
@@ -647,6 +660,7 @@ class GatedAttention(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="gated_att"):
         """initialize gated-attention layer"""
@@ -659,6 +673,7 @@ class GatedAttention(object):
         self.residual_connect = residual_connect
         self.is_self = is_self
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -666,7 +681,7 @@ class GatedAttention(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim, self.trg_dim,
-                    self.att_dim, self.score_type, self.regularizer, self.trainable)
+                    self.att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable)
             else:
                 self.attention_matrix = external_matrix
             
@@ -742,6 +757,7 @@ class HeadAttention(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="head_att"):
         """initialize head-attention layer"""
@@ -752,6 +768,7 @@ class HeadAttention(object):
         self.layer_norm = layer_norm
         self.is_self = is_self
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -760,12 +777,12 @@ class HeadAttention(object):
             if external_matrix == None:
                 (q_att_dim, k_att_dim, v_att_dim) = tuple(self.att_dim)
                 self.projection_matrix = [
-                    _create_projection_matrix(self.src_dim, q_att_dim, self.regularizer, self.trainable),
-                    _create_projection_matrix(self.trg_dim, k_att_dim, self.regularizer, self.trainable),
-                    _create_projection_matrix(self.trg_dim, v_att_dim, self.regularizer, self.trainable)
+                    _create_projection_matrix(self.src_dim, q_att_dim, self.regularizer, self.random_seed, self.trainable),
+                    _create_projection_matrix(self.trg_dim, k_att_dim, self.regularizer, self.random_seed, self.trainable),
+                    _create_projection_matrix(self.trg_dim, v_att_dim, self.regularizer, self.random_seed, self.trainable)
                 ]
                 self.attention_matrix = _create_attention_matrix(q_att_dim, k_att_dim,
-                    k_att_dim, self.score_type, self.regularizer, self.trainable)
+                    k_att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable)
             else:
                 self.projection_matrix = external_matrix["projection"]
                 self.attention_matrix = external_matrix["attention"]
@@ -834,6 +851,7 @@ class MultiHeadAttention(object):
                  default_gpu_id=0,
                  enable_multi_gpu=True,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="multi_head_att"):
         """initialize multi-head attention layer"""
@@ -850,6 +868,7 @@ class MultiHeadAttention(object):
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -862,7 +881,7 @@ class MultiHeadAttention(object):
                 attention_layer = HeadAttention(src_dim=self.src_dim, trg_dim=self.trg_dim,
                     att_dim=self.att_dim[i], score_type=self.score_type, layer_norm=self.layer_norm, is_self=self.is_self,
                     external_matrix=self.external_matrix, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
-                    regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
+                    regularizer=self.regularizer,random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.attention_layer_list.append(attention_layer)
     
     def __call__(self,

@@ -26,6 +26,7 @@ class Conv1D(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="conv1d"):
         """initialize 1d convolution layer"""
@@ -40,12 +41,13 @@ class Conv1D(object):
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope=scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
-            weight_initializer = create_variable_initializer("glorot_uniform")
+            weight_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
             bias_initializer = create_variable_initializer("zero")
             conv_activation = create_activation_function(self.activation)
             self.conv_layer = tf.layers.Conv1D(filters=self.num_filter, kernel_size=window_size,
@@ -100,6 +102,7 @@ class Conv2D(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="conv2d"):
         """initialize 2d convolution layer"""
@@ -114,12 +117,13 @@ class Conv2D(object):
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope=scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
-            weight_initializer = create_variable_initializer("glorot_uniform")
+            weight_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
             bias_initializer = create_variable_initializer("zero")
             conv_activation = create_activation_function(self.activation)
             self.conv_layer = tf.layers.Conv2D(filters=self.num_filter, kernel_size=[1, window_size],
@@ -175,6 +179,7 @@ class MultiConv1D(object):
                  default_gpu_id=0,
                  enable_multi_gpu=True,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="multi_conv1d"):
         """initialize multi-window 1d convolution layer"""
@@ -192,6 +197,7 @@ class MultiConv1D(object):
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -205,7 +211,7 @@ class MultiConv1D(object):
                     window_size=self.window_size[i], stride_size=self.stride_size, padding_type=self.padding_type,
                     activation=self.activation, dropout=self.dropout, layer_dropout=self.layer_dropout, layer_norm=self.layer_norm,
                     residual_connect=self.residual_connect, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
-                    regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
+                    regularizer=self.regularizer, random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     
     def __call__(self,
@@ -242,6 +248,7 @@ class MultiConv2D(object):
                  default_gpu_id=0,
                  enable_multi_gpu=True,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="multi_conv2d"):
         """initialize multi-window 2d convolution layer"""
@@ -259,6 +266,7 @@ class MultiConv2D(object):
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -272,7 +280,7 @@ class MultiConv2D(object):
                     window_size=self.window_size[i], stride_size=self.stride_size, padding_type=self.padding_type,
                     activation=self.activation, dropout=self.dropout, layer_dropout=self.layer_dropout, layer_norm=self.layer_norm,
                     residual_connect=self.residual_connect, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
-                    regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
+                    regularizer=self.regularizer, random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     
     def __call__(self,
@@ -309,6 +317,7 @@ class SeparableConv(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="sep_conv"):
         """initialize depthwise-separable convolution layer"""
@@ -324,12 +333,13 @@ class SeparableConv(object):
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope=scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
-            weight_initializer = create_variable_initializer("glorot_uniform")
+            weight_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
             bias_initializer = create_variable_initializer("zero")
             self.depthwise_filter = tf.get_variable("depthwise_filter",
                 shape=[1, self.window_size, self.num_channel, self.num_multiplier], initializer=weight_initializer,
@@ -370,9 +380,9 @@ class SeparableConv1D(SeparableConv):
                  scope="sep_conv1d"):
         """initialize depthwise-separable 1d convolution layer"""
         super(SeparableConv1D, self).__init__(num_channel=num_channel, num_filter=num_filter, num_multiplier=num_multiplier,
-            window_size=window_size, stride_size=stride_size, padding_type=padding_type, activation=activation,
-            dropout=dropout, layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect,
-            num_gpus=num_gpus, default_gpu_id=default_gpu_id, regularizer=regularizer, trainable=trainable, scope=scope)
+            window_size=window_size, stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout,
+            layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus,
+            default_gpu_id=default_gpu_id, regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     
     def __call__(self,
                  input_data,
@@ -426,9 +436,9 @@ class SeparableConv2D(SeparableConv):
                  scope="sep_conv2d"):
         """initialize depthwise-separable 2d convolution layer"""
         super(SeparableConv2D, self).__init__(num_channel=num_channel, num_filter=num_filter, num_multiplier=num_multiplier,
-            window_size=window_size, stride_size=stride_size, padding_type=padding_type, activation=activation,
-            dropout=dropout, layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect,
-            num_gpus=num_gpus, default_gpu_id=default_gpu_id, regularizer=regularizer, trainable=trainable, scope=scope)
+            window_size=window_size, stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout,
+            layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus,
+            default_gpu_id=default_gpu_id, regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     
     def __call__(self,
                  input_data,
@@ -477,6 +487,7 @@ class MultiSeparableConv1D(object):
                  default_gpu_id=0,
                  enable_multi_gpu=True,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="multi_sep_conv1d"):
         """initialize multi-window depthwise-separable 1d convolution layer"""
@@ -495,6 +506,7 @@ class MultiSeparableConv1D(object):
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -504,11 +516,11 @@ class MultiSeparableConv1D(object):
             for i in range(len(self.window_size)):
                 layer_scope = "window_{0}".format(i)
                 layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
-                conv_layer = SeparableConv1D(num_channel=self.num_channel, num_filter=self.num_filter,
-                    num_multiplier=self.num_multiplier, window_size=self.window_size[i], stride_size=self.stride_size, 
-                    padding_type=self.padding_type, activation=self.activation, dropout=self.dropout, layer_dropout=self.layer_dropout,
-                    layer_norm=self.layer_norm, residual_connect=self.residual_connect, num_gpus=self.num_gpus,
-                    default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
+                conv_layer = SeparableConv1D(num_channel=self.num_channel, num_filter=self.num_filter, num_multiplier=self.num_multiplier,
+                    window_size=self.window_size[i], stride_size=self.stride_size, padding_type=self.padding_type,
+                    activation=self.activation, dropout=self.dropout, layer_dropout=self.layer_dropout, layer_norm=self.layer_norm,
+                    residual_connect=self.residual_connect, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
+                    regularizer=self.regularizer, random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     
     def __call__(self,
@@ -546,6 +558,7 @@ class MultiSeparableConv2D(object):
                  default_gpu_id=0,
                  enable_multi_gpu=True,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="multi_sep_conv2d"):
         """initialize multi-window depthwise-separable 2d convolution layer"""
@@ -564,6 +577,7 @@ class MultiSeparableConv2D(object):
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -573,11 +587,11 @@ class MultiSeparableConv2D(object):
             for i in range(len(self.window_size)):
                 layer_scope = "window_{0}".format(i)
                 layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
-                conv_layer = SeparableConv2D(num_channel=self.num_channel, num_filter=self.num_filter,
-                    num_multiplier=self.num_multiplier, window_size=self.window_size[i], stride_size=self.stride_size, 
-                    padding_type=self.padding_type, activation=self.activation, dropout=self.dropout, layer_dropout=self.layer_dropout,
-                    layer_norm=self.layer_norm, residual_connect=self.residual_connect, num_gpus=self.num_gpus,
-                    default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
+                conv_layer = SeparableConv2D(num_channel=self.num_channel, num_filter=self.num_filter, num_multiplier=self.num_multiplier,
+                    window_size=self.window_size[i], stride_size=self.stride_size, padding_type=self.padding_type,
+                    activation=self.activation, dropout=self.dropout, layer_dropout=self.layer_dropout, layer_norm=self.layer_norm,
+                    residual_connect=self.residual_connect, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
+                    regularizer=self.regularizer, random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     
     def __call__(self,
@@ -616,6 +630,7 @@ class StackedConv(object):
                  default_gpu_id=0,
                  enable_multi_gpu=True,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="stacked_conv"):
         """initialize stacked convolution layer"""
@@ -635,6 +650,7 @@ class StackedConv(object):
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -650,7 +666,7 @@ class StackedConv(object):
                     window_size=self.window_size, stride_size=self.stride_size, padding_type=self.padding_type,
                     activation=self.activation, dropout=sublayer_dropout, layer_dropout=sublayer_layer_dropout, layer_norm=self.layer_norm,
                     residual_connect=self.residual_connect, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
-                    regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
+                    regularizer=self.regularizer, random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     
     def __call__(self,
@@ -688,6 +704,7 @@ class StackedMultiConv(object):
                  default_gpu_id=0,
                  enable_multi_gpu=True,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="stacked_multi_conv"):
         """initialize stacked multi-window convolution layer"""
@@ -707,6 +724,7 @@ class StackedMultiConv(object):
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -718,11 +736,11 @@ class StackedMultiConv(object):
                 layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
                 sublayer_dropout = self.dropout[i] if self.dropout != None else 0.0
                 sublayer_layer_dropout = self.layer_dropout[i] if self.layer_dropout != None else 0.0
-                conv_layer = self.layer_creator(num_channel=self.num_channel, num_filter=self.num_filter,
-                    window_size=self.window_size, stride_size=self.stride_size, padding_type=self.padding_type,
-                    activation=self.activation, dropout=sublayer_dropout, layer_dropout=sublayer_layer_dropout, layer_norm=self.layer_norm,
-                    residual_connect=self.residual_connect, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
-                    enable_multi_gpu=self.enable_multi_gpu, regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
+                conv_layer = self.layer_creator(num_channel=self.num_channel, num_filter=self.num_filter, window_size=self.window_size,
+                    stride_size=self.stride_size, padding_type=self.padding_type, activation=self.activation, dropout=sublayer_dropout,
+                    layer_dropout=sublayer_layer_dropout, layer_norm=self.layer_norm, residual_connect=self.residual_connect,
+                    num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, enable_multi_gpu=self.enable_multi_gpu,
+                    regularizer=self.regularizer, random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     
     def __call__(self,
@@ -761,6 +779,7 @@ class StackedSeparableConv(object):
                  default_gpu_id=0,
                  enable_multi_gpu=True,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="stacked_sep_conv"):
         """initialize stacked depthwise-separable convolution layer"""
@@ -781,6 +800,7 @@ class StackedSeparableConv(object):
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -797,7 +817,7 @@ class StackedSeparableConv(object):
                     padding_type=self.padding_type, activation=self.activation, dropout=sublayer_dropout,
                     layer_dropout=sublayer_layer_dropout, layer_norm=self.layer_norm, residual_connect=self.residual_connect,
                     num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer,
-                    trainable=self.trainable, scope=layer_scope)
+                    random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     
     def __call__(self,
@@ -836,6 +856,7 @@ class StackedMultiSeparableConv(object):
                  default_gpu_id=0,
                  enable_multi_gpu=True,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="stacked_sep_conv"):
         """initialize stacked depthwise-separable convolution layer"""
@@ -856,6 +877,7 @@ class StackedMultiSeparableConv(object):
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -872,7 +894,7 @@ class StackedMultiSeparableConv(object):
                     padding_type=self.padding_type, activation=self.activation, dropout=sublayer_dropout,
                     layer_dropout=sublayer_layer_dropout, layer_norm=self.layer_norm, residual_connect=self.residual_connect,
                     num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, enable_multi_gpu=self.enable_multi_gpu,
-                    regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
+                    regularizer=self.regularizer, random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     
     def __call__(self,

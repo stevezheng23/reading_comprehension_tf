@@ -17,6 +17,7 @@ class Highway(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="highway"):
         """initialize highway layer"""
@@ -24,12 +25,13 @@ class Highway(object):
         self.activation = activation
         self.dropout = dropout
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
-            weight_initializer = create_variable_initializer("glorot_uniform")
+            weight_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
             bias_initializer = create_variable_initializer("zero")
             transform_activation = create_activation_function(self.activation)
             gate_activation = create_activation_function("sigmoid")
@@ -66,6 +68,7 @@ class ConvHighway(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="conv_highway"):
         """initialize convolutional highway layer"""
@@ -74,12 +77,13 @@ class ConvHighway(object):
         self.activation = activation
         self.dropout = dropout
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
-            weight_initializer = create_variable_initializer("glorot_uniform")
+            weight_initializer = create_variable_initializer("glorot_uniform", self.m_seed)
             bias_initializer = create_variable_initializer("zero")
             transform_activation = create_activation_function(self.activation)
             gate_activation = create_activation_function("sigmoid")
@@ -120,6 +124,7 @@ class StackedHighway(object):
                  default_gpu_id=0,
                  enable_multi_gpu=True,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="stacked_highway"):
         """initialize stacked highway layer"""
@@ -131,6 +136,7 @@ class StackedHighway(object):
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -143,7 +149,7 @@ class StackedHighway(object):
                 sublayer_dropout = self.dropout[i] if self.dropout != None else 0.0
                 highway_layer = Highway(unit_dim=self.unit_dim, activation=self.activation,
                     dropout=sublayer_dropout, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
-                    regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
+                    regularizer=self.regularizer, random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.highway_layer_list.append(highway_layer)
     
     def __call__(self,
@@ -174,6 +180,7 @@ class StackedConvHighway(object):
                  default_gpu_id=0,
                  enable_multi_gpu=True,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="stacked_conv_highway"):
         """initialize stacked convolution highway layer"""
@@ -186,6 +193,7 @@ class StackedConvHighway(object):
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -197,8 +205,8 @@ class StackedConvHighway(object):
                 layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
                 sublayer_dropout = self.dropout[i] if self.dropout != None else 0.0
                 highway_layer = ConvHighway(num_filter=self.num_filter, window_size=self.window_size,
-                    activation=self.activation, dropout=sublayer_dropout, num_gpus=self.num_gpus,
-                    default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
+                    activation=self.activation, dropout=sublayer_dropout, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, 
+                    regularizer=self.regularizer, random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.highway_layer_list.append(highway_layer)
     
     def __call__(self,

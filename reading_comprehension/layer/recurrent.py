@@ -20,9 +20,10 @@ def _create_single_reccurent_cell(unit_dim,
                                   forget_bias,
                                   residual_connect,
                                   attention_mechanism,
-                                  device_spec):
+                                  device_spec,
+                                  random_seed):
     """create single recurrent cell"""
-    weight_initializer = create_variable_initializer("glorot_uniform")
+    weight_initializer = create_variable_initializer("glorot_uniform", random_seed)
     bias_initializer = create_variable_initializer("zero")
     recurrent_activation = create_activation_function(activation)
 
@@ -67,7 +68,8 @@ def _creat_recurrent_cell(num_layer,
                           attention_mechanism,
                           num_gpus,
                           default_gpu_id,
-                          enable_multi_gpu):
+                          enable_multi_gpu,
+                          random_seed):
     """create recurrent cell"""
     cell_list = []
     for i in range(num_layer):
@@ -77,7 +79,7 @@ def _creat_recurrent_cell(num_layer,
             device_spec = get_device_spec(default_gpu_id, num_gpus)
 
         single_cell = _create_single_reccurent_cell(unit_dim, cell_type, activation,
-            dropout, forget_bias, residual_connect, attention_mechanism, device_spec)
+            dropout, forget_bias, residual_connect, attention_mechanism, device_spec, random_seed)
 
         cell_list.append(single_cell)
 
@@ -99,6 +101,7 @@ class RNN(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  enable_multi_gpu=True,
+                 random_seed=0,
                  trainable=True,
                  scope="rnn"):
         """initialize uni-directional recurrent layer"""
@@ -113,13 +116,14 @@ class RNN(object):
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             self.cell = _creat_recurrent_cell(self.num_layer, self.unit_dim, self.cell_type,
                 self.activation, self.dropout, self.forget_bias, self.residual_connect, self.attention_mechanism,
-                self.num_gpus, self.default_gpu_id, self.enable_multi_gpu)
+                self.num_gpus, self.default_gpu_id, self.enable_multi_gpu, self.random_seed)
     
     def __call__(self,
                  input_data,
@@ -172,6 +176,7 @@ class BiRNN(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  enable_multi_gpu=True,
+                 random_seed=0,
                  trainable=True,
                  scope="rnn"):
         """initialize bi-directional recurrent layer"""
@@ -186,16 +191,17 @@ class BiRNN(object):
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
             self.fwd_cell = _creat_recurrent_cell(self.num_layer, self.unit_dim, self.cell_type,
                 self.activation, self.dropout, self.forget_bias, self.residual_connect, self.attention_mechanism,
-                self.num_gpus, self.default_gpu_id, self.enable_multi_gpu)
+                self.num_gpus, self.default_gpu_id, self.enable_multi_gpu, self.random_seed)
             self.bwd_cell = _creat_recurrent_cell(self.num_layer, self.unit_dim, self.cell_type,
                 self.activation, self.dropout, self.forget_bias, self.residual_connect, self.attention_mechanism,
-                self.num_gpus, self.default_gpu_id + self.num_layer, self.enable_multi_gpu)
+                self.num_gpus, self.default_gpu_id + self.num_layer, self.enable_multi_gpu, self.random_seed)
     
     def __call__(self,
                  input_data,
