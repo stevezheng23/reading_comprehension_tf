@@ -18,12 +18,16 @@ def create_variable_initializer(initializer_type,
         initializer = tf.random_uniform_initializer(seed=random_seed, dtype=data_type)
     elif initializer_type == "glorot_uniform":
         initializer = tf.glorot_uniform_initializer(seed=random_seed, dtype=data_type)
+    elif initializer_type == "xavier_uniform":
+        initializer = tf.contrib.layers.xavier_initializer(uniform=True, seed=random_seed, dtype=tf.float32)
     elif initializer_type == "random_normal":
         initializer = tf.random_normal_initializer(seed=random_seed, dtype=data_type)
     elif initializer_type == "truncated_normal":
         initializer = tf.truncated_normal_initializer(seed=random_seed, dtype=data_type)
     elif initializer_type == "glorot_normal":
         initializer = tf.glorot_normal_initializer(seed=random_seed, dtype=data_type)
+    elif initializer_type == "xavier_normal":
+        initializer = tf.contrib.layers.xavier_initializer(uniform=False, seed=random_seed, dtype=tf.float32)
     else:
         initializer = None
     
