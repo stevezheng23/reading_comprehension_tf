@@ -183,6 +183,7 @@ class QANet(BaseModel):
         fusion_hidden_activation = self.hyperparams.model_representation_fusion_hidden_activation
         fusion_dropout = self.hyperparams.model_representation_fusion_dropout if self.mode == "train" else 0.0
         fusion_trainable = self.hyperparams.model_representation_fusion_trainable
+        random_seed = self.hyperparams.train_random_seed
         default_representation_gpu_id = self.default_gpu_id
         
         with tf.variable_scope("representation", reuse=tf.AUTO_REUSE):
@@ -194,7 +195,7 @@ class QANet(BaseModel):
             if word_feat_enable == True:
                 self.logger.log_print("# build word-level representation layer")
                 word_feat_layer = WordFeat(vocab_size=word_vocab_size, embed_dim=word_embed_dim,
-                    dropout=word_dropout, pretrained=word_embed_pretrained, trainable=word_feat_trainable)
+                    dropout=word_dropout, pretrained=word_embed_pretrained, random_seed=random_seed, trainable=word_feat_trainable)
                 
                 (input_question_word_feat,
                     input_question_word_feat_mask) = word_feat_layer(input_question_word, input_question_word_mask)
@@ -216,7 +217,8 @@ class QANet(BaseModel):
                 self.logger.log_print("# build subword-level representation layer")
                 subword_feat_layer = SubwordFeat(vocab_size=subword_vocab_size, embed_dim=subword_embed_dim,
                     pooling_type=subword_pooling_type, dropout=subword_dropout, num_gpus=self.num_gpus,
-                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer, trainable=subword_feat_trainable)
+                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer,
+                    random_seed=random_seed, trainable=subword_feat_trainable)
                 
                 (input_question_subword_feat,
                     input_question_subword_feat_mask) = subword_feat_layer(input_question_subword, input_question_subword_mask)
@@ -235,7 +237,8 @@ class QANet(BaseModel):
                 self.logger.log_print("# build char-level representation layer")
                 char_feat_layer = CharFeat(vocab_size=char_vocab_size, embed_dim=char_embed_dim,
                     pooling_type=char_pooling_type, dropout=char_dropout, num_gpus=self.num_gpus,
-                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer, trainable=char_feat_trainable)
+                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer,
+                    random_seed=random_seed, trainable=char_feat_trainable)
                 
                 (input_question_char_feat,
                     input_question_char_feat_mask) = char_feat_layer(input_question_char, input_question_char_mask)
@@ -253,7 +256,7 @@ class QANet(BaseModel):
             feat_unit_dim = word_unit_dim + subword_unit_dim + char_unit_dim
             feat_fusion_layer = self._create_fusion_layer(feat_unit_dim, fusion_unit_dim,
                 fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_representation_gpu_id, self.regularizer, fusion_trainable)
+                self.num_gpus, default_representation_gpu_id, self.regularizer, random_seed, fusion_trainable)
             
             input_question_feat, input_question_feat_mask = self._build_fusion_result(input_question_feat_list,
                 input_question_feat_mask_list, feat_fusion_layer)
@@ -289,6 +292,7 @@ class QANet(BaseModel):
         context_understanding_layer_dropout = self.hyperparams.model_understanding_context_layer_dropout if self.mode == "train" else 0.0
         context_understanding_trainable = self.hyperparams.model_understanding_context_trainable
         enable_understanding_sharing = self.hyperparams.model_understanding_enable_sharing
+        random_seed = self.hyperparams.train_random_seed
         default_understanding_gpu_id = self.default_gpu_id
         
         with tf.variable_scope("understanding", reuse=tf.AUTO_REUSE):
@@ -296,14 +300,14 @@ class QANet(BaseModel):
                 self.logger.log_print("# build question understanding layer")
                 question_understanding_fusion_layer = self._create_fusion_layer(question_representation_unit_dim,
                     question_understanding_unit_dim, "conv", 1, question_understanding_hidden_activation, question_understanding_dropout,
-                    self.num_gpus, default_understanding_gpu_id, self.regularizer, question_understanding_trainable)
+                    self.num_gpus, default_understanding_gpu_id, self.regularizer, random_seed, question_understanding_trainable)
                 question_understanding_layer = StackedEncoderBlock(num_layer=question_understanding_num_layer,
                     num_conv=question_understanding_num_conv, num_head=question_understanding_num_head,
                     unit_dim=question_understanding_unit_dim, window_size=question_understanding_window_size,
                     activation=question_understanding_hidden_activation, dropout=question_understanding_dropout,
                     layer_dropout=question_understanding_layer_dropout, num_gpus=self.num_gpus,
                     default_gpu_id=default_understanding_gpu_id, enable_multi_gpu=True,
-                    regularizer=self.regularizer, trainable=question_understanding_trainable)
+                    regularizer=self.regularizer, random_seed=random_seed, trainable=question_understanding_trainable)
                 
                 question_understanding_fusion, question_understanding_fusion_mask = self._build_fusion_result([question_feat],
                     [question_feat_mask], question_understanding_fusion_layer)
@@ -320,14 +324,14 @@ class QANet(BaseModel):
                 else:
                     context_understanding_fusion_layer = self._create_fusion_layer(context_representation_unit_dim,
                         context_understanding_unit_dim, "conv", 1, context_understanding_hidden_activation, context_understanding_dropout,
-                        self.num_gpus, default_understanding_gpu_id, self.regularizer, context_understanding_trainable)
+                        self.num_gpus, default_understanding_gpu_id, self.regularizer, random_seed, context_understanding_trainable)
                     context_understanding_layer = StackedEncoderBlock(num_layer=context_understanding_num_layer,
                         num_conv=context_understanding_num_conv, num_head=context_understanding_num_head,
                         unit_dim=context_understanding_unit_dim, window_size=context_understanding_window_size,
                         activation=context_understanding_hidden_activation, dropout=context_understanding_dropout,
                         layer_dropout=context_understanding_layer_dropout, num_gpus=self.num_gpus,
                         default_gpu_id=default_understanding_gpu_id, enable_multi_gpu=True,
-                        regularizer=self.regularizer, trainable=context_understanding_trainable)
+                        regularizer=self.regularizer, random_seed=random_seed, trainable=context_understanding_trainable)
                 
                 context_understanding_fusion, context_understanding_fusion_mask = self._build_fusion_result([context_feat],
                     [context_feat_mask], context_understanding_fusion_layer)
@@ -361,6 +365,7 @@ class QANet(BaseModel):
         fusion_trainable = self.hyperparams.model_interaction_fusion_trainable
         fusion_combo_enable = self.hyperparams.model_interaction_fusion_combo_enable
         enable_interaction_sharing = self.hyperparams.model_interaction_enable_sharing
+        random_seed = self.hyperparams.train_random_seed
         default_interaction_gpu_id = self.default_gpu_id + 1
         
         with tf.variable_scope("interaction", reuse=tf.AUTO_REUSE):
@@ -376,7 +381,7 @@ class QANet(BaseModel):
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         context2question_interaction_attention_dim, context2question_interaction_score_type, 0.0,
                         False, False, False, attention_matrix, self.num_gpus, default_interaction_gpu_id,
-                        True, self.regularizer, context2question_interaction_trainable)
+                        True, self.regularizer, random_seed, context2question_interaction_trainable)
                     
                     if enable_interaction_sharing == True:
                         attention_matrix = context2question_interaction_layer.get_attention_matrix()
@@ -404,7 +409,7 @@ class QANet(BaseModel):
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         question2context_interaction_attention_dim, question2context_interaction_score_type, 0.0,
                         False, False, False, attention_matrix, self.num_gpus, default_interaction_gpu_id,
-                        True, self.regularizer, question2context_interaction_trainable)
+                        True, self.regularizer, random_seed, question2context_interaction_trainable)
                     
                     (question2context_interaction,
                         question2context_interaction_mask) = question2context_interaction_layer(context_understanding,
@@ -423,7 +428,7 @@ class QANet(BaseModel):
             
             answer_interaction_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim,
                 fusion_unit_dim, fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_interaction_gpu_id, self.regularizer, fusion_trainable)
+                self.num_gpus, default_interaction_gpu_id, self.regularizer, random_seed, fusion_trainable)
             answer_interaction, answer_interaction_mask = self._build_fusion_result(answer_intermediate_list,
                 answer_intermediate_mask_list, answer_interaction_fusion_layer)
         
@@ -444,6 +449,7 @@ class QANet(BaseModel):
         answer_modeling_layer_dropout = self.hyperparams.model_modeling_answer_layer_dropout if self.mode == "train" else 0.0
         answer_modeling_trainable = self.hyperparams.model_modeling_answer_trainable
         answer_modeling_enable_sharing = self.hyperparams.model_modeling_enable_sharing
+        random_seed = self.hyperparams.train_random_seed
         default_modeling_gpu_id = self.default_gpu_id + 2
         
         with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE):
@@ -453,7 +459,7 @@ class QANet(BaseModel):
             
             answer_modeling_fusion_layer = self._create_fusion_layer(answer_interaction_unit_dim,
                 answer_modeling_unit_dim, "conv", 1, answer_modeling_hidden_activation, answer_modeling_dropout,
-                self.num_gpus, default_modeling_gpu_id, self.regularizer, answer_modeling_trainable)
+                self.num_gpus, default_modeling_gpu_id, self.regularizer, random_seed, answer_modeling_trainable)
             answer_modeling_fusion, answer_modeling_fusion_mask = self._build_fusion_result([answer_interaction],
                 [answer_interaction_mask], answer_modeling_fusion_layer)
             
@@ -464,7 +470,7 @@ class QANet(BaseModel):
                     activation=answer_modeling_hidden_activation, dropout=answer_modeling_dropout,
                     layer_dropout=answer_modeling_layer_dropout, num_gpus=self.num_gpus,
                     default_gpu_id=default_modeling_gpu_id, enable_multi_gpu=True,
-                    regularizer=self.regularizer, trainable=answer_modeling_trainable)
+                    regularizer=self.regularizer, random_seed=random_seed, trainable=answer_modeling_trainable)
                 
                 (answer_modeling_base,
                     answer_modeling_base_mask) = answer_modeling_base_layer(answer_modeling_fusion, answer_modeling_fusion_mask)
@@ -481,7 +487,7 @@ class QANet(BaseModel):
                         activation=answer_modeling_hidden_activation, dropout=answer_modeling_dropout,
                         layer_dropout=answer_modeling_layer_dropout, num_gpus=self.num_gpus,
                         default_gpu_id=default_modeling_gpu_id, enable_multi_gpu=True,
-                        regularizer=self.regularizer, trainable=answer_modeling_trainable)
+                        regularizer=self.regularizer, random_seed=random_seed, trainable=answer_modeling_trainable)
                 
                 (answer_modeling_start,
                     answer_modeling_start_mask) = answer_modeling_start_layer(answer_modeling_base, answer_modeling_base_mask)
@@ -498,7 +504,7 @@ class QANet(BaseModel):
                         activation=answer_modeling_hidden_activation, dropout=answer_modeling_dropout,
                         layer_dropout=answer_modeling_layer_dropout, num_gpus=self.num_gpus,
                         default_gpu_id=default_modeling_gpu_id, enable_multi_gpu=True,
-                        regularizer=self.regularizer, trainable=answer_modeling_trainable)
+                        regularizer=self.regularizer, random_seed=random_seed, trainable=answer_modeling_trainable)
                 
                 (answer_modeling_end,
                     answer_modeling_end_mask) = answer_modeling_end_layer(answer_modeling_start, answer_modeling_start_mask)
@@ -515,6 +521,7 @@ class QANet(BaseModel):
         answer_start_trainable = self.hyperparams.model_output_answer_start_trainable
         answer_end_dropout = self.hyperparams.model_output_answer_end_dropout if self.mode == "train" else 0.0
         answer_end_trainable = self.hyperparams.model_output_answer_end_trainable
+        random_seed = self.hyperparams.train_random_seed
         default_output_gpu_id = self.default_gpu_id
         
         with tf.variable_scope("output", reuse=tf.AUTO_REUSE):
@@ -529,7 +536,7 @@ class QANet(BaseModel):
                     answer_start_mask) = self._build_fusion_result(answer_start_list, answer_start_mask_list, None)
                 
                 answer_ouput_start_layer = create_dense_layer("single", 1, 1, 1, "", [answer_start_dropout], None,
-                    False, False, self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_start_trainable)
+                    False, False, self.num_gpus, default_output_gpu_id, True, self.regularizer, random_seed, answer_start_trainable)
                 answer_output_start, answer_output_start_mask = answer_ouput_start_layer(answer_start, answer_start_mask)
                 answer_output_list.append(answer_output_start)
                 answer_output_mask_list.append(answer_output_start_mask)
@@ -541,7 +548,7 @@ class QANet(BaseModel):
                     answer_end_mask) = self._build_fusion_result(answer_end_list, answer_end_mask_list, None)
                 
                 answer_output_end_layer = create_dense_layer("single", 1, 1, 1, "", [answer_end_dropout], None,
-                    False, False, self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_end_trainable)
+                    False, False, self.num_gpus, default_output_gpu_id, True, self.regularizer, random_seed, answer_end_trainable)
                 answer_output_end, answer_output_end_mask = answer_output_end_layer(answer_end, answer_end_mask)
                 answer_output_list.append(answer_output_end)
                 answer_output_mask_list.append(answer_output_end_mask)
@@ -645,6 +652,7 @@ class EncoderBlock(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="encoder_block"):
         """initialize encoder-block layer"""
@@ -658,6 +666,7 @@ class EncoderBlock(object):
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         
@@ -666,13 +675,13 @@ class EncoderBlock(object):
                 self.dropout_layer = create_dropout_layer(self.dropout, self.num_gpus, self.default_gpu_id)
             
             self.position_layer = create_position_layer("sin_pos", self.unit_dim, 0, 10000,
-                self.num_gpus, self.default_gpu_id, self.trainable)
+                self.num_gpus, self.default_gpu_id, self.random_seed, self.trainable)
             
             conv_dropout = [self.dropout if i % 2 == 0 else 0.0 for i in range(self.num_conv)]
             conv_layer_dropout = [self.layer_dropout * float(i + self.sublayer_skip) / self.num_sublayer for i in range(self.num_conv)]
             self.conv_layer = create_convolution_layer("multi_sep_1d", self.num_conv, self.unit_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.activation, conv_dropout, conv_layer_dropout,
-                True, True, self.num_gpus, self.default_gpu_id, False, self.regularizer, self.trainable)
+                True, True, self.num_gpus, self.default_gpu_id, False, self.regularizer, self.random_seed, self.trainable)
             
             if unit_dim % num_head != 0 or unit_dim / num_head == 0:
                 raise ValueError("unit dim {0} and # head {1} mis-match".format(unit_dim, num_head))
@@ -686,11 +695,11 @@ class EncoderBlock(object):
             attention_layer_dropout = self.layer_dropout * float(self.num_conv + self.sublayer_skip) / self.num_sublayer
             self.attention_layer = create_attention_layer("multi_head_att", self.unit_dim,
                 self.unit_dim, att_dim_list, "scaled_dot", attention_layer_dropout, True, True, True,
-                None, self.num_gpus, self.default_gpu_id, False, self.regularizer, self.trainable)
+                None, self.num_gpus, self.default_gpu_id, False, self.regularizer, self.random_seed, self.trainable)
             
             dense_layer_dropout = [self.layer_dropout * float(self.num_conv + 1 + self.sublayer_skip) / self.num_sublayer]
             self.dense_layer = create_dense_layer("double", 1, self.unit_dim, 4, self.activation, [self.dropout],
-                dense_layer_dropout, True, True, num_gpus, default_gpu_id, False, self.regularizer, self.trainable)
+                dense_layer_dropout, True, True, num_gpus, default_gpu_id, False, self.regularizer, self.random_seed, self.trainable)
     
     def __call__(self,
                  input_data,
@@ -728,6 +737,7 @@ class StackedEncoderBlock(object):
                  default_gpu_id=0,
                  enable_multi_gpu=True,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="stacked_encoder_block"):
         """initialize stacked encoder-block layer"""
@@ -743,6 +753,7 @@ class StackedEncoderBlock(object):
         self.default_gpu_id = default_gpu_id
         self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         
@@ -754,10 +765,11 @@ class StackedEncoderBlock(object):
                 enable_dropout = True if i % 2 == 0 else False
                 sublayer_skip = (self.num_conv + 2) * i
                 layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
-                block_layer = EncoderBlock(num_conv=self.num_conv, num_head=self.num_head, unit_dim=self.unit_dim,
-                    window_size=self.window_size, activation=self.activation, dropout=(enable_dropout, self.dropout),
-                    layer_dropout=(sublayer_skip, num_sublayer, self.layer_dropout), num_gpus=self.num_gpus,
-                    default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer, trainable=self.trainable, scope=layer_scope)
+                block_layer = EncoderBlock(num_conv=self.num_conv, num_head=self.num_head,
+                    unit_dim=self.unit_dim, window_size=self.window_size, activation=self.activation,
+                    dropout=(enable_dropout, self.dropout), layer_dropout=(sublayer_skip, num_sublayer, self.layer_dropout),
+                    num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer,
+                    random_seed=random_seed, trainable=self.trainable, scope=layer_scope)
                 self.block_layer_list.append(block_layer)
     
     def __call__(self,
@@ -783,6 +795,7 @@ class WordFeat(object):
                  embed_dim,
                  dropout,
                  pretrained,
+                 random_seed=0,
                  trainable=True,
                  scope="word_feat"):
         """initialize word-level featurization layer"""
@@ -790,12 +803,13 @@ class WordFeat(object):
         self.embed_dim = embed_dim
         self.dropout = dropout
         self.pretrained = pretrained
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, self.pretrained, 0, 0, self.trainable)
+                self.embed_dim, self.pretrained, 0, 0, self.random_seed, self.trainable)
             
             self.dropout_layer = create_dropout_layer(self.dropout, 0, 0)
     
@@ -829,6 +843,7 @@ class SubwordFeat(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="subword_feat"):
         """initialize subword-level featurization layer"""
@@ -839,12 +854,13 @@ class SubwordFeat(object):
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, False, 0, 0, self.trainable)
+                self.embed_dim, False, 0, 0, self.random_seed, self.trainable)
                         
             self.dropout_layer = create_dropout_layer(self.dropout, 0, 0)
             
@@ -879,6 +895,7 @@ class CharFeat(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="char_feat"):
         """initialize char-level featurization layer"""
@@ -889,12 +906,13 @@ class CharFeat(object):
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, False, 0, 0, self.trainable)
+                self.embed_dim, False, 0, 0, self.random_seed, self.trainable)
             
             self.dropout_layer = create_dropout_layer(self.dropout, 0, 0)
             

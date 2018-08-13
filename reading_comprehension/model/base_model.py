@@ -68,6 +68,7 @@ class BaseModel(object):
                              num_gpus,
                              default_gpu_id,
                              regularizer,
+                             random_seed,
                              trainable):
         """create fusion layer for mrc base model"""
         with tf.variable_scope("fusion", reuse=tf.AUTO_REUSE):
@@ -75,26 +76,26 @@ class BaseModel(object):
                 fusion_layer_list = []
                 if input_unit_dim != output_unit_dim:
                     convert_layer = create_dense_layer("single", 1, output_unit_dim, 1, "", [0.0], None,
-                        False, False, num_gpus, default_gpu_id, True, regularizer, trainable)
+                        False, False, num_gpus, default_gpu_id, True, regularizer, random_seed, trainable)
                     fusion_layer_list.append(convert_layer)
             elif fusion_type == "dense":
                 fusion_layer = create_dense_layer("single", num_layer, output_unit_dim, 1, hidden_activation,
-                    [dropout] * num_layer, None, False, False, num_gpus, default_gpu_id, True, regularizer, trainable)
+                    [dropout] * num_layer, None, False, False, num_gpus, default_gpu_id, True, regularizer, random_seed, trainable)
                 fusion_layer_list = [fusion_layer]
             elif fusion_type == "highway":
                 fusion_layer_list = []
                 if input_unit_dim != output_unit_dim:
                     convert_layer = create_dense_layer("single", 1, output_unit_dim, 1, "", [0.0], None,
-                        False, False, num_gpus, default_gpu_id, True, regularizer, trainable)
+                        False, False, num_gpus, default_gpu_id, True, regularizer, random_seed, trainable)
                     fusion_layer_list.append(convert_layer)
                 
                 fusion_layer = create_highway_layer(num_layer, output_unit_dim, hidden_activation,
-                    [dropout] * num_layer, num_gpus, default_gpu_id, True, regularizer, trainable)
+                    [dropout] * num_layer, num_gpus, default_gpu_id, True, regularizer, random_seed, trainable)
                 fusion_layer_list.append(fusion_layer)
             elif fusion_type == "conv":
                 fusion_layer = create_convolution_layer("1d", num_layer, input_unit_dim,
                     output_unit_dim, 1, 1, 1, "SAME", hidden_activation, [dropout] * num_layer,
-                    None, False, False, num_gpus, default_gpu_id, True, regularizer, trainable)
+                    None, False, False, num_gpus, default_gpu_id, True, regularizer, random_seed, trainable)
                 fusion_layer_list = [fusion_layer]
             else:
                 raise ValueError("unsupported fusion type {0}".format(fusion_type))
@@ -158,6 +159,7 @@ class BaseModel(object):
         fusion_hidden_activation = self.hyperparams.model_representation_fusion_hidden_activation
         fusion_dropout = self.hyperparams.model_representation_fusion_dropout if self.mode == "train" else 0.0
         fusion_trainable = self.hyperparams.model_representation_fusion_trainable
+        random_seed = self.hyperparams.train_random_seed
         default_representation_gpu_id = self.default_gpu_id
         
         with tf.variable_scope("representation", reuse=tf.AUTO_REUSE):
@@ -169,7 +171,7 @@ class BaseModel(object):
             if word_feat_enable == True:
                 self.logger.log_print("# build word-level representation layer")
                 word_feat_layer = WordFeat(vocab_size=word_vocab_size, embed_dim=word_embed_dim,
-                    pretrained=word_embed_pretrained, trainable=word_feat_trainable)
+                    pretrained=word_embed_pretrained, random_seed=random_seed, trainable=word_feat_trainable)
                 
                 (input_question_word_feat,
                     input_question_word_feat_mask) = word_feat_layer(input_question_word, input_question_word_mask)
@@ -192,7 +194,8 @@ class BaseModel(object):
                 subword_feat_layer = SubwordFeat(vocab_size=subword_vocab_size, embed_dim=subword_embed_dim,
                     unit_dim=subword_unit_dim, window_size=subword_window_size, hidden_activation=subword_hidden_activation,
                     pooling_type=subword_pooling_type, dropout=subword_dropout, num_gpus=self.num_gpus,
-                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer, trainable=subword_feat_trainable)
+                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer,
+                    random_seed=random_seed, trainable=subword_feat_trainable)
                 
                 (input_question_subword_feat,
                     input_question_subword_feat_mask) = subword_feat_layer(input_question_subword, input_question_subword_mask)
@@ -211,7 +214,8 @@ class BaseModel(object):
                 char_feat_layer = CharFeat(vocab_size=char_vocab_size, embed_dim=char_embed_dim,
                     unit_dim=char_unit_dim, window_size=char_window_size, hidden_activation=char_hidden_activation,
                     pooling_type=char_pooling_type, dropout=char_dropout, num_gpus=self.num_gpus,
-                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer, trainable=char_feat_trainable)
+                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer,
+                    random_seed=random_seed, trainable=char_feat_trainable)
                 
                 (input_question_char_feat,
                     input_question_char_feat_mask) = char_feat_layer(input_question_char, input_question_char_mask)
@@ -228,7 +232,7 @@ class BaseModel(object):
             feat_unit_dim = word_unit_dim + subword_unit_dim + char_unit_dim
             feat_fusion_layer = self._create_fusion_layer(feat_unit_dim, fusion_unit_dim,
                 fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_representation_gpu_id, self.regularizer, fusion_trainable)
+                self.num_gpus, default_representation_gpu_id, self.regularizer, random_seed, fusion_trainable)
             
             input_question_feat, input_question_feat_mask = self._build_fusion_result(input_question_feat_list,
                 input_question_feat_mask_list, feat_fusion_layer)
@@ -413,18 +417,20 @@ class WordFeat(object):
                  vocab_size,
                  embed_dim,
                  pretrained,
+                 random_seed=0,
                  trainable=True,
                  scope="word_feat"):
         """initialize word-level featurization layer"""
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim
         self.pretrained = pretrained
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, self.pretrained, 0, 0, self.trainable)
+                self.embed_dim, self.pretrained, 0, 0, self.random_seed, self.trainable)
     
     def __call__(self,
                  input_word,
@@ -454,6 +460,7 @@ class SubwordFeat(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="subword_feat"):
         """initialize subword-level featurization layer"""
@@ -467,16 +474,17 @@ class SubwordFeat(object):
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, False, 0, 0, self.trainable)
+                self.embed_dim, False, 0, 0, self.random_seed, self.trainable)
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
-                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.trainable)
+                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.random_seed, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
@@ -512,6 +520,7 @@ class CharFeat(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="char_feat"):
         """initialize char-level featurization layer"""
@@ -525,16 +534,17 @@ class CharFeat(object):
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, False, 0, 0, self.trainable)
+                self.embed_dim, False, 0, 0, self.random_seed, self.trainable)
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
-                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.trainable)
+                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.random_seed, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
