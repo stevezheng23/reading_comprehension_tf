@@ -183,6 +183,7 @@ class QANet(BaseModel):
         fusion_hidden_activation = self.hyperparams.model_representation_fusion_hidden_activation
         fusion_dropout = self.hyperparams.model_representation_fusion_dropout if self.mode == "train" else 0.0
         fusion_trainable = self.hyperparams.model_representation_fusion_trainable
+        random_seed = self.hyperparams.train_random_seed
         default_representation_gpu_id = self.default_gpu_id
         
         with tf.variable_scope("representation", reuse=tf.AUTO_REUSE):
@@ -194,7 +195,7 @@ class QANet(BaseModel):
             if word_feat_enable == True:
                 self.logger.log_print("# build word-level representation layer")
                 word_feat_layer = WordFeat(vocab_size=word_vocab_size, embed_dim=word_embed_dim,
-                    dropout=word_dropout, pretrained=word_embed_pretrained, trainable=word_feat_trainable)
+                    dropout=word_dropout, pretrained=word_embed_pretrained, random_seed=random_seed, trainable=word_feat_trainable)
                 
                 (input_question_word_feat,
                     input_question_word_feat_mask) = word_feat_layer(input_question_word, input_question_word_mask)
@@ -216,7 +217,8 @@ class QANet(BaseModel):
                 self.logger.log_print("# build subword-level representation layer")
                 subword_feat_layer = SubwordFeat(vocab_size=subword_vocab_size, embed_dim=subword_embed_dim,
                     pooling_type=subword_pooling_type, dropout=subword_dropout, num_gpus=self.num_gpus,
-                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer, trainable=subword_feat_trainable)
+                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer,
+                    random_seed=random_seed, trainable=subword_feat_trainable)
                 
                 (input_question_subword_feat,
                     input_question_subword_feat_mask) = subword_feat_layer(input_question_subword, input_question_subword_mask)
@@ -235,7 +237,8 @@ class QANet(BaseModel):
                 self.logger.log_print("# build char-level representation layer")
                 char_feat_layer = CharFeat(vocab_size=char_vocab_size, embed_dim=char_embed_dim,
                     pooling_type=char_pooling_type, dropout=char_dropout, num_gpus=self.num_gpus,
-                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer, trainable=char_feat_trainable)
+                    default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer,
+                    random_seed=random_seed, trainable=char_feat_trainable)
                 
                 (input_question_char_feat,
                     input_question_char_feat_mask) = char_feat_layer(input_question_char, input_question_char_mask)
@@ -783,6 +786,7 @@ class WordFeat(object):
                  embed_dim,
                  dropout,
                  pretrained,
+                 random_seed=0,
                  trainable=True,
                  scope="word_feat"):
         """initialize word-level featurization layer"""
@@ -790,12 +794,13 @@ class WordFeat(object):
         self.embed_dim = embed_dim
         self.dropout = dropout
         self.pretrained = pretrained
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, self.pretrained, 0, 0, self.trainable)
+                self.embed_dim, self.pretrained, 0, 0, self.random_seed, self.trainable)
             
             self.dropout_layer = create_dropout_layer(self.dropout, 0, 0)
     
@@ -829,6 +834,7 @@ class SubwordFeat(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="subword_feat"):
         """initialize subword-level featurization layer"""
@@ -839,12 +845,13 @@ class SubwordFeat(object):
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, False, 0, 0, self.trainable)
+                self.embed_dim, False, 0, 0, self.random_seed, self.trainable)
                         
             self.dropout_layer = create_dropout_layer(self.dropout, 0, 0)
             
@@ -879,6 +886,7 @@ class CharFeat(object):
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="char_feat"):
         """initialize char-level featurization layer"""
@@ -889,12 +897,13 @@ class CharFeat(object):
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.regularizer = regularizer
+        self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, False, 0, 0, self.trainable)
+                self.embed_dim, False, 0, 0, self.random_seed, self.trainable)
             
             self.dropout_layer = create_dropout_layer(self.dropout, 0, 0)
             
