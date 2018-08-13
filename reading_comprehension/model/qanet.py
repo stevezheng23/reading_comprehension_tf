@@ -256,7 +256,7 @@ class QANet(BaseModel):
             feat_unit_dim = word_unit_dim + subword_unit_dim + char_unit_dim
             feat_fusion_layer = self._create_fusion_layer(feat_unit_dim, fusion_unit_dim,
                 fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_representation_gpu_id, self.regularizer, fusion_trainable)
+                self.num_gpus, default_representation_gpu_id, self.regularizer, random_seed, fusion_trainable)
             
             input_question_feat, input_question_feat_mask = self._build_fusion_result(input_question_feat_list,
                 input_question_feat_mask_list, feat_fusion_layer)
@@ -300,7 +300,7 @@ class QANet(BaseModel):
                 self.logger.log_print("# build question understanding layer")
                 question_understanding_fusion_layer = self._create_fusion_layer(question_representation_unit_dim,
                     question_understanding_unit_dim, "conv", 1, question_understanding_hidden_activation, question_understanding_dropout,
-                    self.num_gpus, default_understanding_gpu_id, self.regularizer, question_understanding_trainable)
+                    self.num_gpus, default_understanding_gpu_id, self.regularizer, random_seed, question_understanding_trainable)
                 question_understanding_layer = StackedEncoderBlock(num_layer=question_understanding_num_layer,
                     num_conv=question_understanding_num_conv, num_head=question_understanding_num_head,
                     unit_dim=question_understanding_unit_dim, window_size=question_understanding_window_size,
@@ -324,7 +324,7 @@ class QANet(BaseModel):
                 else:
                     context_understanding_fusion_layer = self._create_fusion_layer(context_representation_unit_dim,
                         context_understanding_unit_dim, "conv", 1, context_understanding_hidden_activation, context_understanding_dropout,
-                        self.num_gpus, default_understanding_gpu_id, self.regularizer, context_understanding_trainable)
+                        self.num_gpus, default_understanding_gpu_id, self.regularizer, random_seed, context_understanding_trainable)
                     context_understanding_layer = StackedEncoderBlock(num_layer=context_understanding_num_layer,
                         num_conv=context_understanding_num_conv, num_head=context_understanding_num_head,
                         unit_dim=context_understanding_unit_dim, window_size=context_understanding_window_size,
@@ -427,7 +427,7 @@ class QANet(BaseModel):
             
             answer_interaction_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim,
                 fusion_unit_dim, fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_interaction_gpu_id, self.regularizer, fusion_trainable)
+                self.num_gpus, default_interaction_gpu_id, self.regularizer, random_seed, fusion_trainable)
             answer_interaction, answer_interaction_mask = self._build_fusion_result(answer_intermediate_list,
                 answer_intermediate_mask_list, answer_interaction_fusion_layer)
         
@@ -458,7 +458,7 @@ class QANet(BaseModel):
             
             answer_modeling_fusion_layer = self._create_fusion_layer(answer_interaction_unit_dim,
                 answer_modeling_unit_dim, "conv", 1, answer_modeling_hidden_activation, answer_modeling_dropout,
-                self.num_gpus, default_modeling_gpu_id, self.regularizer, answer_modeling_trainable)
+                self.num_gpus, default_modeling_gpu_id, self.regularizer, random_seed, answer_modeling_trainable)
             answer_modeling_fusion, answer_modeling_fusion_mask = self._build_fusion_result([answer_interaction],
                 [answer_interaction_mask], answer_modeling_fusion_layer)
             
@@ -679,7 +679,7 @@ class EncoderBlock(object):
             conv_layer_dropout = [self.layer_dropout * float(i + self.sublayer_skip) / self.num_sublayer for i in range(self.num_conv)]
             self.conv_layer = create_convolution_layer("multi_sep_1d", self.num_conv, self.unit_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.activation, conv_dropout, conv_layer_dropout,
-                True, True, self.num_gpus, self.default_gpu_id, False, self.regularizer, self.trainable)
+                True, True, self.num_gpus, self.default_gpu_id, False, self.regularizer, self.random_seed, self.trainable)
             
             if unit_dim % num_head != 0 or unit_dim / num_head == 0:
                 raise ValueError("unit dim {0} and # head {1} mis-match".format(unit_dim, num_head))

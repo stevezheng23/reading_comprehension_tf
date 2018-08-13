@@ -261,7 +261,7 @@ class BiDAF(BaseModel):
             feat_unit_dim = word_unit_dim + subword_unit_dim + char_unit_dim
             feat_fusion_layer = self._create_fusion_layer(feat_unit_dim, fusion_unit_dim,
                 fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_representation_gpu_id, self.regularizer, fusion_trainable)
+                self.num_gpus, default_representation_gpu_id, self.regularizer, random_seed, fusion_trainable)
             
             input_question_feat, input_question_feat_mask = self._build_fusion_result(input_question_feat_list,
                 input_question_feat_mask_list, feat_fusion_layer)
@@ -345,6 +345,7 @@ class BiDAF(BaseModel):
         fusion_trainable = self.hyperparams.model_interaction_fusion_trainable
         fusion_combo_enable = self.hyperparams.model_interaction_fusion_combo_enable
         enable_interaction_sharing = self.hyperparams.model_interaction_enable_sharing
+        random_seed = self.hyperparams.train_random_seed
         default_interaction_gpu_id = self.default_gpu_id + 1
         
         with tf.variable_scope("interaction", reuse=tf.AUTO_REUSE):
@@ -407,7 +408,7 @@ class BiDAF(BaseModel):
             
             answer_interaction_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim,
                 fusion_unit_dim, fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_interaction_gpu_id, self.regularizer, fusion_trainable)
+                self.num_gpus, default_interaction_gpu_id, self.regularizer, random_seed, fusion_trainable)
             answer_interaction, answer_interaction_mask = self._build_fusion_result(answer_intermediate_list,
                 answer_intermediate_mask_list, answer_interaction_fusion_layer)
         
@@ -435,6 +436,7 @@ class BiDAF(BaseModel):
         fusion_hidden_activation = self.hyperparams.model_modeling_fusion_hidden_activation
         fusion_dropout = self.hyperparams.model_modeling_fusion_dropout if self.mode == "train" else 0.0
         fusion_trainable = self.hyperparams.model_modeling_fusion_trainable
+        random_seed = self.hyperparams.train_random_seed
         default_modeling_gpu_id = self.default_gpu_id + 2
         
         with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE):
@@ -472,7 +474,7 @@ class BiDAF(BaseModel):
             
             answer_modeling_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim,
                 fusion_unit_dim, fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_modeling_gpu_id, self.regularizer, fusion_trainable)
+                self.num_gpus, default_modeling_gpu_id, self.regularizer, random_seed, fusion_trainable)
             answer_modeling, answer_modeling_mask = self._build_fusion_result(answer_intermediate_list,
                 answer_intermediate_mask_list, answer_modeling_fusion_layer)
         
@@ -711,7 +713,7 @@ class SubwordFeat(object):
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
-                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.trainable)
+                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.random_seed, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
@@ -771,7 +773,7 @@ class CharFeat(object):
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
-                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.trainable)
+                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.random_seed, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     

@@ -68,6 +68,7 @@ class BaseModel(object):
                              num_gpus,
                              default_gpu_id,
                              regularizer,
+                             random_seed,
                              trainable):
         """create fusion layer for mrc base model"""
         with tf.variable_scope("fusion", reuse=tf.AUTO_REUSE):
@@ -94,7 +95,7 @@ class BaseModel(object):
             elif fusion_type == "conv":
                 fusion_layer = create_convolution_layer("1d", num_layer, input_unit_dim,
                     output_unit_dim, 1, 1, 1, "SAME", hidden_activation, [dropout] * num_layer,
-                    None, False, False, num_gpus, default_gpu_id, True, regularizer, trainable)
+                    None, False, False, num_gpus, default_gpu_id, True, regularizer, random_seed, trainable)
                 fusion_layer_list = [fusion_layer]
             else:
                 raise ValueError("unsupported fusion type {0}".format(fusion_type))
@@ -231,7 +232,7 @@ class BaseModel(object):
             feat_unit_dim = word_unit_dim + subword_unit_dim + char_unit_dim
             feat_fusion_layer = self._create_fusion_layer(feat_unit_dim, fusion_unit_dim,
                 fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_representation_gpu_id, self.regularizer, fusion_trainable)
+                self.num_gpus, default_representation_gpu_id, self.regularizer, random_seed, fusion_trainable)
             
             input_question_feat, input_question_feat_mask = self._build_fusion_result(input_question_feat_list,
                 input_question_feat_mask_list, feat_fusion_layer)
@@ -483,7 +484,7 @@ class SubwordFeat(object):
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
-                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.trainable)
+                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.random_seed, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
@@ -543,7 +544,7 @@ class CharFeat(object):
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
-                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.trainable)
+                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.random_seed, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
