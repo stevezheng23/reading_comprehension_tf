@@ -501,6 +501,7 @@ class BiDAF(BaseModel):
         answer_end_forget_bias = self.hyperparams.model_output_answer_end_forget_bias
         answer_end_residual_connect = self.hyperparams.model_output_answer_end_residual_connect
         answer_end_trainable = self.hyperparams.model_output_answer_end_trainable
+        random_seed = self.hyperparams.train_random_seed
         default_output_gpu_id = self.default_gpu_id
         
         with tf.variable_scope("output", reuse=tf.AUTO_REUSE):
@@ -522,7 +523,7 @@ class BiDAF(BaseModel):
                         [answer_modeling_mask, answer_start_mask], None)
                 
                 answer_start_output_layer = create_dense_layer("single", 1, 1, 1, "", [answer_start_dropout], None,
-                    False, False, self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_start_trainable)
+                    False, False, self.num_gpus, default_output_gpu_id, True, self.regularizer, random_seed, answer_start_trainable)
                 (answer_start_output,
                     answer_start_output_mask) = answer_start_output_layer(answer_start_fusion,
                         answer_start_fusion_mask)
@@ -547,7 +548,7 @@ class BiDAF(BaseModel):
                         [answer_modeling_mask, answer_end_mask], None)
                 
                 answer_end_output_layer = create_dense_layer("single", 1, 1, 1, "", [answer_end_dropout], None,
-                    False, False, self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_end_trainable)
+                    False, False, self.num_gpus, default_output_gpu_id, True, self.regularizer, random_seed, answer_end_trainable)
                 (answer_end_output,
                     answer_end_output_mask) = answer_end_output_layer(answer_end_fusion,
                         answer_end_fusion_mask)
