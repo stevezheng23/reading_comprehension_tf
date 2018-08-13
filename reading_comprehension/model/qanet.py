@@ -365,6 +365,7 @@ class QANet(BaseModel):
         fusion_trainable = self.hyperparams.model_interaction_fusion_trainable
         fusion_combo_enable = self.hyperparams.model_interaction_fusion_combo_enable
         enable_interaction_sharing = self.hyperparams.model_interaction_enable_sharing
+        random_seed = self.hyperparams.train_random_seed
         default_interaction_gpu_id = self.default_gpu_id + 1
         
         with tf.variable_scope("interaction", reuse=tf.AUTO_REUSE):
@@ -380,7 +381,7 @@ class QANet(BaseModel):
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         context2question_interaction_attention_dim, context2question_interaction_score_type, 0.0,
                         False, False, False, attention_matrix, self.num_gpus, default_interaction_gpu_id,
-                        True, self.regularizer, context2question_interaction_trainable)
+                        True, self.regularizer, random_seed, context2question_interaction_trainable)
                     
                     if enable_interaction_sharing == True:
                         attention_matrix = context2question_interaction_layer.get_attention_matrix()
@@ -408,7 +409,7 @@ class QANet(BaseModel):
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         question2context_interaction_attention_dim, question2context_interaction_score_type, 0.0,
                         False, False, False, attention_matrix, self.num_gpus, default_interaction_gpu_id,
-                        True, self.regularizer, question2context_interaction_trainable)
+                        True, self.regularizer, random_seed, question2context_interaction_trainable)
                     
                     (question2context_interaction,
                         question2context_interaction_mask) = question2context_interaction_layer(context_understanding,
@@ -694,7 +695,7 @@ class EncoderBlock(object):
             attention_layer_dropout = self.layer_dropout * float(self.num_conv + self.sublayer_skip) / self.num_sublayer
             self.attention_layer = create_attention_layer("multi_head_att", self.unit_dim,
                 self.unit_dim, att_dim_list, "scaled_dot", attention_layer_dropout, True, True, True,
-                None, self.num_gpus, self.default_gpu_id, False, self.regularizer, self.trainable)
+                None, self.num_gpus, self.default_gpu_id, False, self.regularizer, self.random_seed, self.trainable)
             
             dense_layer_dropout = [self.layer_dropout * float(self.num_conv + 1 + self.sublayer_skip) / self.num_sublayer]
             self.dense_layer = create_dense_layer("double", 1, self.unit_dim, 4, self.activation, [self.dropout],

@@ -345,7 +345,7 @@ class RNet(BaseModel):
             trg_dim=question_understanding_unit_dim, att_dim=context2question_interaction_attention_dim,
             score_type=context2question_interaction_score_type, layer_dropout=False, layer_norm=False, residual_connect=False,
             is_self=False, external_matrix=None, num_gpus=self.num_gpus, default_gpu_id=default_interaction_gpu_id,
-            regularizer=self.regularizer, trainable=context2question_interaction_trainable)
+            regularizer=self.regularizer, random_seed=random_seed, trainable=context2question_interaction_trainable)
         
         context2question_interaction_layer = create_recurrent_layer("uni",
             context2question_interaction_num_layer, context2question_interaction_unit_dim,
@@ -384,7 +384,7 @@ class RNet(BaseModel):
             answer_modeling_attention_layer = create_attention_layer("gated_att",
                 answer_interaction_unit_dim, answer_interaction_unit_dim,
                 answer_modeling_attention_dim, answer_modeling_score_type, 0.0, False, False, True, None,
-                self.num_gpus, default_modeling_gpu_id, True, self.regularizer, answer_modeling_trainable)
+                self.num_gpus, default_modeling_gpu_id, True, self.regularizer, random_seed, answer_modeling_trainable)
             
             (answer_modeling_attention,
                 answer_modeling_attention_mask) = answer_modeling_attention_layer(answer_interaction,
@@ -449,7 +449,7 @@ class RNet(BaseModel):
                 answer_base_attention_layer = create_attention_layer("att",
                     question_understanding_unit_dim, question_understanding_unit_dim,
                     answer_output_attention_dim, answer_output_score_type, 0.0, False, False, False, None,
-                    self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_output_trainable)
+                    self.num_gpus, default_output_gpu_id, True, self.regularizer, random_seed, answer_output_trainable)
                 (answer_base_state, answer_base_state_mask,
                     _, _) = answer_base_attention_layer(question_base,
                         question_understanding, question_base_mask, question_understanding_mask)
@@ -458,7 +458,7 @@ class RNet(BaseModel):
                 answer_start_attention_layer = create_attention_layer("att",
                     question_understanding_unit_dim, answer_modeling_unit_dim,
                     answer_output_attention_dim, answer_output_score_type, 0.0, False, False, False, None,
-                    self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_output_trainable)
+                    self.num_gpus, default_output_gpu_id, True, self.regularizer, random_seed, answer_output_trainable)
                 (answer_start_attention, answer_start_attention_mask, answer_start_output,
                     answer_start_output_mask) = answer_start_attention_layer(answer_base_state,
                         answer_modeling, answer_base_state_mask, answer_modeling_mask)
@@ -476,7 +476,7 @@ class RNet(BaseModel):
                 answer_end_attention_layer = create_attention_layer("att",
                     answer_output_unit_dim, answer_modeling_unit_dim,
                     answer_output_attention_dim, answer_output_score_type, 0.0, False, False, False, None,
-                    self.num_gpus, default_output_gpu_id, True, self.regularizer, answer_output_trainable)
+                    self.num_gpus, default_output_gpu_id, True, self.regularizer, random_seed, answer_output_trainable)
                 (answer_end_attention, answer_end_attention_mask, answer_end_output,
                     answer_end_output_mask) = answer_end_attention_layer(answer_start_state,
                         answer_modeling, answer_start_state_mask, answer_modeling_mask)
