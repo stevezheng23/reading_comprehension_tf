@@ -90,7 +90,7 @@ class BaseModel(object):
                     fusion_layer_list.append(convert_layer)
                 
                 fusion_layer = create_highway_layer(num_layer, output_unit_dim, hidden_activation,
-                    [dropout] * num_layer, num_gpus, default_gpu_id, True, regularizer, trainable)
+                    [dropout] * num_layer, num_gpus, default_gpu_id, True, regularizer, random_seed, trainable)
                 fusion_layer_list.append(fusion_layer)
             elif fusion_type == "conv":
                 fusion_layer = create_convolution_layer("1d", num_layer, input_unit_dim,
