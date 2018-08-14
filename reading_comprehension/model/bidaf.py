@@ -62,6 +62,7 @@ class BiDAF(BaseModel):
             
             if self.hyperparams.train_ema_enable == True:
                 self.ema = tf.train.ExponentialMovingAverage(decay=self.hyperparams.train_ema_decay_rate)
+                self.variable_lookup = {self.ema.average_name(v): v for v in self.variable_list}
             
             if self.mode == "infer":
                 """get infer answer"""
@@ -69,9 +70,6 @@ class BiDAF(BaseModel):
                 self.infer_answer_end_mask = self.answer_end_mask
                 self.infer_answer_start = self.answer_start
                 self.infer_answer_end = self.answer_end
-                
-                if self.hyperparams.train_ema_enable == True:
-                    self.variable_lookup = {self.ema.average_name(v): v for v in self.variable_list}
                 
                 """create infer summary"""
                 self.infer_summary = self._get_infer_summary()
@@ -117,10 +115,10 @@ class BiDAF(BaseModel):
                 
                 if self.hyperparams.train_ema_enable == True:
                     with tf.control_dependencies([self.update_model]):
-                        self.update_op = self.ema.apply(self.variable_list)
+                        self.ema_op = self.ema.apply(self.variable_list)
                     
-                    with tf.control_dependencies([self.update_op]):
-                        self.variable_lookup = {self.ema.average_name(v): self.ema.average(v) for v in self.variable_list}
+                    with tf.control_dependencies([self.ema_op]):
+                        self.update_op = tf.group([tf.assign(v, self.ema.average(v)) for v in self.variable_list])
                 else:
                     self.update_op = self.update_model
                 
