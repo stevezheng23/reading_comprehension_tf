@@ -115,10 +115,8 @@ class RNet(BaseModel):
                 
                 if self.hyperparams.train_ema_enable == True:
                     with tf.control_dependencies([self.update_model]):
-                        self.ema_op = self.ema.apply(self.variable_list)
-                    
-                    with tf.control_dependencies([self.ema_op]):
-                        self.update_op = tf.group([tf.assign(v, self.ema.average(v)) for v in self.variable_list])
+                        self.update_op = self.ema.apply(self.variable_list)
+                        self.variable_lookup = {self.ema.average_name(v): self.ema.average(v) for v in self.variable_list}
                 else:
                     self.update_op = self.update_model
                 
