@@ -447,15 +447,14 @@ class Attention(object):
             input_attention_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True)
             input_attention = tf.matmul(input_attention_weight, input_trg_attention)
-            input_mask = input_src_attention_mask
             
             if self.residual_connect == True and self.is_self == True:
                 output_attention, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
                     lambda: (input_src_data, input_src_mask),
-                    lambda: (input_attention + input_src_data, input_mask * input_src_mask))
+                    lambda: (input_attention + input_src_data, input_src_mask))
             else:
                 output_attention = input_attention
-                output_mask = input_mask
+                output_mask = input_src_mask
         
         return output_attention, output_mask, output_attention_score, output_score_mask
     
@@ -539,15 +538,14 @@ class MaxAttention(object):
             input_attention = tf.matmul(input_attention_weight, input_src_attention)
             src_max_length = tf.shape(input_src_attention)[1]
             input_attention = tf.tile(input_attention, multiples=[1, src_max_length, 1])
-            input_mask = input_src_attention_mask
             
             if self.residual_connect == True and self.is_self == True:
                 output_attention, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
                     lambda: (input_src_data, input_src_mask),
-                    lambda: (input_attention + input_src_data, input_mask * input_src_mask))
+                    lambda: (input_attention + input_src_data, input_src_mask))
             else:
                 output_attention = input_attention
-                output_mask = input_mask
+                output_mask = input_src_mask
         
         return output_attention, output_mask
     
@@ -630,15 +628,14 @@ class CoAttention(object):
             input_attention_t2s_weight = tf.transpose(input_attention_t2s_weight, perm=[0, 2, 1])
             input_attention = tf.matmul(input_attention_t2s_weight, input_src_attention)
             input_attention = tf.matmul(input_attention_s2t_weight, input_attention)
-            input_mask = input_src_attention_mask
             
             if self.residual_connect == True and self.is_self == True:
                 output_attention, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
                     lambda: (input_src_data, input_src_mask),
-                    lambda: (input_attention + input_src_data, input_mask * input_src_mask))
+                    lambda: (input_attention + input_src_data, input_src_mask))
             else:
                 output_attention = input_attention
-                output_mask = input_mask
+                output_mask = input_src_mask
         
         return output_attention, output_mask
     
@@ -727,17 +724,16 @@ class GatedAttention(object):
             input_attention_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True)
             input_attention = tf.matmul(input_attention_weight, input_trg_attention)
-            input_mask = input_src_attention_mask
             
             if self.residual_connect == True and self.is_self == True:
                 output_attention, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
                     lambda: (input_src_data, input_src_mask),
-                    lambda: (self.gate_layer(input_attention) * input_attention + input_src_data, input_mask * input_src_mask))
+                    lambda: (self.gate_layer(input_attention) * input_attention + input_src_data, input_src_mask))
             else:
                 input_attention = tf.concat([input_src_data, input_attention], axis=-1) 
                 gate = self.gate_layer(input_attention)
                 output_attention = gate * input_attention
-                output_mask = input_mask * input_src_mask
+                output_mask = input_src_mask
         
         return output_attention, output_mask
     
@@ -822,10 +818,9 @@ class HeadAttention(object):
             input_attention_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True)
             input_attention = tf.matmul(input_attention_weight, input_value_attention)
-            input_mask = input_src_attention_mask
             
             output_attention = input_attention
-            output_mask = input_mask
+            output_mask = input_src_mask
         
         return output_attention, output_mask
     
@@ -900,14 +895,13 @@ class MultiHeadAttention(object):
                 input_attention_mask_list.append(input_attention_mask)
             
             input_attention = tf.concat(input_attention_list, axis=-1)
-            input_mask = tf.reduce_max(tf.concat(input_attention_mask_list, axis=-1), axis=-1, keep_dims=True)
             
             if self.residual_connect == True and self.is_self == True:
                 output_attention, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
                     lambda: (input_src_data, input_src_mask),
-                    lambda: (input_attention + input_src_data, input_mask * input_src_mask))
+                    lambda: (input_attention + input_src_data, input_src_mask))
             else:
                 output_attention = input_attention
-                output_mask = input_mask
+                output_mask = input_src_mask
         
         return output_attention, output_mask
