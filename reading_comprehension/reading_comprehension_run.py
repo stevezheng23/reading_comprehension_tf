@@ -32,11 +32,12 @@ def extrinsic_eval(logger,
                    batch_size,
                    metric_list,
                    detail_type,
-                   epoch,
                    global_step,
+                   epoch,
+                   ckpt_file,
                    eval_mode):
     data_size = len(input_data)
-    load_model(sess, model, eval_mode)
+    load_model(sess, model, ckpt_file, eval_mode)
     sess.run(model.data_pipeline.initializer,
         feed_dict={model.data_pipeline.input_question_placeholder: question_data,
             model.data_pipeline.input_context_placeholder: context_data,
@@ -114,8 +115,9 @@ def decoding_eval(logger,
                   word_embedding,
                   sample_size,
                   random_seed,
-                  epoch,
                   global_step,
+                  epoch,
+                  ckpt_file,
                   eval_mode):
     np.random.seed(random_seed)
     sample_ids = np.random.randint(0, len(input_data)-1, size=sample_size)
@@ -124,7 +126,7 @@ def decoding_eval(logger,
     sample_context_data = [context_data[sample_id] for sample_id in sample_ids]
     sample_answer_data = [answer_data[sample_id] for sample_id in sample_ids]
     
-    load_model(sess, model, eval_mode)
+    load_model(sess, model, ckpt_file, eval_mode)
     sess.run(model.data_pipeline.initializer,
         feed_dict={model.data_pipeline.input_question_placeholder: sample_question_data,
             model.data_pipeline.input_context_placeholder: sample_context_data,
@@ -220,29 +222,31 @@ def train(logger,
                 if step_in_epoch % hyperparams.train_step_per_ckpt == 0:
                     train_model.model.save(train_sess, global_step, "debug")
                 if step_in_epoch % hyperparams.train_step_per_eval == 0 and enable_eval == True:
+                    ckpt_file = infer_model.model.get_latest_ckpt("debug")
                     extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
                         infer_model, infer_model.input_data, infer_model.input_question,
                         infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
                         hyperparams.train_eval_batch_size, hyperparams.train_eval_metric,
-                        hyperparams.train_eval_detail_type, epoch, global_step, "debug")
+                        hyperparams.train_eval_detail_type, global_step, epoch, ckpt_file, "debug")
                     decoding_eval(eval_logger, infer_summary_writer, infer_sess, infer_model,
                         infer_model.input_data, infer_model.input_question, infer_model.input_context,
                         infer_model.input_answer, infer_model.word_embedding, hyperparams.train_decoding_sample_size,
-                        hyperparams.train_random_seed + global_step, epoch, global_step, "debug")
+                        hyperparams.train_random_seed + global_step, global_step, epoch, ckpt_file, "debug")
             except tf.errors.OutOfRangeError:
                 train_logger.check()
                 train_summary_writer.add_summary(train_result.summary, global_step)
                 train_model.model.save(train_sess, global_step, "epoch")
                 if enable_eval == True:
+                    ckpt_file = infer_model.model.get_latest_ckpt("epoch")
                     extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
                         infer_model, infer_model.input_data, infer_model.input_question,
                         infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
                         hyperparams.train_eval_batch_size, hyperparams.train_eval_metric,
-                        hyperparams.train_eval_detail_type, epoch, global_step, "epoch")
+                        hyperparams.train_eval_detail_type, global_step, epoch, ckpt_file, "epoch")
                     decoding_eval(eval_logger, infer_summary_writer, infer_sess, infer_model,
                         infer_model.input_data, infer_model.input_question, infer_model.input_context,
                         infer_model.input_answer, infer_model.word_embedding, hyperparams.train_decoding_sample_size,
-                        hyperparams.train_random_seed + global_step, epoch, global_step, "epoch")
+                        hyperparams.train_random_seed + global_step, global_step, epoch, ckpt_file, "epoch")
                 break
 
     train_summary_writer.close_writer()
@@ -275,15 +279,17 @@ def evaluate(logger,
     logger.log_print("##### start evaluation #####")
     global_step = 0
     eval_mode = "debug" if enable_debug == True else "epoch"
-    extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
-        infer_model, infer_model.input_data, infer_model.input_question,
-        infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
-        hyperparams.train_eval_batch_size, hyperparams.train_eval_metric,
-        hyperparams.train_eval_detail_type, 0, global_step, eval_mode)
-    decoding_eval(eval_logger, infer_summary_writer, infer_sess,
-        infer_model, infer_model.input_data, infer_model.input_question,
-        infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
-        hyperparams.train_decoding_sample_size, hyperparams.train_random_seed, 0, global_step, eval_mode)
+    ckpt_file_list = infer_model.model.get_ckpt_list(eval_mode)
+    for i, ckpt_file in enumerate(ckpt_file_list):
+        extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
+            infer_model, infer_model.input_data, infer_model.input_question,
+            infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
+            hyperparams.train_eval_batch_size, hyperparams.train_eval_metric,
+            hyperparams.train_eval_detail_type, global_step, i, ckpt_file, eval_mode)
+        decoding_eval(eval_logger, infer_summary_writer, infer_sess,
+            infer_model, infer_model.input_data, infer_model.input_question,
+            infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
+            hyperparams.train_decoding_sample_size, hyperparams.train_random_seed, global_step, i, ckpt_file, eval_mode)
     
     infer_summary_writer.close_writer()
     logger.log_print("##### finish evaluation #####")
