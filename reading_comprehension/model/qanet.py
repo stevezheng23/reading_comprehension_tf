@@ -618,22 +618,54 @@ class QANet(BaseModel):
     
     def restore(self,
                 sess,
-                restore_mode):
+                ckpt_file,
+                ckpt_type):
         """restore qanet model from checkpoint"""
-        if restore_mode == "debug":
-            ckpt_debug_file = tf.train.latest_checkpoint(self.ckpt_debug_dir)
-            if ckpt_debug_file is None:
+        if ckpt_file is None:
+            raise FileNotFoundError("checkpoint file doesn't exist")
+        
+        if ckpt_type == "debug":
+            self.ckpt_debug_saver.restore(sess, ckpt_file)
+        elif ckpt_type == "epoch":
+            self.ckpt_epoch_saver.restore(sess, ckpt_file)
+        else:
+            raise ValueError("unsupported checkpoint type {0}".format(ckpt_type))
+    
+    def get_latest_ckpt(self,
+                        ckpt_type):
+        """get the latest checkpoint for qanet model"""
+        if ckpt_type == "debug":
+            ckpt_file = tf.train.latest_checkpoint(self.ckpt_debug_dir)
+            if ckpt_file is None:
                 raise FileNotFoundError("latest checkpoint file doesn't exist")
             
-            self.ckpt_debug_saver.restore(sess, ckpt_debug_file)
-        elif restore_mode == "epoch":
-            ckpt_epoch_file = tf.train.latest_checkpoint(self.ckpt_epoch_dir)
-            if ckpt_epoch_file is None:
+            return ckpt_file
+        elif ckpt_type == "epoch":
+            ckpt_file = tf.train.latest_checkpoint(self.ckpt_epoch_dir)
+            if ckpt_file is None:
                 raise FileNotFoundError("latest checkpoint file doesn't exist")
-                        
-            self.ckpt_epoch_saver.restore(sess, ckpt_epoch_file)
+            
+            return ckpt_file
         else:
-            raise ValueError("unsupported restore mode {0}".format(restore_mode))
+            raise ValueError("unsupported checkpoint type {0}".format(ckpt_type))
+    
+    def get_ckpt_list(self,
+                      ckpt_type):
+        """get checkpoint list for qanet model"""
+        if ckpt_type == "debug":
+            ckpt_state = tf.train.get_checkpoint_state(self.ckpt_debug_dir)
+            if ckpt_state is None:
+                raise FileNotFoundError("checkpoint files doesn't exist")
+            
+            return ckpt_state.all_model_checkpoint_paths
+        elif ckpt_type == "epoch":
+            ckpt_state = tf.train.get_checkpoint_state(self.ckpt_epoch_dir)
+            if ckpt_state is None:
+                raise FileNotFoundError("checkpoint files doesn't exist")
+            
+            return ckpt_state.all_model_checkpoint_paths
+        else:
+            raise ValueError("unsupported checkpoint type {0}".format(ckpt_type))
 
 class EncoderBlock(object):
     """encoder-block layer"""

@@ -168,6 +168,7 @@ def init_model(sess,
 
 def load_model(sess,
                model,
-               load_mode):
+               ckpt_file,
+               ckpt_type):
     with model.graph.as_default():
-        model.model.restore(sess, load_mode)
+        model.model.restore(sess, ckpt_file, ckpt_type)
