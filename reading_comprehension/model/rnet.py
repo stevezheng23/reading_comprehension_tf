@@ -540,7 +540,7 @@ class RNet(BaseModel):
              sess,
              global_step,
              save_mode):
-        """save checkpoint for qanet model"""
+        """save checkpoint for rnet model"""
         if save_mode == "debug":
             self.ckpt_debug_saver.save(sess, self.ckpt_debug_name, global_step=global_step)
         elif save_mode == "epoch":
@@ -550,22 +550,54 @@ class RNet(BaseModel):
     
     def restore(self,
                 sess,
-                restore_mode):
-        """restore qanet model from checkpoint"""
-        if restore_mode == "debug":
-            ckpt_debug_file = tf.train.latest_checkpoint(self.ckpt_debug_dir)
-            if ckpt_debug_file is None:
+                ckpt_file,
+                ckpt_type):
+        """restore rnet model from checkpoint"""
+        if ckpt_file is None:
+            raise FileNotFoundError("checkpoint file doesn't exist")
+        
+        if ckpt_type == "debug":
+            self.ckpt_debug_saver.restore(sess, ckpt_file)
+        elif ckpt_type == "epoch":
+            self.ckpt_epoch_saver.restore(sess, ckpt_file)
+        else:
+            raise ValueError("unsupported checkpoint type {0}".format(ckpt_type))
+    
+    def get_latest_ckpt(self,
+                        ckpt_type):
+        """get the latest checkpoint for rnet model"""
+        if ckpt_type == "debug":
+            ckpt_file = tf.train.latest_checkpoint(self.ckpt_debug_dir)
+            if ckpt_file is None:
                 raise FileNotFoundError("latest checkpoint file doesn't exist")
             
-            self.ckpt_debug_saver.restore(sess, ckpt_debug_file)
-        elif restore_mode == "epoch":
-            ckpt_epoch_file = tf.train.latest_checkpoint(self.ckpt_epoch_dir)
-            if ckpt_epoch_file is None:
+            return ckpt_file
+        elif ckpt_type == "epoch":
+            ckpt_file = tf.train.latest_checkpoint(self.ckpt_epoch_dir)
+            if ckpt_file is None:
                 raise FileNotFoundError("latest checkpoint file doesn't exist")
-                        
-            self.ckpt_epoch_saver.restore(sess, ckpt_epoch_file)
+            
+            return ckpt_file
         else:
-            raise ValueError("unsupported restore mode {0}".format(restore_mode))
+            raise ValueError("unsupported checkpoint type {0}".format(ckpt_type))
+    
+    def get_ckpt_list(self,
+                      ckpt_type):
+        """get checkpoint list for rnet model"""
+        if ckpt_type == "debug":
+            ckpt_state = tf.train.get_checkpoint_state(self.ckpt_debug_dir)
+            if ckpt_state is None:
+                raise FileNotFoundError("checkpoint files doesn't exist")
+            
+            return ckpt_state.all_model_checkpoint_paths
+        elif ckpt_type == "epoch":
+            ckpt_state = tf.train.get_checkpoint_state(self.ckpt_epoch_dir)
+            if ckpt_state is None:
+                raise FileNotFoundError("checkpoint files doesn't exist")
+            
+            return ckpt_state.all_model_checkpoint_paths
+        else:
+            raise ValueError("unsupported checkpoint type {0}".format(ckpt_type))
 
 class WordFeat(object):
     """word-level featurization layer"""
