@@ -440,7 +440,7 @@ class Attention(object):
             
             input_attention_score = _generate_attention_score(input_src_attention,
                 input_trg_attention, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask)
             output_attention_score = input_attention_score
             output_score_mask = input_attention_mask
             
@@ -529,7 +529,7 @@ class MaxAttention(object):
             
             input_attention_score = _generate_attention_score(input_src_attention,
                 input_trg_attention, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask)
             input_attention_score = tf.reduce_max(input_attention_score, axis=-1, keep_dims=True)
             input_attention_mask = tf.reduce_max(input_attention_mask, axis=-1, keep_dims=True)
             input_attention_weight = softmax_with_mask(input_attention_score,
@@ -620,7 +620,7 @@ class CoAttention(object):
             
             input_attention_score = _generate_attention_score(input_src_attention,
                 input_trg_attention, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask)
             input_attention_s2t_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True)
             input_attention_t2s_weight = softmax_with_mask(input_attention_score,
@@ -719,7 +719,7 @@ class GatedAttention(object):
             
             input_attention_score = _generate_attention_score(input_src_attention,
                 input_trg_attention, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask)
             
             input_attention_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True)
@@ -814,7 +814,7 @@ class HeadAttention(object):
             input_value_attention = _generate_projection_data(input_trg_attention, self.projection_matrix[2])
             input_attention_score = _generate_attention_score(input_query_attention,
                 input_key_attention, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask)
             input_attention_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True)
             input_attention = tf.matmul(input_attention_weight, input_value_attention)
