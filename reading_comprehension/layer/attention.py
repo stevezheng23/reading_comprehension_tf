@@ -530,8 +530,8 @@ class MaxAttention(object):
             input_attention_score = _generate_attention_score(input_src_attention,
                 input_trg_attention, self.attention_matrix, self.score_type)
             input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask)
-            input_attention_score = tf.reduce_max(input_attention_score, axis=-1, keep_dims=True)
-            input_attention_mask = tf.reduce_max(input_attention_mask, axis=-1, keep_dims=True)
+            input_attention_score = tf.reduce_max(input_attention_score, axis=-1, keepdims=True)
+            input_attention_mask = tf.reduce_max(input_attention_mask, axis=-1, keepdims=True)
             input_attention_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=1, keepdims=True)
             input_attention_weight = tf.transpose(input_attention_weight, perm=[0, 2, 1])

@@ -511,7 +511,7 @@ def load_hyperparams(config_file):
         with codecs.getreader("utf-8")(tf.gfile.GFile(config_file, "rb")) as file:
             hyperparams_dict = json.load(file)
             hyperparams = create_default_hyperparams(hyperparams_dict["model_type"])
-            hyperparams.set_from_map(hyperparams_dict)
+            hyperparams.override_from_dict(hyperparams_dict)
             
             return hyperparams
     else:
@@ -593,7 +593,7 @@ def search_hyperparams(hyperparams,
                     hyperparams_search_lookup[key] = generate_search_lookup(hyperparams_search, variables_search_lookup)
                 
                 hyperparams_sample = tf.contrib.training.HParams(hyperparams.to_proto())
-                hyperparams_sample.set_from_map(hyperparams_search_lookup)
+                hyperparams_sample.override_from_dict(hyperparams_search_lookup)
                 hyperparams_group.append(hyperparams_sample)
             
             return hyperparams_group

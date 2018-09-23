@@ -108,7 +108,7 @@ class BaseModel(object):
                              fusion_layer_list):
         """build fusion result for mrc base model"""
         input_fusion = tf.concat(input_data_list, axis=-1)
-        input_fusion_mask = tf.reduce_max(tf.concat(input_mask_list, axis=-1), axis=-1, keep_dims=True)
+        input_fusion_mask = tf.reduce_max(tf.concat(input_mask_list, axis=-1), axis=-1, keepdims=True)
         
         if fusion_layer_list != None:
             for fusion_layer in fusion_layer_list:

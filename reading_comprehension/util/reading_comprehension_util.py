@@ -65,7 +65,7 @@ def softmax_with_mask(input_data,
                       axis=-1,
                       keepdims=True):
     """compute softmax with masking"""    
-    return tf.nn.softmax(input_data + MIN_FLOAT * (1 - input_mask), dim=axis)
+    return tf.nn.softmax(input_data + MIN_FLOAT * (1 - input_mask), axis=axis)
 
 def generate_masked_logit(input_data,
                           input_mask):
