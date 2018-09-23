@@ -532,7 +532,7 @@ class RNet(BaseModel):
         """compute optimization loss"""
         masked_logit = generate_masked_logit(logit, logit_mask)
         onehot_label = generate_onehot_label(label, tf.shape(logit)[1])
-        loss = tf.nn.softmax_cross_entropy_with_logits(logits=masked_logit, labels=onehot_label)
+        loss = tf.nn.softmax_cross_entropy_with_logits_v2(logits=masked_logit, labels=onehot_label)
         
         return loss
     

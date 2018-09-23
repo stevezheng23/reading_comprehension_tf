@@ -144,7 +144,7 @@ class RNN(object):
             
             state_list = [_extract_hidden_state(state, self.cell_type) for state in final_state_recurrent]
             final_state_recurrent = tf.concat(state_list, axis=-1)
-            final_state_mask = tf.squeeze(tf.reduce_max(input_mask, axis=1, keep_dims=True), axis=1)
+            final_state_mask = tf.squeeze(tf.reduce_max(input_mask, axis=1, keepdims=True), axis=1)
             
             if shape_size > 3:
                 output_recurrent_shape = tf.shape(output_recurrent)
@@ -231,7 +231,7 @@ class BiRNN(object):
                 state_list.append(_extract_hidden_state(bwd_state[i], self.cell_type))
 
             final_state_recurrent = tf.concat(state_list, axis=-1)
-            final_state_mask = tf.squeeze(tf.reduce_max(input_mask, axis=1, keep_dims=True), axis=1)
+            final_state_mask = tf.squeeze(tf.reduce_max(input_mask, axis=1, keepdims=True), axis=1)
             
             if shape_size > 3:
                 output_recurrent_shape = tf.shape(output_recurrent)
@@ -273,7 +273,7 @@ class AttentionCellWrapper(RNNCell):
                  scope=None):
         """call attention cell wrapper"""
         query = tf.expand_dims(tf.concat([inputs, state], axis=-1), axis=1)
-        query_mask = tf.reduce_sum(query, axis=-1, keep_dims=True)
+        query_mask = tf.reduce_sum(query, axis=-1, keepdims=True)
         query_mask = tf.cast(tf.greater(query_mask, tf.constant(0, shape=[], dtype=tf.float32)), dtype=tf.float32)
         attention, attention_mask = self._attention_mechanism(query, query_mask)
         inputs = tf.squeeze(attention, axis=1)

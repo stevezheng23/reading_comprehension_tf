@@ -227,7 +227,7 @@ class MultiConv1D(object):
                 input_conv_mask_list.append(input_conv_mask)
             
             output_conv = tf.concat(input_conv_list, axis=-1)
-            output_mask = tf.reduce_max(tf.concat(input_conv_mask_list, axis=-1), axis=-1, keep_dims=True)
+            output_mask = tf.reduce_max(tf.concat(input_conv_mask_list, axis=-1), axis=-1, keepdims=True)
         
         return output_conv, output_mask
 
@@ -296,7 +296,7 @@ class MultiConv2D(object):
                 input_conv_mask_list.append(input_conv_mask)
             
             output_conv = tf.concat(input_conv_list, axis=-1)
-            output_mask = tf.reduce_max(tf.concat(input_conv_mask_list, axis=-1), axis=-1, keep_dims=True)
+            output_mask = tf.reduce_max(tf.concat(input_conv_mask_list, axis=-1), axis=-1, keepdims=True)
         
         return output_conv, output_mask
 
@@ -545,7 +545,7 @@ class MultiSeparableConv1D(object):
                 input_conv_mask_list.append(input_conv_mask)
             
             output_conv = tf.concat(input_conv_list, axis=-1)
-            output_mask = tf.reduce_max(tf.concat(input_conv_mask_list, axis=-1), axis=-1, keep_dims=True)
+            output_mask = tf.reduce_max(tf.concat(input_conv_mask_list, axis=-1), axis=-1, keepdims=True)
         
         return output_conv, output_mask
 
@@ -616,7 +616,7 @@ class MultiSeparableConv2D(object):
                 input_conv_mask_list.append(input_conv_mask)
             
             output_conv = tf.concat(input_conv_list, axis=-1)
-            output_mask = tf.reduce_max(tf.concat(input_conv_mask_list, axis=-1), axis=-1, keep_dims=True)
+            output_mask = tf.reduce_max(tf.concat(input_conv_mask_list, axis=-1), axis=-1, keepdims=True)
         
         return output_conv, output_mask
 
