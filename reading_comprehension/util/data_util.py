@@ -85,42 +85,33 @@ def create_dynamic_pipeline(input_question_word_dataset,
     if word_feat_enable == True:
         input_question_word = batch_data[0]
         input_question_word_mask = tf.cast(tf.not_equal(batch_data[0], word_pad_id), dtype=tf.float32)
-    else:
-        input_question_word = None
-        input_question_word_mask = None
-    
-    if subword_feat_enable == True:
-        input_question_subword = batch_data[1]
-        input_question_subword_mask = tf.cast(tf.not_equal(batch_data[1], subword_pad_id), dtype=tf.float32)
-    else:
-        input_question_subword = None
-        input_question_subword_mask = None
-    
-    if char_feat_enable == True:
-        input_question_char = batch_data[2]
-        input_question_char_mask = tf.cast(tf.not_equal(batch_data[2], char_pad_id), dtype=tf.float32)
-    else:
-        input_question_char = None
-        input_question_char_mask = None
-    
-    if word_feat_enable == True:
         input_context_word = batch_data[3]
         input_context_word_mask = tf.cast(tf.not_equal(batch_data[3], word_pad_id), dtype=tf.float32)
     else:
+        input_question_word = None
+        input_question_word_mask = None
         input_context_word = None
         input_context_word_mask = None
     
     if subword_feat_enable == True:
+        input_question_subword = batch_data[1]
+        input_question_subword_mask = tf.cast(tf.not_equal(batch_data[1], subword_pad_id), dtype=tf.float32)
         input_context_subword = batch_data[4]
         input_context_subword_mask = tf.cast(tf.not_equal(batch_data[4], subword_pad_id), dtype=tf.float32)
     else:
+        input_question_subword = None
+        input_question_subword_mask = None
         input_context_subword = None
         input_context_subword_mask = None
     
     if char_feat_enable == True:
+        input_question_char = batch_data[2]
+        input_question_char_mask = tf.cast(tf.not_equal(batch_data[2], char_pad_id), dtype=tf.float32)
         input_context_char = batch_data[5]
         input_context_char_mask = tf.cast(tf.not_equal(batch_data[5], char_pad_id), dtype=tf.float32)
     else:
+        input_question_char = None
+        input_question_char_mask = None
         input_context_char = None
         input_context_char_mask = None
     
@@ -209,42 +200,33 @@ def create_data_pipeline(input_question_word_dataset,
     if word_feat_enable == True:
         input_question_word = batch_data[0]
         input_question_word_mask = tf.cast(tf.not_equal(batch_data[0], word_pad_id), dtype=tf.float32)
-    else:
-        input_question_word = None
-        input_question_word_mask = None
-    
-    if subword_feat_enable == True:
-        input_question_subword = batch_data[1]
-        input_question_subword_mask = tf.cast(tf.not_equal(batch_data[1], subword_pad_id), dtype=tf.float32)
-    else:
-        input_question_subword = None
-        input_question_subword_mask = None
-    
-    if char_feat_enable == True:
-        input_question_char = batch_data[2]
-        input_question_char_mask = tf.cast(tf.not_equal(batch_data[2], char_pad_id), dtype=tf.float32)
-    else:
-        input_question_char = None
-        input_question_char_mask = None
-    
-    if word_feat_enable == True:
         input_context_word = batch_data[3]
         input_context_word_mask = tf.cast(tf.not_equal(batch_data[3], word_pad_id), dtype=tf.float32)
     else:
+        input_question_word = None
+        input_question_word_mask = None
         input_context_word = None
         input_context_word_mask = None
     
     if subword_feat_enable == True:
+        input_question_subword = batch_data[1]
+        input_question_subword_mask = tf.cast(tf.not_equal(batch_data[1], subword_pad_id), dtype=tf.float32)
         input_context_subword = batch_data[4]
         input_context_subword_mask = tf.cast(tf.not_equal(batch_data[4], subword_pad_id), dtype=tf.float32)
     else:
+        input_question_subword = None
+        input_question_subword_mask = None
         input_context_subword = None
         input_context_subword_mask = None
     
     if char_feat_enable == True:
+        input_question_char = batch_data[2]
+        input_question_char_mask = tf.cast(tf.not_equal(batch_data[2], char_pad_id), dtype=tf.float32)
         input_context_char = batch_data[5]
         input_context_char_mask = tf.cast(tf.not_equal(batch_data[5], char_pad_id), dtype=tf.float32)
     else:
+        input_question_char = None
+        input_question_char_mask = None
         input_context_char = None
         input_context_char_mask = None
     
@@ -298,15 +280,13 @@ def create_src_dataset(input_data_set,
     if subword_feat_enable == True:
         subword_pad_id = subword_vocab_index.lookup(tf.constant(subword_pad))
         subword_dataset = dataset.map(lambda sent: generate_subword_feat(sent, subword_vocab_index,
-            word_max_length, subword_max_length, subword_size, word_sos, word_eos,
-            word_placeholder_enable, subword_pad, subword_pad_id))
+            word_max_length, subword_max_length, subword_size, word_sos, word_eos, word_placeholder_enable, subword_pad))
 
     char_dataset = None
     if char_feat_enable == True:
         char_pad_id = char_vocab_index.lookup(tf.constant(char_pad))
         char_dataset = dataset.map(lambda sent: generate_char_feat(sent, char_vocab_index,
-            word_max_length, char_max_length, word_sos, word_eos,
-            word_placeholder_enable, char_pad, char_pad_id))
+            word_max_length, char_max_length, word_sos, word_eos, word_placeholder_enable, char_pad))
     
     return word_dataset, subword_dataset, char_dataset
 
@@ -347,7 +327,7 @@ def generate_word_feat(sentence,
     else:
         words = tf.concat([words[:word_max_length],
             tf.constant(word_pad, shape=[word_max_length])], axis=0)
-    words = words[:word_max_length]
+    words = tf.reshape(words[:word_max_length], shape=[word_max_length])
     words = word_vocab_index.lookup(words)
     words = tf.expand_dims(words, axis=-1)
     
@@ -361,8 +341,7 @@ def generate_subword_feat(sentence,
                           word_sos,
                           word_eos,
                           word_placeholder_enable,
-                          subword_pad,
-                          subword_pad_id):
+                          subword_pad):
     """generate char feature for sentence"""
     def word_to_subword(word):
         """process subwords for word"""
@@ -373,11 +352,9 @@ def generate_subword_feat(sentence,
                 lambda: tf.concat([subwords, tf.substr([word], i, subword_size)], 0),
                 lambda: subwords)
         
-        subwords = subwords[:subword_max_length]
-        subwords = subword_vocab_index.lookup(subwords)
-        padding = tf.constant([[0, subword_max_length]])
-        subwords = tf.pad(subwords, padding, "CONSTANT", constant_values=subword_pad_id)
-        subwords = subwords[:subword_max_length]
+        subwords = tf.concat([subwords[:subword_max_length],
+            tf.constant(subword_pad, shape=[subword_max_length])], axis=0)
+        subwords = tf.reshape(subwords[:subword_max_length], shape=[subword_max_length])
         
         return subwords
     
@@ -390,11 +367,10 @@ def generate_subword_feat(sentence,
     else:
         words = tf.concat([words[:word_max_length],
             tf.constant(subword_pad, shape=[word_max_length])], axis=0)
-    words = words[:word_max_length]
-    words = tf.dynamic_partition(words, tf.range(word_max_length), word_max_length)
-    words = tf.unstack(words, axis=0)
-    word_subwords = [word_to_subword(tf.squeeze(word, axis=0)) for word in words]
-    word_subwords = tf.stack(word_subwords, axis=0)
+    
+    words = tf.reshape(words[:word_max_length], shape=[word_max_length])
+    word_subwords = tf.map_fn(word_to_subword, words)
+    word_subwords = tf.cast(subword_vocab_index.lookup(word_subwords), dtype=tf.int64)
     
     return word_subwords
 
@@ -405,17 +381,14 @@ def generate_char_feat(sentence,
                        word_sos,
                        word_eos,
                        word_placeholder_enable,
-                       char_pad,
-                       char_pad_id):
+                       char_pad):
     """generate char feature for sentence"""
     def word_to_char(word):
         """process characters for word"""
         chars = tf.string_split([word], delimiter='').values
-        chars = chars[:char_max_length]
-        chars = char_vocab_index.lookup(chars)
-        padding = tf.constant([[0, char_max_length]])
-        chars = tf.pad(chars, padding, "CONSTANT", constant_values=char_pad_id)
-        chars = chars[:char_max_length]
+        chars = tf.concat([chars[:char_max_length],
+            tf.constant(char_pad, shape=[char_max_length])], axis=0)
+        chars = tf.reshape(chars[:char_max_length], shape=[char_max_length])
         
         return chars
     
@@ -428,11 +401,10 @@ def generate_char_feat(sentence,
     else:
         words = tf.concat([words[:word_max_length],
             tf.constant(char_pad, shape=[word_max_length])], axis=0)
-    words = words[:word_max_length]
-    words = tf.dynamic_partition(words, tf.range(word_max_length), word_max_length)
-    words = tf.unstack(words, axis=0)
-    word_chars = [word_to_char(tf.squeeze(word, axis=0)) for word in words]
-    word_chars = tf.stack(word_chars, axis=0)
+    
+    words = tf.reshape(words[:word_max_length], shape=[word_max_length])
+    word_chars = tf.map_fn(word_to_char, words)
+    word_chars = tf.cast(char_vocab_index.lookup(word_chars), dtype=tf.int64)
     
     return word_chars
 
