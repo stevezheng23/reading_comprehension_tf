@@ -696,9 +696,8 @@ class WordFeat(object):
                  input_word_mask):
         """call word-level featurization layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            input_word_embedding = self.embedding_layer(input_word)
-            input_word_feat = tf.squeeze(input_word_embedding, axis=-2)
             input_word_feat_mask = input_word_mask
+            input_word_feat = tf.squeeze(self.embedding_layer(input_word), axis=-2) * input_word_feat_mask
         
         return input_word_feat, input_word_feat_mask
     
@@ -752,8 +751,8 @@ class SubwordFeat(object):
                  input_subword_mask):
         """call subword-level featurization layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            input_subword_embedding = self.embedding_layer(input_subword)
             input_subword_embedding_mask = tf.expand_dims(input_subword_mask, axis=-1)
+            input_subword_embedding = self.embedding_layer(input_subword) * input_subword_embedding_mask
             
             (input_subword_conv,
                 input_subword_conv_mask) = self.conv_layer(input_subword_embedding, input_subword_embedding_mask)
@@ -812,8 +811,8 @@ class CharFeat(object):
                  input_char_mask):
         """call char-level featurization layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            input_char_embedding = self.embedding_layer(input_char)
             input_char_embedding_mask = tf.expand_dims(input_char_mask, axis=-1)
+            input_char_embedding = self.embedding_layer(input_char) * input_char_embedding_mask
             
             (input_char_conv,
                 input_char_conv_mask) = self.conv_layer(input_char_embedding, input_char_embedding_mask)
