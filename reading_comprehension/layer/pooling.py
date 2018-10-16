@@ -23,6 +23,7 @@ class MaxPooling(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             output_mask = tf.squeeze(tf.reduce_max(input_mask, axis=-2, keepdims=True), axis=-2)
             output_pool = tf.reduce_max(input_data * input_mask + MIN_FLOAT * (1 - input_mask), axis=-2) * output_mask
+            output_pool = output_pool + tf.reduce_max(input_data, axis=-2) * (1 - output_mask)
         
         return output_pool, output_mask
 
