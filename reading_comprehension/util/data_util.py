@@ -698,6 +698,9 @@ def prepare_data(logger,
         word_embed_size = len(word_embed_data) if word_embed_data is not None else 0
         logger.log_print("# word embedding table has {0} words".format(word_embed_size))
     
+    word_vocab = None
+    word_vocab_index = None
+    word_vocab_inverted_index = None
     if tf.gfile.Exists(word_vocab_file):
         logger.log_print("# loading word vocab table from {0}".format(word_vocab_file))
         word_vocab = load_vocab_file(word_vocab_file)
