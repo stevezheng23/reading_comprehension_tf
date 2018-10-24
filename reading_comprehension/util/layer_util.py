@@ -16,9 +16,10 @@ __all__ = ["AttentionMechanism", "create_dropout_layer", "create_embedding_layer
 
 def create_dropout_layer(dropout,
                          num_gpus,
-                         default_gpu_id):
+                         default_gpu_id,
+                         random_seed):
     """create dropout layer"""
-    dropout_layer = Dropout(keep_prob=1.0-dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id)
+    dropout_layer = Dropout(rate=dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id, random_seed=random_seed)
     return dropout_layer
 
 def create_embedding_layer(vocab_size,

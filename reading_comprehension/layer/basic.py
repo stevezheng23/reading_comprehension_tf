@@ -9,12 +9,14 @@ __all__ = ["Dropout", "LayerNorm"]
 class Dropout(object):
     """dropout layer"""
     def __init__(self,
-                 keep_prob,
+                 rate,
                  num_gpus=0,
                  default_gpu_id=0,
+                 random_seed=0,
                  scope="dropout"):
         """initialize dropout layer"""
-        self.keep_prob = keep_prob
+        self.rate = rate
+        self.random_seed = random_seed
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
     
@@ -23,8 +25,8 @@ class Dropout(object):
                  input_mask):
         """call dropout layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            if self.keep_prob < 1.0:
-                output_dropout = tf.nn.dropout(input_data, self.keep_prob)
+            if self.rate > 0.0:
+                output_dropout = tf.layers.dropout(input_data, self.rate, seed=self.random_seed)
             else:
                 output_dropout = input_data
             

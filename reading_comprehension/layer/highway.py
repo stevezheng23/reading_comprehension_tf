@@ -6,7 +6,7 @@ from util.reading_comprehension_util import *
 
 from layer.basic import *
 
-__all__ = ["Highway", "ConvHighway", "StackedHighway", "StackedHighway"]
+__all__ = ["Highway", "ConvHighway", "StackedHighway", "StackedConvHighway"]
 
 class Highway(object):
     """highway layer"""
@@ -42,7 +42,8 @@ class Highway(object):
                 kernel_initializer=weight_initializer, bias_initializer=bias_initializer,
                 kernel_regularizer=self.regularizer, bias_regularizer=self.regularizer, trainable=self.trainable)
             
-            self.dropout_layer = Dropout(keep_prob=1.0-self.dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id)
+            self.dropout_layer = Dropout(rate=self.dropout, num_gpus=num_gpus,
+                default_gpu_id=default_gpu_id, random_seed=self.random_seed)
     
     def __call__(self,
                  input_data,
@@ -97,7 +98,8 @@ class ConvHighway(object):
                 kernel_initializer=weight_initializer, bias_initializer=bias_initializer,
                 kernel_regularizer=self.regularizer, bias_regularizer=self.regularizer, trainable=trainable)
             
-            self.dropout_layer = Dropout(keep_prob=1.0-self.dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id)
+            self.dropout_layer = Dropout(rate=self.dropout, num_gpus=num_gpus,
+                default_gpu_id=default_gpu_id, random_seed=self.random_seed)
     
     def __call__(self,
                  input_data,

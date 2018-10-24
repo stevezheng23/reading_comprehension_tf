@@ -45,7 +45,8 @@ class Dense(object):
             
             self.dense_activation = create_activation_function(self.activation)
             
-            self.dropout_layer = Dropout(keep_prob=1.0-self.dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id)
+            self.dropout_layer = Dropout(rate=self.dropout, num_gpus=num_gpus,
+                default_gpu_id=default_gpu_id, random_seed=self.random_seed)
             
             if self.layer_norm == True:
                 self.norm_layer = LayerNorm(layer_dim=self.unit_dim,
@@ -121,7 +122,8 @@ class DoubleDense(object):
             
             self.dense_activation = create_activation_function(self.activation)
             
-            self.dropout_layer = Dropout(keep_prob=1.0-self.dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id)
+            self.dropout_layer = Dropout(rate=self.dropout, num_gpus=num_gpus,
+                default_gpu_id=default_gpu_id, random_seed=self.random_seed)
             
             if self.layer_norm == True:
                 self.norm_layer = LayerNorm(layer_dim=self.unit_dim,

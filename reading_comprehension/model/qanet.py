@@ -700,7 +700,7 @@ class EncoderBlock(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             if self.enable_dropout == True:
-                self.dropout_layer = create_dropout_layer(self.dropout, self.num_gpus, self.default_gpu_id)
+                self.dropout_layer = create_dropout_layer(self.dropout, self.num_gpus, self.default_gpu_id, self.random_seed)
             
             self.position_layer = create_position_layer("sin_pos", self.unit_dim, 0, 10000,
                 self.num_gpus, self.default_gpu_id, self.random_seed, self.trainable)
@@ -839,7 +839,7 @@ class WordFeat(object):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
                 self.embed_dim, self.pretrained, 0, 0, self.random_seed, self.trainable)
             
-            self.dropout_layer = create_dropout_layer(self.dropout, 0, 0)
+            self.dropout_layer = create_dropout_layer(self.dropout, 0, 0, self.random_seed)
     
     def __call__(self,
                  input_word,
@@ -890,7 +890,7 @@ class SubwordFeat(object):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
                 self.embed_dim, False, 0, 0, self.random_seed, self.trainable)
                         
-            self.dropout_layer = create_dropout_layer(self.dropout, 0, 0)
+            self.dropout_layer = create_dropout_layer(self.dropout, 0, 0, self.random_seed)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
@@ -942,7 +942,7 @@ class CharFeat(object):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
                 self.embed_dim, False, 0, 0, self.random_seed, self.trainable)
             
-            self.dropout_layer = create_dropout_layer(self.dropout, 0, 0)
+            self.dropout_layer = create_dropout_layer(self.dropout, 0, 0, self.random_seed)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
