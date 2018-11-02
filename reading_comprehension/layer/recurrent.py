@@ -43,6 +43,8 @@ def _create_single_reccurent_cell(unit_dim,
     elif cell_type == "gru":
         single_cell = tf.contrib.rnn.GRUCell(num_units=unit_dim, activation=recurrent_activation,
             kernel_initializer=weight_initializer, bias_initializer=bias_initializer)
+    elif cell_type == "sru":
+        single_cell = tf.contrib.rnn.SRUCell(num_units=unit_dim, activation=recurrent_activation)
     else:
         raise ValueError("unsupported cell type {0}".format(cell_type))
     
