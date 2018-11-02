@@ -46,7 +46,7 @@ class Conv1D(object):
         self.scope=scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             weight_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
             bias_initializer = create_variable_initializer("zero")
             conv_activation = create_activation_function(self.activation)
@@ -123,7 +123,7 @@ class Conv2D(object):
         self.scope=scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             weight_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
             bias_initializer = create_variable_initializer("zero")
             conv_activation = create_activation_function(self.activation)
@@ -179,7 +179,6 @@ class MultiConv1D(object):
                  residual_connect=False,
                  num_gpus=1,
                  default_gpu_id=0,
-                 enable_multi_gpu=True,
                  regularizer=None,
                  random_seed=0,
                  trainable=True,
@@ -197,18 +196,17 @@ class MultiConv1D(object):
         self.residual_connect = residual_connect
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
-        self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
         self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.conv_layer_list = []
             for i in range(len(self.window_size)):
                 layer_scope = "window_{0}".format(i)
-                layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
+                layer_default_gpu_id = self.default_gpu_id
                 conv_layer = Conv1D(num_channel=self.num_channel, num_filter=self.num_filter,
                     window_size=self.window_size[i], stride_size=self.stride_size, padding_type=self.padding_type,
                     activation=self.activation, dropout=self.dropout, layer_dropout=self.layer_dropout, layer_norm=self.layer_norm,
@@ -248,7 +246,6 @@ class MultiConv2D(object):
                  residual_connect=False,
                  num_gpus=1,
                  default_gpu_id=0,
-                 enable_multi_gpu=True,
                  regularizer=None,
                  random_seed=0,
                  trainable=True,
@@ -266,18 +263,17 @@ class MultiConv2D(object):
         self.residual_connect = residual_connect
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
-        self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
         self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.conv_layer_list = []
             for i in range(len(self.window_size)):
                 layer_scope = "window_{0}".format(i)
-                layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
+                layer_default_gpu_id = self.default_gpu_id
                 conv_layer = Conv2D(num_channel=self.num_channel, num_filter=self.num_filter,
                     window_size=self.window_size[i], stride_size=self.stride_size, padding_type=self.padding_type,
                     activation=self.activation, dropout=self.dropout, layer_dropout=self.layer_dropout, layer_norm=self.layer_norm,
@@ -340,7 +336,7 @@ class SeparableConv1D(object):
         self.scope=scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             weight_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
             bias_initializer = create_variable_initializer("zero")
             self.depthwise_filter = tf.get_variable("depthwise_filter",
@@ -431,7 +427,7 @@ class SeparableConv2D(object):
         self.scope=scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             weight_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
             bias_initializer = create_variable_initializer("zero")
             self.depthwise_filter = tf.get_variable("depthwise_filter",
@@ -498,7 +494,6 @@ class MultiSeparableConv1D(object):
                  residual_connect=False,
                  num_gpus=1,
                  default_gpu_id=0,
-                 enable_multi_gpu=True,
                  regularizer=None,
                  random_seed=0,
                  trainable=True,
@@ -517,18 +512,17 @@ class MultiSeparableConv1D(object):
         self.residual_connect = residual_connect
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
-        self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
         self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.conv_layer_list = []
             for i in range(len(self.window_size)):
                 layer_scope = "window_{0}".format(i)
-                layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
+                layer_default_gpu_id = self.default_gpu_id
                 conv_layer = SeparableConv1D(num_channel=self.num_channel, num_filter=self.num_filter, num_multiplier=self.num_multiplier,
                     window_size=self.window_size[i], stride_size=self.stride_size, padding_type=self.padding_type,
                     activation=self.activation, dropout=self.dropout, layer_dropout=self.layer_dropout, layer_norm=self.layer_norm,
@@ -569,7 +563,6 @@ class MultiSeparableConv2D(object):
                  residual_connect=False,
                  num_gpus=1,
                  default_gpu_id=0,
-                 enable_multi_gpu=True,
                  regularizer=None,
                  random_seed=0,
                  trainable=True,
@@ -588,18 +581,17 @@ class MultiSeparableConv2D(object):
         self.residual_connect = residual_connect
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
-        self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
         self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.conv_layer_list = []
             for i in range(len(self.window_size)):
                 layer_scope = "window_{0}".format(i)
-                layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
+                layer_default_gpu_id = self.default_gpu_id
                 conv_layer = SeparableConv2D(num_channel=self.num_channel, num_filter=self.num_filter, num_multiplier=self.num_multiplier,
                     window_size=self.window_size[i], stride_size=self.stride_size, padding_type=self.padding_type,
                     activation=self.activation, dropout=self.dropout, layer_dropout=self.layer_dropout, layer_norm=self.layer_norm,
@@ -641,7 +633,6 @@ class StackedConv(object):
                  residual_connect=False,
                  num_gpus=1,
                  default_gpu_id=0,
-                 enable_multi_gpu=True,
                  regularizer=None,
                  random_seed=0,
                  trainable=True,
@@ -661,18 +652,17 @@ class StackedConv(object):
         self.residual_connect = residual_connect
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
-        self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
         self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.conv_layer_list = []
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
-                layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
+                layer_default_gpu_id = self.default_gpu_id
                 sublayer_dropout = self.dropout[i] if self.dropout != None else 0.0
                 sublayer_layer_dropout = self.layer_dropout[i] if self.layer_dropout != None else 0.0
                 conv_layer = self.layer_creator(num_channel=self.num_channel, num_filter=self.num_filter,
@@ -715,7 +705,6 @@ class StackedMultiConv(object):
                  residual_connect=False,
                  num_gpus=1,
                  default_gpu_id=0,
-                 enable_multi_gpu=True,
                  regularizer=None,
                  random_seed=0,
                  trainable=True,
@@ -735,25 +724,25 @@ class StackedMultiConv(object):
         self.residual_connect = residual_connect
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
-        self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
         self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.conv_layer_list = []
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
-                layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
+                layer_default_gpu_id = self.default_gpu_id
                 sublayer_dropout = self.dropout[i] if self.dropout != None else 0.0
                 sublayer_layer_dropout = self.layer_dropout[i] if self.layer_dropout != None else 0.0
-                conv_layer = self.layer_creator(num_channel=self.num_channel, num_filter=self.num_filter, window_size=self.window_size,
-                    stride_size=self.stride_size, padding_type=self.padding_type, activation=self.activation, dropout=sublayer_dropout,
-                    layer_dropout=sublayer_layer_dropout, layer_norm=self.layer_norm, residual_connect=self.residual_connect,
-                    num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, enable_multi_gpu=self.enable_multi_gpu,
-                    regularizer=self.regularizer, random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
+                conv_layer = self.layer_creator(num_channel=self.num_channel, num_filter=self.num_filter,
+                    window_size=self.window_size, stride_size=self.stride_size, padding_type=self.padding_type,
+                    activation=self.activation, dropout=sublayer_dropout, layer_dropout=sublayer_layer_dropout,
+                    layer_norm=self.layer_norm, residual_connect=self.residual_connect, num_gpus=self.num_gpus,
+                    default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer, random_seed=self.random_seed,
+                    trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     
     def __call__(self,
@@ -790,7 +779,6 @@ class StackedSeparableConv(object):
                  residual_connect=False,
                  num_gpus=1,
                  default_gpu_id=0,
-                 enable_multi_gpu=True,
                  regularizer=None,
                  random_seed=0,
                  trainable=True,
@@ -811,18 +799,17 @@ class StackedSeparableConv(object):
         self.residual_connect = residual_connect
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
-        self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
         self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.conv_layer_list = []
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
-                layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
+                layer_default_gpu_id = self.default_gpu_id
                 sublayer_dropout = self.dropout[i] if self.dropout != None else 0.0
                 sublayer_layer_dropout = self.layer_dropout[i] if self.layer_dropout != None else 0.0
                 conv_layer = self.layer_creator(num_channel=self.num_channel, num_filter=self.num_filter,
@@ -867,7 +854,6 @@ class StackedMultiSeparableConv(object):
                  residual_connect=False,
                  num_gpus=1,
                  default_gpu_id=0,
-                 enable_multi_gpu=True,
                  regularizer=None,
                  random_seed=0,
                  trainable=True,
@@ -888,26 +874,25 @@ class StackedMultiSeparableConv(object):
         self.residual_connect = residual_connect
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
-        self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
         self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.conv_layer_list = []
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
-                layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
+                layer_default_gpu_id = self.default_gpu_id
                 sublayer_dropout = self.dropout[i] if self.dropout != None else 0.0
                 sublayer_layer_dropout = self.layer_dropout[i] if self.layer_dropout != None else 0.0
                 conv_layer = self.layer_creator(num_channel=self.num_channel, num_filter=self.num_filter,
                     num_multiplier=self.num_multiplier, window_size=self.window_size, stride_size=self.stride_size,
                     padding_type=self.padding_type, activation=self.activation, dropout=sublayer_dropout,
                     layer_dropout=sublayer_layer_dropout, layer_norm=self.layer_norm, residual_connect=self.residual_connect,
-                    num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, enable_multi_gpu=self.enable_multi_gpu,
-                    regularizer=self.regularizer, random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
+                    num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer,
+                    random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     
     def __call__(self,
