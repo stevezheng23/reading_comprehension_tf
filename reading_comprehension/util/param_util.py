@@ -179,7 +179,7 @@ def create_default_hyperparams(config_type):
             model_output_answer_end_cell_type="lstm",
             model_output_answer_end_hidden_activation="tanh",
             model_output_answer_end_dropout=0.2,
-            model_output_answer_end_forget_bias=False,
+            model_output_answer_end_forget_bias=1.0,
             model_output_answer_end_residual_connect=False,
             model_output_answer_end_trainable=True,
             device_num_gpus=1,
