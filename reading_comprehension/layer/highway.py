@@ -30,7 +30,7 @@ class Highway(object):
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             weight_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
             bias_initializer = create_variable_initializer("zero")
             transform_activation = create_activation_function(self.activation)
@@ -83,7 +83,7 @@ class ConvHighway(object):
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             weight_initializer = create_variable_initializer("glorot_uniform", self.m_seed)
             bias_initializer = create_variable_initializer("zero")
             transform_activation = create_activation_function(self.activation)
@@ -124,7 +124,6 @@ class StackedHighway(object):
                  dropout,
                  num_gpus=1,
                  default_gpu_id=0,
-                 enable_multi_gpu=True,
                  regularizer=None,
                  random_seed=0,
                  trainable=True,
@@ -136,18 +135,17 @@ class StackedHighway(object):
         self.dropout = dropout
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
-        self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
         self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.highway_layer_list = []
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
-                layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
+                layer_default_gpu_id = self.default_gpu_id
                 sublayer_dropout = self.dropout[i] if self.dropout != None else 0.0
                 highway_layer = Highway(unit_dim=self.unit_dim, activation=self.activation,
                     dropout=sublayer_dropout, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
@@ -180,7 +178,6 @@ class StackedConvHighway(object):
                  dropout,
                  num_gpus=1,
                  default_gpu_id=0,
-                 enable_multi_gpu=True,
                  regularizer=None,
                  random_seed=0,
                  trainable=True,
@@ -193,18 +190,17 @@ class StackedConvHighway(object):
         self.dropout = dropout
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
-        self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
         self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.highway_layer_list = []
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
-                layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
+                layer_default_gpu_id = self.default_gpu_id
                 sublayer_dropout = self.dropout[i] if self.dropout != None else 0.0
                 highway_layer = ConvHighway(num_filter=self.num_filter, window_size=self.window_size,
                     activation=self.activation, dropout=sublayer_dropout, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, 

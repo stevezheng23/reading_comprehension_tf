@@ -405,7 +405,7 @@ class Attention(object):
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim, self.trg_dim,
                     self.att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable)
@@ -494,7 +494,7 @@ class MaxAttention(object):
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim, self.trg_dim,
                     self.att_dim, self.regularizer, self.score_type, self.random_seed, self.trainable)
@@ -585,7 +585,7 @@ class CoAttention(object):
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim, self.trg_dim,
                     self.att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable)
@@ -675,7 +675,7 @@ class GatedAttention(object):
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim, self.trg_dim,
                     self.att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable)
@@ -769,7 +769,7 @@ class HeadAttention(object):
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if external_matrix == None:
                 (q_att_dim, k_att_dim, v_att_dim) = tuple(self.att_dim)
                 self.projection_matrix = [
@@ -844,7 +844,6 @@ class MultiHeadAttention(object):
                  external_matrix=None,
                  num_gpus=1,
                  default_gpu_id=0,
-                 enable_multi_gpu=True,
                  regularizer=None,
                  random_seed=0,
                  trainable=True,
@@ -861,18 +860,17 @@ class MultiHeadAttention(object):
         self.external_matrix=external_matrix
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
-        self.enable_multi_gpu = enable_multi_gpu
         self.regularizer = regularizer
         self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device('/CPU:0'):
+        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             self.attention_layer_list = []
             for i in range(len(self.att_dim)):
                 layer_scope = "head_{0}".format(i)
-                layer_default_gpu_id = self.default_gpu_id + i if self.enable_multi_gpu == True else self.default_gpu_id
+                layer_default_gpu_id = self.default_gpu_id
                 attention_layer = HeadAttention(src_dim=self.src_dim, trg_dim=self.trg_dim,
                     att_dim=self.att_dim[i], score_type=self.score_type, layer_norm=self.layer_norm, is_self=self.is_self,
                     external_matrix=self.external_matrix, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
