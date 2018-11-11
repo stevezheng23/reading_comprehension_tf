@@ -157,6 +157,7 @@ def create_dense_layer(dense_type,
                        layer_dropout,
                        layer_norm,
                        residual_connect,
+                       use_bias,
                        num_gpus,
                        default_gpu_id,
                        enable_multi_gpu,
@@ -168,12 +169,12 @@ def create_dense_layer(dense_type,
     if dense_type == "single":
         dense_layer = StackedDense(layer_creator=Dense, num_layer=num_layer, unit_dim=unit_dim,
             dropout=dropout, layer_dropout=layer_dropout, layer_norm=layer_norm, activation=activation,
-            residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
+            residual_connect=residual_connect, use_bias=use_bias, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
             enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     elif dense_type == "double":
         dense_layer = StackedDoubleDense(layer_creator=DoubleDense, num_layer=num_layer, unit_dim=unit_dim,
             inner_scale=inner_scale, activation=activation, dropout=dropout, layer_dropout=layer_dropout,
-            layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
+            layer_norm=layer_norm, residual_connect=residual_connect, use_bias=use_bias, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
             enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported dense type {0}".format(dense_type))
