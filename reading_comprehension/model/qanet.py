@@ -531,8 +531,9 @@ class QANet(BaseModel):
                 (answer_start,
                     answer_start_mask) = self._build_fusion_result(answer_start_list, answer_start_mask_list, None)
                 
-                answer_ouput_start_layer = create_dense_layer("single", 1, 1, 1, "", [answer_start_dropout], None,
-                    False, False, self.num_gpus, default_output_gpu_id, True, self.regularizer, random_seed, answer_start_trainable)
+                answer_ouput_start_layer = create_dense_layer("single", 1, 1, 1, "",
+                    [answer_start_dropout], None, False, False, False, self.num_gpus, default_output_gpu_id,
+                    True, self.regularizer, random_seed, answer_start_trainable)
                 answer_output_start, answer_output_start_mask = answer_ouput_start_layer(answer_start, answer_start_mask)
                 answer_output_list.append(answer_output_start)
                 answer_output_mask_list.append(answer_output_start_mask)
@@ -543,8 +544,9 @@ class QANet(BaseModel):
                 (answer_end,
                     answer_end_mask) = self._build_fusion_result(answer_end_list, answer_end_mask_list, None)
                 
-                answer_output_end_layer = create_dense_layer("single", 1, 1, 1, "", [answer_end_dropout], None,
-                    False, False, self.num_gpus, default_output_gpu_id, True, self.regularizer, random_seed, answer_end_trainable)
+                answer_output_end_layer = create_dense_layer("single", 1, 1, 1, "",
+                    [answer_end_dropout], None, False, False, self.num_gpus, default_output_gpu_id,
+                    True, self.regularizer, random_seed, answer_end_trainable)
                 answer_output_end, answer_output_end_mask = answer_output_end_layer(answer_end, answer_end_mask)
                 answer_output_list.append(answer_output_end)
                 answer_output_mask_list.append(answer_output_end_mask)
@@ -726,8 +728,8 @@ class EncoderBlock(object):
                 None, self.num_gpus, self.default_gpu_id, False, self.regularizer, self.random_seed, self.trainable)
             
             dense_layer_dropout = [self.layer_dropout * float(self.num_conv + 1 + self.sublayer_skip) / self.num_sublayer]
-            self.dense_layer = create_dense_layer("double", 1, self.unit_dim, 4, self.activation, [self.dropout],
-                dense_layer_dropout, True, True, num_gpus, default_gpu_id, False, self.regularizer, self.random_seed, self.trainable)
+            self.dense_layer = create_dense_layer("double", 1, self.unit_dim, 4, self.activation, [self.dropout], dense_layer_dropout,
+                True, True, True, num_gpus, default_gpu_id, False, self.regularizer, self.random_seed, self.trainable)
     
     def __call__(self,
                  input_data,
