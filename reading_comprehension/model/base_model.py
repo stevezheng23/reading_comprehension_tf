@@ -76,18 +76,17 @@ class BaseModel(object):
                 fusion_layer_list = []
                 if input_unit_dim != output_unit_dim:
                     convert_layer = create_dense_layer("single", 1, output_unit_dim, 1, "", [0.0], None,
-                        False, False, False, num_gpus, default_gpu_id, True, regularizer, random_seed, trainable)
+                        False, False, True, num_gpus, default_gpu_id, True, regularizer, random_seed, trainable)
                     fusion_layer_list.append(convert_layer)
             elif fusion_type == "dense":
-                fusion_layer = create_dense_layer("single", num_layer, output_unit_dim, 1,
-                    hidden_activation, [dropout] * num_layer, None, False, False, False,
-                    num_gpus, default_gpu_id, True, regularizer, random_seed, trainable)
+                fusion_layer = create_dense_layer("single", num_layer, output_unit_dim, 1, hidden_activation, [dropout] * num_layer, None,
+                    False, False, True, num_gpus, default_gpu_id, True, regularizer, random_seed, trainable)
                 fusion_layer_list = [fusion_layer]
             elif fusion_type == "highway":
                 fusion_layer_list = []
                 if input_unit_dim != output_unit_dim:
                     convert_layer = create_dense_layer("single", 1, output_unit_dim, 1, "", [0.0], None,
-                        False, False, False, num_gpus, default_gpu_id, True, regularizer, random_seed, trainable)
+                        False, False, True, num_gpus, default_gpu_id, True, regularizer, random_seed, trainable)
                     fusion_layer_list.append(convert_layer)
                 
                 fusion_layer = create_highway_layer(num_layer, output_unit_dim, hidden_activation,
