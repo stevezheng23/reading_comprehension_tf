@@ -47,14 +47,26 @@ def create_weight_regularizer(regularizer_type,
 
 def create_activation_function(activation):
     """create activation function"""
-    if activation == "tanh":
-        activation_function = tf.nn.tanh
-    elif activation == "relu":
+    if activation == "relu":
         activation_function = tf.nn.relu
+    elif activation == "relu6":
+        activation_function = tf.nn.relu6
     elif activation == "leaky_relu":
         activation_function = tf.nn.leaky_relu
+    elif activation == "elu":
+        activation_function = tf.nn.elu
+    elif activation == "crelu":
+        activation_function = tf.nn.crelu
+    elif activation == "selu":
+        activation_function = tf.nn.selu
+    elif activation == "gelu":
+        activation_function = gelu
+    elif activation == "tanh":
+        activation_function = tf.nn.tanh
     elif activation == "sigmoid":
         activation_function = tf.nn.sigmoid
+    elif activation == "softplus":
+        activation_function = tf.nn.softplus
     else:
         activation_function = None
     
@@ -76,3 +88,8 @@ def generate_onehot_label(input_data,
                           input_depth):
     """generate one-hot label"""
     return tf.one_hot(input_data, depth=input_depth, on_value=1.0, off_value=0.0, dtype=tf.float32)
+
+def gelu(input_tensor):
+    """Gaussian Error Linear Unit"""
+    cdf = 0.5 * (1.0 + tf.erf(input_tensor / tf.sqrt(2.0)))
+    return input_tensor * cdf
