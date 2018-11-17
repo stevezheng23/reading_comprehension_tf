@@ -298,7 +298,7 @@ class BiDAF(BaseModel):
                 question_understanding_layer = create_recurrent_layer("bi", question_understanding_num_layer,
                     question_understanding_unit_dim, question_understanding_cell_type, question_understanding_hidden_activation,
                     question_understanding_dropout, question_understanding_forget_bias, question_understanding_residual_connect,
-                    None, self.num_gpus, default_understanding_gpu_id, True, random_seed, question_understanding_trainable)
+                    None, self.num_gpus, default_understanding_gpu_id, random_seed, question_understanding_trainable)
                 
                 (question_understanding, question_understanding_mask,
                     _, _) = question_understanding_layer(question_feat, question_feat_mask)
@@ -311,7 +311,7 @@ class BiDAF(BaseModel):
                     context_understanding_layer = create_recurrent_layer("bi", context_understanding_num_layer,
                         context_understanding_unit_dim, context_understanding_cell_type, context_understanding_hidden_activation,
                         context_understanding_dropout, context_understanding_forget_bias, context_understanding_residual_connect,
-                        None, self.num_gpus, default_understanding_gpu_id, True, random_seed, context_understanding_trainable)
+                        None, self.num_gpus, default_understanding_gpu_id, random_seed, context_understanding_trainable)
                 
                 (context_understanding, context_understanding_mask,
                     _, _) = context_understanding_layer(context_feat, context_feat_mask)
@@ -358,7 +358,7 @@ class BiDAF(BaseModel):
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         context2question_interaction_attention_dim, context2question_interaction_score_type, 0.0,
                         False, False, False, attention_matrix, self.num_gpus, default_interaction_gpu_id,
-                        True, self.regularizer, random_seed, context2question_interaction_trainable)
+                        self.regularizer, random_seed, context2question_interaction_trainable)
                     
                     if enable_interaction_sharing == True:
                         attention_matrix = context2question_attention_layer.get_attention_matrix()
@@ -386,7 +386,7 @@ class BiDAF(BaseModel):
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         question2context_interaction_attention_dim, question2context_interaction_score_type, 0.0,
                         False, False, False, attention_matrix, self.num_gpus, default_interaction_gpu_id,
-                        True, self.regularizer, random_seed, question2context_interaction_trainable)
+                        self.regularizer, random_seed, question2context_interaction_trainable)
                     
                     (question2context_interaction,
                         question2context_interaction_mask) = question2context_attention_layer(context_understanding,
@@ -441,7 +441,7 @@ class BiDAF(BaseModel):
             answer_modeling_sequence_layer = create_recurrent_layer("bi", answer_modeling_num_layer,
                 answer_modeling_unit_dim, answer_modeling_cell_type, answer_modeling_hidden_activation,
                 answer_modeling_dropout, answer_modeling_forget_bias, answer_modeling_residual_connect,
-                None, self.num_gpus, default_modeling_gpu_id, True, random_seed, answer_modeling_trainable)
+                None, self.num_gpus, default_modeling_gpu_id, random_seed, answer_modeling_trainable)
             
             (answer_modeling_sequence, answer_modeling_sequence_mask,
                 _, _) = answer_modeling_sequence_layer(answer_interaction, answer_interaction_mask)
@@ -454,7 +454,7 @@ class BiDAF(BaseModel):
                 answer_modeling_attention_layer = create_attention_layer("att",
                     answer_modeling_sequence_unit_dim, answer_modeling_sequence_unit_dim,
                     answer_modeling_attention_dim, answer_modeling_score_type, 0.0, False, False, True, None,
-                    self.num_gpus, default_modeling_gpu_id, True, self.regularizer, random_seed, answer_modeling_trainable)
+                    self.num_gpus, default_modeling_gpu_id, self.regularizer, random_seed, answer_modeling_trainable)
 
                 (answer_modeling_attention, answer_modeling_attention_mask,
                     _, _) = answer_modeling_attention_layer(answer_modeling_sequence,
@@ -512,7 +512,7 @@ class BiDAF(BaseModel):
                 answer_start_layer = create_recurrent_layer("bi", answer_start_num_layer,
                     answer_start_unit_dim, answer_start_cell_type, answer_start_hidden_activation,
                     answer_start_dropout, answer_start_forget_bias, answer_start_residual_connect,
-                    None, self.num_gpus, default_output_gpu_id, True, random_seed, answer_start_trainable)
+                    None, self.num_gpus, default_output_gpu_id, random_seed, answer_start_trainable)
                 answer_start, answer_start_mask, _, _ = answer_start_layer(answer_modeling, answer_modeling_mask)
                 
                 (answer_start_fusion,
@@ -521,7 +521,7 @@ class BiDAF(BaseModel):
                 
                 answer_start_output_layer = create_dense_layer("single", 1, 1, 1, "",
                     [answer_start_dropout], None, False, False, False, self.num_gpus, default_output_gpu_id,
-                    True, self.regularizer, random_seed, answer_start_trainable)
+                    self.regularizer, random_seed, answer_start_trainable)
                 (answer_start_output,
                     answer_start_output_mask) = answer_start_output_layer(answer_start_fusion,
                         answer_start_fusion_mask)
@@ -538,7 +538,7 @@ class BiDAF(BaseModel):
                 answer_end_layer = create_recurrent_layer("bi", answer_end_num_layer,
                     answer_end_unit_dim, answer_end_cell_type, answer_end_hidden_activation,
                     answer_end_dropout, answer_end_forget_bias, answer_end_residual_connect,
-                    None, self.num_gpus, default_output_gpu_id, True, random_seed, answer_end_trainable)
+                    None, self.num_gpus, default_output_gpu_id, random_seed, answer_end_trainable)
                 answer_end, answer_end_mask, _, _ = answer_end_layer(answer_intermediate, answer_intermediate_mask)
                 
                 (answer_end_fusion,
@@ -547,7 +547,7 @@ class BiDAF(BaseModel):
                 
                 answer_end_output_layer = create_dense_layer("single", 1, 1, 1, "",
                     [answer_end_dropout], None, False, False, False, self.num_gpus, default_output_gpu_id,
-                    True, self.regularizer, random_seed, answer_end_trainable)
+                    self.regularizer, random_seed, answer_end_trainable)
                 (answer_end_output,
                     answer_end_output_mask) = answer_end_output_layer(answer_end_fusion,
                         answer_end_fusion_mask)
@@ -744,7 +744,7 @@ class SubwordFeat(object):
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
-                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.random_seed, self.trainable)
+                False, False, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
@@ -804,7 +804,7 @@ class CharFeat(object):
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
-                False, False, self.num_gpus, self.default_gpu_id, True, self.regularizer, self.random_seed, self.trainable)
+                False, False, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
