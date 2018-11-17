@@ -75,7 +75,6 @@ def create_convolution_layer(conv_type,
                              residual_connect,
                              num_gpus,
                              default_gpu_id,
-                             enable_multi_gpu,
                              regularizer,
                              random_seed,
                              trainable):
@@ -86,49 +85,49 @@ def create_convolution_layer(conv_type,
             num_filter=num_filter, window_size=window_size, stride_size=stride_size, padding_type=padding_type,
             activation=activation, dropout=dropout, layer_dropout=layer_dropout, layer_norm=layer_norm,
             residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
+            regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     elif conv_type == "2d":
         conv_layer = StackedConv(layer_creator=Conv2D, num_layer=num_layer, num_channel=num_channel,
             num_filter=num_filter, window_size=window_size, stride_size=stride_size, padding_type=padding_type,
             activation=activation, dropout=dropout, layer_dropout=layer_dropout, layer_norm=layer_norm,
             residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
+            regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     elif conv_type == "multi_1d":
         conv_layer = StackedMultiConv(layer_creator=MultiConv1D, num_layer=num_layer, num_channel=num_channel,
             num_filter=num_filter, window_size=window_size, stride_size=stride_size, padding_type=padding_type,
             activation=activation, dropout=dropout, layer_dropout=layer_dropout, layer_norm=layer_norm,
             residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
+            regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     elif conv_type == "multi_2d":
         conv_layer = StackedMultiConv(layer_creator=MultiConv2D, num_layer=num_layer, num_channel=num_channel,
             num_filter=num_filter, window_size=window_size, stride_size=stride_size, padding_type=padding_type,
             activation=activation, dropout=dropout, layer_dropout=layer_dropout, layer_norm=layer_norm,
             residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
+            regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     elif conv_type == "sep_1d":
         conv_layer = StackedSeparableConv(layer_creator=SeparableConv1D, num_layer=num_layer,
             num_channel=num_channel, num_filter=num_filter, num_multiplier=num_multiplier, window_size=window_size, 
             stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout, layer_dropout=layer_dropout, 
             layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
+            regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     elif conv_type == "sep_2d":
         conv_layer = StackedSeparableConv(layer_creator=SeparableConv2D, num_layer=num_layer,
             num_channel=num_channel, num_filter=num_filter, num_multiplier=num_multiplier, window_size=window_size, 
             stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout, layer_dropout=layer_dropout, 
             layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
+            regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     elif conv_type == "multi_sep_1d":
         conv_layer = StackedMultiSeparableConv(layer_creator=MultiSeparableConv1D, num_layer=num_layer,
             num_channel=num_channel, num_filter=num_filter, num_multiplier=num_multiplier, window_size=window_size, 
             stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout, layer_dropout=layer_dropout, 
             layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
+            regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     elif conv_type == "multi_sep_2d":
         conv_layer = StackedMultiSeparableConv(layer_creator=MultiSeparableConv2D, num_layer=num_layer,
             num_channel=num_channel, num_filter=num_filter, num_multiplier=num_multiplier, window_size=window_size, 
             stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout, layer_dropout=layer_dropout, 
             layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
+            regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported convolution type {0}".format(conv_type))
     
@@ -160,7 +159,6 @@ def create_dense_layer(dense_type,
                        use_bias,
                        num_gpus,
                        default_gpu_id,
-                       enable_multi_gpu,
                        regularizer,
                        random_seed,
                        trainable):
@@ -170,12 +168,12 @@ def create_dense_layer(dense_type,
         dense_layer = StackedDense(layer_creator=Dense, num_layer=num_layer, unit_dim=unit_dim,
             dropout=dropout, layer_dropout=layer_dropout, layer_norm=layer_norm, activation=activation,
             residual_connect=residual_connect, use_bias=use_bias, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
+            regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     elif dense_type == "double":
         dense_layer = StackedDoubleDense(layer_creator=DoubleDense, num_layer=num_layer, unit_dim=unit_dim,
             inner_scale=inner_scale, activation=activation, dropout=dropout, layer_dropout=layer_dropout,
             layer_norm=layer_norm, residual_connect=residual_connect, use_bias=use_bias, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
+            regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported dense type {0}".format(dense_type))
     
@@ -187,13 +185,12 @@ def create_highway_layer(num_layer,
                          dropout,
                          num_gpus,
                          default_gpu_id,
-                         enable_multi_gpu,
                          regularizer,
                          random_seed,
                          trainable):
     """create highway layer"""
-    highway_layer = StackedHighway(num_layer=num_layer, unit_dim=unit_dim, activation=activation,
-        dropout=dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id, enable_multi_gpu=enable_multi_gpu,
+    highway_layer = StackedHighway(num_layer=num_layer, unit_dim=unit_dim,
+        activation=activation, dropout=dropout, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
         regularizer=regularizer, random_seed=random_seed, trainable=trainable)
     
     return highway_layer
@@ -209,7 +206,6 @@ def create_recurrent_layer(recurrent_type,
                            attention_mechanism,
                            num_gpus,
                            default_gpu_id,
-                           enable_multi_gpu,
                            random_seed,
                            trainable):
     """create recurrent layer"""
@@ -218,12 +214,12 @@ def create_recurrent_layer(recurrent_type,
         recurrent_layer = RNN(num_layer=num_layer, unit_dim=unit_dim, cell_type=cell_type,
             activation=activation, dropout=dropout, forget_bias=forget_bias, residual_connect=residual_connect,
             attention_mechanism=attention_mechanism, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            enable_multi_gpu=enable_multi_gpu, random_seed=random_seed, trainable=trainable, scope=scope)
+            random_seed=random_seed, trainable=trainable, scope=scope)
     elif recurrent_type == "bi":
         recurrent_layer = BiRNN(num_layer=num_layer, unit_dim=unit_dim, cell_type=cell_type,
             activation=activation, dropout=dropout, forget_bias=forget_bias, residual_connect=residual_connect,
             attention_mechanism=attention_mechanism, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            enable_multi_gpu=enable_multi_gpu, random_seed=random_seed, trainable=trainable, scope=scope)
+            random_seed=random_seed, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported recurrent type {0}".format(recurrent_type))
     
@@ -241,7 +237,6 @@ def create_attention_layer(attention_type,
                            external_matrix,
                            num_gpus,
                            default_gpu_id,
-                           enable_multi_gpu,
                            regularizer,
                            random_seed,
                            trainable):
@@ -271,7 +266,7 @@ def create_attention_layer(attention_type,
         attention_layer = MultiHeadAttention(src_dim=src_dim, trg_dim=trg_dim, att_dim=att_dim,
             score_type=score_type, layer_dropout=layer_dropout, layer_norm=layer_norm, residual_connect=residual_connect,
             is_self=is_self, external_matrix=external_matrix, num_gpus=num_gpus, default_gpu_id=default_gpu_id, 
-            enable_multi_gpu=enable_multi_gpu, regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
+            regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported attention type {0}".format(attention_type))
     
@@ -302,7 +297,7 @@ class AttentionMechanism(object):
         
         self.attention_layer = create_attention_layer(attention_type, src_dim, trg_dim, att_dim,
             score_type, layer_dropout, layer_norm, residual_connect, is_self, external_matrix,
-            num_gpus, default_gpu_id, False, regularizer, random_seed, trainable)
+            num_gpus, default_gpu_id, regularizer, random_seed, trainable)
     
     def __call__(self,
                  input_data,
