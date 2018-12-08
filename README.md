@@ -1,2 +1,2 @@
 # Machine Reading Comprehension
-Machine Reading Comprehension model in Tensorflow
+Machine Reading Comprehension in Tensorflow
