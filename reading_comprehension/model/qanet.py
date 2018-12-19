@@ -50,10 +50,10 @@ class QANet(BaseModel):
                 answer_end_output_mask) = self._build_graph(question_word, question_word_mask,
                     question_subword, question_subword_mask, question_char, question_char_mask,
                     context_word, context_word_mask, context_subword, context_subword_mask, context_char, context_char_mask)
-            self.answer_start_output = tf.squeeze(answer_start_output)
-            self.answer_end_output = tf.squeeze(answer_end_output)
             self.answer_start_mask = tf.squeeze(answer_start_output_mask)
             self.answer_end_mask = tf.squeeze(answer_end_output_mask)
+            self.answer_start_output = tf.squeeze(answer_start_output) * self.answer_start_mask
+            self.answer_end_output = tf.squeeze(answer_end_output) * self.answer_end_mask
             self.answer_start = softmax_with_mask(self.answer_start_output, self.answer_start_mask, axis=-1)
             self.answer_end = softmax_with_mask(self.answer_end_output, self.answer_end_mask, axis=-1)
             
