@@ -340,9 +340,15 @@ def _generate_nonlinear_plus_attention_score(input_src_data,
     return input_attention
 
 def _generate_attention_mask(input_src_mask,
-                             input_trg_mask):
+                             input_trg_mask,
+                             remove_diag=False):
     """generate attention mask"""
     input_mask = tf.matmul(input_src_mask, input_trg_mask, transpose_b=True)
+    
+    if remove_diag == True:
+        src_max_length = tf.shape(input_src_mask)[1]
+        trg_max_length = tf.shape(input_trg_mask)[1]
+        input_mask = input_mask * (1 - tf.eye(src_max_length, trg_max_length))
     
     return input_mask
 
@@ -427,7 +433,7 @@ class Attention(object):
             
             input_attention_score = _generate_attention_score(input_src_attention,
                 input_trg_attention, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
             output_attention_score = input_attention_score
             output_score_mask = input_attention_mask
             
@@ -516,7 +522,7 @@ class MaxAttention(object):
             
             input_attention_score = _generate_attention_score(input_src_attention,
                 input_trg_attention, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
             input_attention_score = tf.reduce_max(input_attention_score, axis=-1, keepdims=True)
             input_attention_mask = tf.reduce_max(input_attention_mask, axis=-1, keepdims=True)
             input_attention_weight = softmax_with_mask(input_attention_score,
@@ -607,7 +613,7 @@ class CoAttention(object):
             
             input_attention_score = _generate_attention_score(input_src_attention,
                 input_trg_attention, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
             input_attention_s2t_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True)
             input_attention_t2s_weight = softmax_with_mask(input_attention_score,
@@ -706,7 +712,7 @@ class GatedAttention(object):
             
             input_attention_score = _generate_attention_score(input_src_attention,
                 input_trg_attention, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
             
             input_attention_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True)
@@ -801,7 +807,7 @@ class HeadAttention(object):
             input_value_attention = _generate_projection_data(input_trg_attention, self.projection_matrix[2])
             input_attention_score = _generate_attention_score(input_query_attention,
                 input_key_attention, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
             input_attention_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True)
             input_attention = tf.matmul(input_attention_weight, input_value_attention)
