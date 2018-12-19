@@ -340,22 +340,9 @@ def _generate_nonlinear_plus_attention_score(input_src_data,
     return input_attention
 
 def _generate_attention_mask(input_src_mask,
-                             input_trg_mask,
-                             remove_diag=False):
+                             input_trg_mask):
     """generate attention mask"""
-    input_src_shape = tf.shape(input_src_mask)
-    input_trg_shape = tf.shape(input_trg_mask)
-    batch_size = input_src_shape[0]
-    src_max_length = input_src_shape[1]
-    trg_max_length = input_trg_shape[1]
-    input_src_mask = tf.reshape(input_src_mask, shape=[batch_size, src_max_length, 1, -1])
-    input_trg_mask = tf.reshape(input_trg_mask, shape=[batch_size, 1, trg_max_length, -1])
-    input_src_mask = tf.tile(input_src_mask, multiples=[1, 1, trg_max_length, 1])
-    input_trg_mask = tf.tile(input_trg_mask, multiples=[1, src_max_length, 1, 1])
-    input_mask = input_src_mask * input_trg_mask
-    input_mask = tf.reshape(input_mask, shape=[batch_size, src_max_length, trg_max_length])
-    if remove_diag == True:
-        input_mask = input_mask * (1 - tf.eye(src_max_length, trg_max_length))
+    input_mask = tf.matmul(input_src_mask, input_trg_mask, transpose_b=True)
     
     return input_mask
 
