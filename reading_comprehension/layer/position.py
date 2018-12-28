@@ -48,6 +48,7 @@ class AbsolutePosition(object):
                  max_length,
                  num_gpus=1,
                  default_gpu_id=0,
+                 regularizer=None,
                  random_seed=0,
                  trainable=True,
                  scope="abs_pos"):
@@ -55,6 +56,7 @@ class AbsolutePosition(object):
         self.unit_dim = unit_dim
         self.max_length = max_length
         self.random_seed = random_seed
+        self.regularizer = regularizer
         self.trainable = trainable
         self.scope = scope
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
@@ -62,7 +64,7 @@ class AbsolutePosition(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             weight_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
             self.position_embedding = tf.get_variable("position_embedding", shape=[1, self.max_length, self.unit_dim],
-                initializer=weight_initializer, trainable=self.trainable, dtype=tf.float32)
+                initializer=weight_initializer, regularizer=self.regularizer, trainable=self.trainable, dtype=tf.float32)
     
     def __call__(self,
                  input_data,

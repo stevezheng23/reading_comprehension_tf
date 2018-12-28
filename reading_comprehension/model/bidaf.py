@@ -195,8 +195,8 @@ class BiDAF(BaseModel):
             
             if word_feat_enable == True:
                 self.logger.log_print("# build word-level representation layer")
-                word_feat_layer = WordFeat(vocab_size=word_vocab_size, embed_dim=word_embed_dim,
-                    pretrained=word_embed_pretrained, random_seed=random_seed, trainable=word_feat_trainable)
+                word_feat_layer = WordFeat(vocab_size=word_vocab_size, embed_dim=word_embed_dim, pretrained=word_embed_pretrained,
+                    regularizer=self.regularizer, random_seed=random_seed, trainable=word_feat_trainable)
                 
                 (input_question_word_feat,
                     input_question_word_feat_mask) = word_feat_layer(input_question_word, input_question_word_mask)
@@ -328,10 +328,14 @@ class BiDAF(BaseModel):
         context_understanding_unit_dim = self.hyperparams.model_understanding_context_unit_dim * 2
         question2context_interaction_attention_dim = self.hyperparams.model_interaction_question2context_attention_dim
         question2context_interaction_score_type = self.hyperparams.model_interaction_question2context_score_type
+        question2context_interaction_dropout = self.hyperparams.model_interaction_question2context_dropout if self.mode == "train" else 0.0
+        question2context_interaction_att_dropout = self.hyperparams.model_interaction_question2context_attention_dropout if self.mode == "train" else 0.0
         question2context_interaction_trainable = self.hyperparams.model_interaction_question2context_trainable
         question2context_interaction_enable = self.hyperparams.model_interaction_question2context_enable
         context2question_interaction_attention_dim = self.hyperparams.model_interaction_context2question_attention_dim
         context2question_interaction_score_type = self.hyperparams.model_interaction_context2question_score_type
+        context2question_interaction_dropout = self.hyperparams.model_interaction_context2question_dropout if self.mode == "train" else 0.0
+        context2question_interaction_att_dropout = self.hyperparams.model_interaction_context2question_attention_dropout if self.mode == "train" else 0.0
         context2question_interaction_trainable = self.hyperparams.model_interaction_context2question_trainable
         context2question_interaction_enable = self.hyperparams.model_interaction_context2question_enable
         fusion_type = self.hyperparams.model_interaction_fusion_type
@@ -356,7 +360,8 @@ class BiDAF(BaseModel):
                     self.logger.log_print("# build context2question interaction layer")
                     context2question_attention_layer = create_attention_layer("att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
-                        context2question_interaction_attention_dim, context2question_interaction_score_type, 0.0,
+                        context2question_interaction_attention_dim, context2question_interaction_score_type,
+                        context2question_interaction_dropout, context2question_interaction_att_dropout, 0.0,
                         False, False, False, attention_matrix, self.num_gpus, default_interaction_gpu_id,
                         self.regularizer, random_seed, context2question_interaction_trainable)
                     
@@ -384,7 +389,8 @@ class BiDAF(BaseModel):
                     self.logger.log_print("# build question2context interaction layer")
                     question2context_attention_layer = create_attention_layer("max_att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
-                        question2context_interaction_attention_dim, question2context_interaction_score_type, 0.0,
+                        question2context_interaction_attention_dim, question2context_interaction_score_type,
+                        question2context_interaction_dropout, question2context_interaction_att_dropout, 0.0,
                         False, False, False, attention_matrix, self.num_gpus, default_interaction_gpu_id,
                         self.regularizer, random_seed, question2context_interaction_trainable)
                     
@@ -421,6 +427,7 @@ class BiDAF(BaseModel):
         answer_modeling_cell_type = self.hyperparams.model_modeling_answer_cell_type
         answer_modeling_hidden_activation = self.hyperparams.model_modeling_answer_hidden_activation
         answer_modeling_dropout = self.hyperparams.model_modeling_answer_dropout if self.mode == "train" else 0.0
+        answer_modeling_att_dropout = self.hyperparams.model_modeling_answer_attention_dropout if self.mode == "train" else 0.0
         answer_modeling_forget_bias = self.hyperparams.model_modeling_answer_forget_bias
         answer_modeling_residual_connect = self.hyperparams.model_modeling_answer_residual_connect
         answer_modeling_attention_dim = self.hyperparams.model_modeling_answer_attention_dim
@@ -453,7 +460,8 @@ class BiDAF(BaseModel):
             if answer_modeling_attention_enable == True:
                 answer_modeling_attention_layer = create_attention_layer("att",
                     answer_modeling_sequence_unit_dim, answer_modeling_sequence_unit_dim,
-                    answer_modeling_attention_dim, answer_modeling_score_type, 0.0, False, False, True, None,
+                    answer_modeling_attention_dim, answer_modeling_score_type,
+                    answer_modeling_dropout, answer_modeling_att_dropout, 0.0, False, False, True, None,
                     self.num_gpus, default_modeling_gpu_id, self.regularizer, random_seed, answer_modeling_trainable)
 
                 (answer_modeling_attention, answer_modeling_attention_mask,
@@ -678,20 +686,22 @@ class WordFeat(object):
                  vocab_size,
                  embed_dim,
                  pretrained,
-                 random_seed,
+                 regularizer=None,
+                 random_seed=0,
                  trainable=True,
                  scope="word_feat"):
         """initialize word-level featurization layer"""
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim
         self.pretrained = pretrained
+        self.regularizer = regularizer
         self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, self.pretrained, 0, 0, self.random_seed, self.trainable)
+                self.embed_dim, self.pretrained, 0, 0, self.regularizer, self.random_seed, self.trainable)
     
     def __call__(self,
                  input_word,
@@ -740,7 +750,7 @@ class SubwordFeat(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, False, 0, 0, self.random_seed, self.trainable)
+                self.embed_dim, False, 0, 0, self.regularizer, self.random_seed, self.trainable)
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
@@ -800,7 +810,7 @@ class CharFeat(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, False, 0, 0, self.random_seed, self.trainable)
+                self.embed_dim, False, 0, 0, self.regularizer, self.random_seed, self.trainable)
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,

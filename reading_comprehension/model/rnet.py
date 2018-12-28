@@ -193,8 +193,8 @@ class RNet(BaseModel):
             
             if word_feat_enable == True:
                 self.logger.log_print("# build word-level representation layer")
-                word_feat_layer = WordFeat(vocab_size=word_vocab_size, embed_dim=word_embed_dim,
-                    pretrained=word_embed_pretrained, random_seed=random_seed, trainable=word_feat_trainable)
+                word_feat_layer = WordFeat(vocab_size=word_vocab_size, embed_dim=word_embed_dim, pretrained=word_embed_pretrained,
+                    regularizer=self.regularizer, random_seed=random_seed, trainable=word_feat_trainable)
                 
                 (input_question_word_feat,
                     input_question_word_feat_mask) = word_feat_layer(input_question_word, input_question_word_mask)
@@ -327,6 +327,7 @@ class RNet(BaseModel):
         context2question_interaction_cell_type = self.hyperparams.model_interaction_context2question_cell_type
         context2question_interaction_hidden_activation = self.hyperparams.model_interaction_context2question_hidden_activation
         context2question_interaction_dropout = self.hyperparams.model_interaction_context2question_dropout if self.mode == "train" else 0.0
+        context2question_interaction_att_dropout = self.hyperparams.model_interaction_context2question_attention_dropout if self.mode == "train" else 0.0
         context2question_interaction_forget_bias = self.hyperparams.model_interaction_context2question_forget_bias
         context2question_interaction_residual_connect = self.hyperparams.model_interaction_context2question_residual_connect
         context2question_interaction_attention_dim = self.hyperparams.model_interaction_context2question_attention_dim
@@ -339,7 +340,8 @@ class RNet(BaseModel):
             memory_mask=question_understanding_mask, attention_type="gated_att",
             src_dim=context_understanding_unit_dim + context2question_interaction_unit_dim,
             trg_dim=question_understanding_unit_dim, att_dim=context2question_interaction_attention_dim,
-            score_type=context2question_interaction_score_type, layer_dropout=False, layer_norm=False, residual_connect=False,
+            score_type=context2question_interaction_score_type, dropout=context2question_interaction_dropout,
+            att_dropout=context2question_interaction_att_dropout, layer_dropout=0.0, layer_norm=False, residual_connect=False,
             is_self=False, external_matrix=None, num_gpus=self.num_gpus, default_gpu_id=default_interaction_gpu_id,
             regularizer=self.regularizer, random_seed=random_seed, trainable=context2question_interaction_trainable)
         
@@ -367,6 +369,7 @@ class RNet(BaseModel):
         answer_modeling_cell_type = self.hyperparams.model_modeling_answer_cell_type
         answer_modeling_hidden_activation = self.hyperparams.model_modeling_answer_hidden_activation
         answer_modeling_dropout = self.hyperparams.model_modeling_answer_dropout if self.mode == "train" else 0.0
+        answer_modeling_att_dropout = self.hyperparams.model_modeling_answer_attention_dropout if self.mode == "train" else 0.0
         answer_modeling_forget_bias = self.hyperparams.model_modeling_answer_forget_bias
         answer_modeling_residual_connect = self.hyperparams.model_modeling_answer_residual_connect
         answer_modeling_attention_dim = self.hyperparams.model_modeling_answer_attention_dim
@@ -379,7 +382,8 @@ class RNet(BaseModel):
             self.logger.log_print("# build answer modeling layer")
             answer_modeling_attention_layer = create_attention_layer("gated_att",
                 answer_interaction_unit_dim, answer_interaction_unit_dim,
-                answer_modeling_attention_dim, answer_modeling_score_type, 0.0, False, False, True, None,
+                answer_modeling_attention_dim, answer_modeling_score_type,
+                answer_modeling_dropout, answer_modeling_att_dropout, 0.0, False, False, True, None,
                 self.num_gpus, default_modeling_gpu_id, self.regularizer, random_seed, answer_modeling_trainable)
             
             (answer_modeling_attention,
@@ -425,6 +429,7 @@ class RNet(BaseModel):
         answer_output_cell_type = self.hyperparams.model_output_answer_cell_type
         answer_output_hidden_activation = self.hyperparams.model_output_answer_hidden_activation
         answer_output_dropout = self.hyperparams.model_output_answer_dropout if self.mode == "train" else 0.0
+        answer_output_att_dropout = self.hyperparams.model_output_answer_attention_dropout if self.mode == "train" else 0.0
         answer_output_forget_bias = self.hyperparams.model_output_answer_forget_bias
         answer_output_residual_connect = self.hyperparams.model_output_answer_residual_connect
         answer_output_attention_dim = self.hyperparams.model_output_answer_attention_dim
@@ -444,7 +449,8 @@ class RNet(BaseModel):
                 
                 answer_base_attention_layer = create_attention_layer("att",
                     question_understanding_unit_dim, question_understanding_unit_dim,
-                    answer_output_attention_dim, answer_output_score_type, 0.0, False, False, False, None,
+                    answer_output_attention_dim, answer_output_score_type,
+                    answer_output_dropout, answer_output_att_dropout, 0.0, False, False, False, None,
                     self.num_gpus, default_output_gpu_id, self.regularizer, random_seed, answer_output_trainable)
                 (answer_base_state, answer_base_state_mask,
                     _, _) = answer_base_attention_layer(question_base,
@@ -453,7 +459,8 @@ class RNet(BaseModel):
             with tf.variable_scope("start", reuse=tf.AUTO_REUSE):                
                 answer_start_attention_layer = create_attention_layer("att",
                     question_understanding_unit_dim, answer_modeling_unit_dim,
-                    answer_output_attention_dim, answer_output_score_type, 0.0, False, False, False, None,
+                    answer_output_attention_dim, answer_output_score_type,
+                    answer_output_dropout, answer_output_att_dropout, 0.0, False, False, False, None,
                     self.num_gpus, default_output_gpu_id, self.regularizer, random_seed, answer_output_trainable)
                 (answer_start_attention, answer_start_attention_mask, answer_start_output,
                     answer_start_output_mask) = answer_start_attention_layer(answer_base_state,
@@ -471,7 +478,8 @@ class RNet(BaseModel):
             with tf.variable_scope("end", reuse=tf.AUTO_REUSE):
                 answer_end_attention_layer = create_attention_layer("att",
                     answer_output_unit_dim, answer_modeling_unit_dim,
-                    answer_output_attention_dim, answer_output_score_type, 0.0, False, False, False, None,
+                    answer_output_attention_dim, answer_output_score_type,
+                    answer_output_dropout, answer_output_att_dropout, 0.0, False, False, False, None,
                     self.num_gpus, default_output_gpu_id, self.regularizer, random_seed, answer_output_trainable)
                 (answer_end_attention, answer_end_attention_mask, answer_end_output,
                     answer_end_output_mask) = answer_end_attention_layer(answer_start_state,
@@ -605,6 +613,7 @@ class WordFeat(object):
                  vocab_size,
                  embed_dim,
                  pretrained,
+                 regularizer=None,
                  random_seed=0,
                  trainable=True,
                  scope="word_feat"):
@@ -612,13 +621,14 @@ class WordFeat(object):
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim
         self.pretrained = pretrained
+        self.regularizer = regularizer
         self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, self.pretrained, 0, 0, self.random_seed, self.trainable)
+                self.embed_dim, self.pretrained, 0, 0, self.regularizer, self.random_seed, self.trainable)
     
     def __call__(self,
                  input_word,
@@ -665,7 +675,7 @@ class SubwordFeat(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, False, 0, 0, self.random_seed, self.trainable)
+                self.embed_dim, False, 0, 0, self.regularizer, self.random_seed, self.trainable)
             
             self.recurrent_layer = create_recurrent_layer("bi", 1, self.unit_dim,
                 self.cell_type, self.hidden_activation, self.dropout, 1.0, False, None,
@@ -718,7 +728,7 @@ class CharFeat(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, False, 0, 0, self.random_seed, self.trainable)
+                self.embed_dim, False, 0, 0, self.regularizer, self.random_seed, self.trainable)
             
             self.recurrent_layer = create_recurrent_layer("bi", 1, self.unit_dim,
                 self.cell_type, self.hidden_activation, self.dropout, 1.0, False, None,
