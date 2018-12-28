@@ -170,8 +170,8 @@ class BaseModel(object):
             
             if word_feat_enable == True:
                 self.logger.log_print("# build word-level representation layer")
-                word_feat_layer = WordFeat(vocab_size=word_vocab_size, embed_dim=word_embed_dim,
-                    pretrained=word_embed_pretrained, random_seed=random_seed, trainable=word_feat_trainable)
+                word_feat_layer = WordFeat(vocab_size=word_vocab_size, embed_dim=word_embed_dim, pretrained=word_embed_pretrained,
+                    regularizer=self.regularizer, random_seed=random_seed, trainable=word_feat_trainable)
                 
                 (input_question_word_feat,
                     input_question_word_feat_mask) = word_feat_layer(input_question_word, input_question_word_mask)
@@ -417,6 +417,7 @@ class WordFeat(object):
                  vocab_size,
                  embed_dim,
                  pretrained,
+                 regularizer=None,
                  random_seed=0,
                  trainable=True,
                  scope="word_feat"):
@@ -424,13 +425,14 @@ class WordFeat(object):
         self.vocab_size = vocab_size
         self.embed_dim = embed_dim
         self.pretrained = pretrained
+        self.regularizer = regularizer
         self.random_seed = random_seed
         self.trainable = trainable
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, self.pretrained, 0, 0, self.random_seed, self.trainable)
+                self.embed_dim, self.pretrained, 0, 0, self.regularizer, self.random_seed, self.trainable)
     
     def __call__(self,
                  input_word,
@@ -480,7 +482,7 @@ class SubwordFeat(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, False, 0, 0, self.random_seed, self.trainable)
+                self.embed_dim, False, 0, 0, self.regularizer, self.random_seed, self.trainable)
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
@@ -540,7 +542,7 @@ class CharFeat(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, False, 0, 0, self.random_seed, self.trainable)
+                self.embed_dim, False, 0, 0, self.regularizer, self.random_seed, self.trainable)
             
             self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,

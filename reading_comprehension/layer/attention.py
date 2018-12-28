@@ -372,6 +372,8 @@ class Attention(object):
                  trg_dim,
                  att_dim,
                  score_type,
+                 dropout,
+                 att_dropout=0.0,
                  layer_dropout=0.0,
                  layer_norm=False,
                  residual_connect=False,
@@ -388,6 +390,8 @@ class Attention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.dropout = dropout
+        self.att_dropout = att_dropout
         self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
@@ -404,6 +408,12 @@ class Attention(object):
                     self.att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable)
             else:
                 self.attention_matrix = external_matrix
+            
+            self.dropout_layer = Dropout(rate=self.dropout, num_gpus=num_gpus,
+                default_gpu_id=default_gpu_id, random_seed=self.random_seed)
+            
+            self.att_dropout_layer = Dropout(rate=self.att_dropout, num_gpus=num_gpus,
+                default_gpu_id=default_gpu_id, random_seed=self.random_seed, scope="att_dropout")
             
             if self.layer_norm == True:
                 self.src_norm_layer = LayerNorm(layer_dim=self.src_dim, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
@@ -433,20 +443,27 @@ class Attention(object):
             
             input_attention_score = _generate_attention_score(input_src_attention,
                 input_trg_attention, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask,
+                input_trg_attention_mask, self.is_self)
+            input_attention_score = input_attention_score * input_attention_mask
+            
             output_attention_score = input_attention_score
             output_score_mask = input_attention_mask
             
             input_attention_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True) * input_attention_mask
+            input_attention_weight, _ = self.att_dropout_layer(input_attention_weight, input_attention_mask)
+            
             input_attention = tf.matmul(input_attention_weight, input_trg_attention)
+            input_attention, _ = self.dropout_layer(input_attention, input_src_mask)
             
             if self.residual_connect == True and self.is_self == True:
                 output_attention, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
                     lambda: (input_src_data, input_src_mask),
                     lambda: (input_attention + input_src_data, input_src_mask))
+                output_attention = output_attention * output_mask
             else:
-                output_attention = input_attention
+                output_attention = input_attention * input_src_mask
                 output_mask = input_src_mask
         
         return output_attention, output_mask, output_attention_score, output_score_mask
@@ -461,6 +478,8 @@ class MaxAttention(object):
                  trg_dim,
                  att_dim,
                  score_type,
+                 dropout,
+                 att_dropout=0.0,
                  layer_dropout=0.0,
                  layer_norm=False,
                  residual_connect=False,
@@ -477,6 +496,8 @@ class MaxAttention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.dropout = dropout
+        self.att_dropout = att_dropout
         self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
@@ -493,6 +514,12 @@ class MaxAttention(object):
                     self.att_dim, self.regularizer, self.score_type, self.random_seed, self.trainable)
             else:
                 self.attention_matrix = external_matrix
+            
+            self.dropout_layer = Dropout(rate=self.dropout, num_gpus=num_gpus,
+                default_gpu_id=default_gpu_id, random_seed=self.random_seed)
+            
+            self.att_dropout_layer = Dropout(rate=self.att_dropout, num_gpus=num_gpus,
+                default_gpu_id=default_gpu_id, random_seed=self.random_seed, scope="att_dropout")
             
             if self.layer_norm == True:
                 self.src_norm_layer = LayerNorm(layer_dim=self.src_dim, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
@@ -522,13 +549,19 @@ class MaxAttention(object):
             
             input_attention_score = _generate_attention_score(input_src_attention,
                 input_trg_attention, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
-            input_attention_score = tf.reduce_max(input_attention_score, axis=-1, keepdims=True)
-            input_attention_mask = tf.reduce_max(input_attention_mask, axis=-1, keepdims=True)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask,
+                input_trg_attention_mask, self.is_self)
+            input_attention_score = tf.transpose(tf.reduce_max(input_attention_score, axis=-1, keepdims=True), perm=[0, 2, 1])
+            input_attention_mask = tf.transpose(tf.reduce_max(input_attention_mask, axis=-1, keepdims=True), perm=[0, 2, 1])
+            input_attention_score = input_attention_score * input_attention_mask
+            
             input_attention_weight = softmax_with_mask(input_attention_score,
-                input_attention_mask, axis=1, keepdims=True) * input_attention_mask
-            input_attention_weight = tf.transpose(input_attention_weight, perm=[0, 2, 1])
+                input_attention_mask, axis=-1, keepdims=True) * input_attention_mask
+            input_attention_weight, _ = self.att_dropout_layer(input_attention_weight, input_attention_mask)
+            
             input_attention = tf.matmul(input_attention_weight, input_src_attention)
+            input_attention, _ = self.dropout_layer(input_attention, input_src_mask)
+            
             src_max_length = tf.shape(input_src_attention)[1]
             input_attention = tf.tile(input_attention, multiples=[1, src_max_length, 1])
             
@@ -536,8 +569,9 @@ class MaxAttention(object):
                 output_attention, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
                     lambda: (input_src_data, input_src_mask),
                     lambda: (input_attention + input_src_data, input_src_mask))
+                output_attention = output_attention * output_mask
             else:
-                output_attention = input_attention
+                output_attention = input_attention * input_src_mask
                 output_mask = input_src_mask
         
         return output_attention, output_mask
@@ -552,6 +586,8 @@ class CoAttention(object):
                  trg_dim,
                  att_dim,
                  score_type,
+                 dropout,
+                 att_dropout=0.0,
                  layer_dropout=0.0,
                  layer_norm=False,
                  residual_connect=False,
@@ -568,6 +604,8 @@ class CoAttention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.dropout = dropout
+        self.att_dropout = att_dropout
         self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
@@ -584,6 +622,14 @@ class CoAttention(object):
                     self.att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable)
             else:
                 self.attention_matrix = external_matrix
+                        
+            self.dropout_layer = Dropout(rate=self.dropout, num_gpus=num_gpus,
+                default_gpu_id=default_gpu_id, random_seed=self.random_seed)
+            
+            self.s2t_att_dropout_layer = Dropout(rate=self.att_dropout, num_gpus=num_gpus,
+                default_gpu_id=default_gpu_id, random_seed=self.random_seed, scope="s2t_att_dropout")
+            self.t2s_att_dropout_layer = Dropout(rate=self.att_dropout, num_gpus=num_gpus,
+                default_gpu_id=default_gpu_id, random_seed=self.random_seed, scope="t2s_att_dropout")
             
             if self.layer_norm == True:
                 self.src_norm_layer = LayerNorm(layer_dim=self.src_dim, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
@@ -613,21 +659,34 @@ class CoAttention(object):
             
             input_attention_score = _generate_attention_score(input_src_attention,
                 input_trg_attention, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
-            input_attention_s2t_weight = softmax_with_mask(input_attention_score,
-                input_attention_mask, axis=-1, keepdims=True) * input_attention_mask
-            input_attention_t2s_weight = softmax_with_mask(input_attention_score,
-                input_attention_mask, axis=1, keepdims=True) * input_attention_mask
-            input_attention_t2s_weight = tf.transpose(input_attention_t2s_weight, perm=[0, 2, 1])
-            input_attention = tf.matmul(input_attention_t2s_weight, input_src_attention)
-            input_attention = tf.matmul(input_attention_s2t_weight, input_attention)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask,
+                input_trg_attention_mask, self.is_self)
+            
+            input_s2t_att_score = input_attention_score
+            input_s2t_att_mask = input_attention_mask
+            input_s2t_att_score = input_s2t_att_score * input_s2t_att_mask
+            input_t2s_att_score = tf.transpose(input_attention_score, perm=[0, 2, 1])
+            input_t2s_att_mask = tf.transpose(input_attention_mask, perm=[0, 2, 1])
+            input_t2s_att_score = input_t2s_att_score * input_t2s_att_mask
+            
+            input_s2t_att_weight = softmax_with_mask(input_s2t_att_score,
+                input_s2t_att_mask, axis=-1, keepdims=True) * input_s2t_att_mask
+            input_s2t_att_weight, _ = self.s2t_att_dropout_layer(input_s2t_att_weight, input_s2t_att_mask)
+            input_t2s_att_weight = softmax_with_mask(input_t2s_att_score,
+                input_t2s_att_mask, axis=-1, keepdims=True) * input_t2s_att_mask
+            input_t2s_att_weight, _ = self.t2s_att_dropout_layer(input_t2s_att_weight, input_t2s_att_mask)
+            
+            input_attention_weight = tf.matmul(input_s2t_att_weight, input_t2s_att_weight)
+            input_attention = tf.matmul(input_attention_weight, input_src_attention)
+            input_attention, _ = self.dropout_layer(input_attention, input_src_mask)
             
             if self.residual_connect == True and self.is_self == True:
                 output_attention, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
                     lambda: (input_src_data, input_src_mask),
                     lambda: (input_attention + input_src_data, input_src_mask))
+                output_attention = output_attention * output_mask
             else:
-                output_attention = input_attention
+                output_attention = input_attention * input_src_mask
                 output_mask = input_src_mask
         
         return output_attention, output_mask
@@ -642,6 +701,8 @@ class GatedAttention(object):
                  trg_dim,
                  att_dim,
                  score_type,
+                 dropout,
+                 att_dropout=0.0,
                  layer_dropout=0.0,
                  layer_norm=False,
                  residual_connect=False,
@@ -658,6 +719,8 @@ class GatedAttention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.dropout = dropout
+        self.att_dropout = att_dropout
         self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
@@ -674,6 +737,12 @@ class GatedAttention(object):
                     self.att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable)
             else:
                 self.attention_matrix = external_matrix
+                        
+            self.dropout_layer = Dropout(rate=self.dropout, num_gpus=num_gpus,
+                default_gpu_id=default_gpu_id, random_seed=self.random_seed)
+            
+            self.att_dropout_layer = Dropout(rate=self.att_dropout, num_gpus=num_gpus,
+                default_gpu_id=default_gpu_id, random_seed=self.random_seed, scope="att_dropout")
             
             if self.layer_norm == True:
                 self.src_norm_layer = LayerNorm(layer_dim=self.src_dim, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
@@ -712,20 +781,26 @@ class GatedAttention(object):
             
             input_attention_score = _generate_attention_score(input_src_attention,
                 input_trg_attention, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
-            
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask,
+                input_trg_attention_mask, self.is_self)
+            input_attention_score = input_attention_score * input_attention_mask
+                        
             input_attention_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True) * input_attention_mask
-            input_attention = tf.matmul(input_attention_weight, input_trg_attention)
+            input_attention_weight, _ = self.att_dropout_layer(input_attention_weight, input_attention_mask)
             
+            input_attention = tf.matmul(input_attention_weight, input_trg_attention)
+            input_attention, _ = self.dropout_layer(input_attention, input_src_mask)
+                        
             if self.residual_connect == True and self.is_self == True:
                 output_attention, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
                     lambda: (input_src_data, input_src_mask),
                     lambda: (self.gate_layer(input_attention) * input_attention + input_src_data, input_src_mask))
+                output_attention = output_attention * output_mask
             else:
                 input_attention = tf.concat([input_src_data, input_attention], axis=-1) 
                 gate = self.gate_layer(input_attention)
-                output_attention = gate * input_attention
+                output_attention = gate * input_attention * input_src_mask
                 output_mask = input_src_mask
         
         return output_attention, output_mask
@@ -740,6 +815,8 @@ class HeadAttention(object):
                  trg_dim,
                  att_dim,
                  score_type,
+                 dropout,
+                 att_dropout=0.0,
                  layer_norm=False,
                  is_self=False,
                  external_matrix=None,
@@ -754,6 +831,8 @@ class HeadAttention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.dropout = dropout
+        self.att_dropout = att_dropout
         self.layer_norm = layer_norm
         self.is_self = is_self
         self.regularizer = regularizer
@@ -775,6 +854,12 @@ class HeadAttention(object):
             else:
                 self.projection_matrix = external_matrix["projection"]
                 self.attention_matrix = external_matrix["attention"]
+                        
+            self.dropout_layer = Dropout(rate=self.dropout, num_gpus=num_gpus,
+                default_gpu_id=default_gpu_id, random_seed=self.random_seed)
+            
+            self.att_dropout_layer = Dropout(rate=self.att_dropout, num_gpus=num_gpus,
+                default_gpu_id=default_gpu_id, random_seed=self.random_seed, scope="att_dropout")
             
             if self.layer_norm == True:
                 self.src_norm_layer = LayerNorm(layer_dim=self.src_dim, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
@@ -805,14 +890,21 @@ class HeadAttention(object):
             input_query_attention = _generate_projection_data(input_src_attention, self.projection_matrix[0])
             input_key_attention = _generate_projection_data(input_trg_attention, self.projection_matrix[1])
             input_value_attention = _generate_projection_data(input_trg_attention, self.projection_matrix[2])
+            
             input_attention_score = _generate_attention_score(input_query_attention,
                 input_key_attention, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_attention_mask, input_trg_attention_mask, self.is_self)
+            input_attention_mask = _generate_attention_mask(input_src_attention_mask,
+                input_trg_attention_mask, self.is_self)
+            input_attention_score = input_attention_score * input_attention_mask
+            
             input_attention_weight = softmax_with_mask(input_attention_score,
                 input_attention_mask, axis=-1, keepdims=True) * input_attention_mask
-            input_attention = tf.matmul(input_attention_weight, input_value_attention)
+            input_attention_weight, _ = self.att_dropout_layer(input_attention_weight, input_attention_mask)
             
-            output_attention = input_attention
+            input_attention = tf.matmul(input_attention_weight, input_value_attention)
+            input_attention, _ = self.dropout_layer(input_attention, input_src_mask)
+            
+            output_attention = input_attention * input_src_mask
             output_mask = input_src_mask
         
         return output_attention, output_mask
@@ -830,6 +922,8 @@ class MultiHeadAttention(object):
                  trg_dim,
                  att_dim,
                  score_type,
+                 dropout,
+                 att_dropout=0.0,
                  layer_dropout=0.0,
                  layer_norm=False,
                  residual_connect=False,
@@ -846,6 +940,8 @@ class MultiHeadAttention(object):
         self.trg_dim = trg_dim
         self.att_dim = att_dim
         self.score_type = score_type
+        self.dropout = dropout
+        self.att_dropout = att_dropout
         self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
@@ -864,10 +960,11 @@ class MultiHeadAttention(object):
             for i in range(len(self.att_dim)):
                 layer_scope = "head_{0}".format(i)
                 layer_default_gpu_id = self.default_gpu_id
-                attention_layer = HeadAttention(src_dim=self.src_dim, trg_dim=self.trg_dim,
-                    att_dim=self.att_dim[i], score_type=self.score_type, layer_norm=self.layer_norm, is_self=self.is_self,
-                    external_matrix=self.external_matrix, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
-                    regularizer=self.regularizer,random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
+                attention_layer = HeadAttention(src_dim=self.src_dim, trg_dim=self.trg_dim, att_dim=self.att_dim[i],
+                    score_type=self.score_type, dropout=self.dropout, att_dropout=self.att_dropout,
+                    layer_norm=self.layer_norm, is_self=self.is_self, external_matrix=self.external_matrix,
+                    num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer,
+                    random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.attention_layer_list.append(attention_layer)
     
     def __call__(self,
@@ -891,8 +988,9 @@ class MultiHeadAttention(object):
                 output_attention, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
                     lambda: (input_src_data, input_src_mask),
                     lambda: (input_attention + input_src_data, input_src_mask))
+                output_attention = output_attention * output_mask
             else:
-                output_attention = input_attention
+                output_attention = input_attention * input_src_mask
                 output_mask = input_src_mask
         
         return output_attention, output_mask
