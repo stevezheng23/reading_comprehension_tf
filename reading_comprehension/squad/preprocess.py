@@ -5,19 +5,23 @@ import os.path
 import string
 import re
 import nltk
+import spacy
+
+spacy_nlp = spacy.load('en')
 
 def add_arguments(parser):
     parser.add_argument("--format", help="format to generate", required=True)
     parser.add_argument("--input_file", help="path to input file", required=True)
     parser.add_argument("--output_file", help="path to output file", required=True)
 
-def normalize_text(text, lower_case=True, remove_punc=False):
+def nltk_tokenize(text, lower_case=False, remove_punc=False):
     def process_token(tokens):
-        special = ("-", "\u2212", "\u2014", "\u2013", "/", "~", '"', "'", "\u201C", "\u2019", "\u201D", "\u2018", "\u00B0")
+        special = ("-", "£", "€", "¥", "¢", "₹", "\u2212", "\u2014", "\u2013",
+                   "/", "~", '"', "'", "\ud01C", "\u201C", "\u2019", "\u201D", "\u2018", "\u00B0")
         pattern = "([{}])".format("".join(special))
         processed_tokens = []
         for token in tokens:
-            token = token.replace("''", '"').replace("``", '"')
+            token = token.replace("''", '" ').replace("``", '" ')
             processed_tokens.extend(re.split(pattern, token))
         
         return processed_tokens
@@ -46,6 +50,39 @@ def normalize_text(text, lower_case=True, remove_punc=False):
     
     return norm_text
 
+def spacy_tokenize(text, lower_case=False, remove_punc=False):
+    def process_token(tokens):
+        special = ("-", "£", "€", "¥", "¢", "₹", "\u2212", "\u2014", "\u2013",
+                   "/", "~", '"', "'", "\ud01C", "\u201C", "\u2019", "\u201D", "\u2018", "\u00B0")
+        pattern = "([{}])".format("".join(special))
+        processed_tokens = []
+        for token in tokens:
+            token = token.replace("''", '" ').replace("``", '" ')
+            processed_tokens.extend(re.split(pattern, token))
+        
+        return processed_tokens
+    
+    def remove_punctuation(tokens):
+        exclude = set(string.punctuation)
+        return [token for token in tokens if token not in exclude]
+    
+    def fix_white_space(tokens):
+        return [token for token in tokens if token and not token.isspace()]
+    
+    word_docs = spacy_nlp(text)
+    words = [word.text for word in word_docs]
+    words = process_token(words)
+    if remove_punc:
+        words = remove_punctuation(words)
+
+    words = fix_white_space(words)
+    
+    norm_text = ' '.join(words)
+    if lower_case:
+        norm_text = norm_text.lower()
+    
+    return norm_text
+
 def get_word_span(context, text, start):
     end = start + len(text)
     span_length = len(text.split(" "))
@@ -64,11 +101,11 @@ def preprocess(file_name):
         for article in json_content["data"]:
             for paragraph in article["paragraphs"]:
                 context = paragraph["context"].strip()
-                norm_context = normalize_text(context)
+                norm_context = spacy_tokenize(context)
                 for qa in paragraph["qas"]:
                     qa_id = qa["id"]
                     question = qa["question"].strip()
-                    norm_question = normalize_text(question)
+                    norm_question = spacy_tokenize(question)
                     
                     processed_data = {
                         "id": qa_id,
@@ -79,10 +116,10 @@ def preprocess(file_name):
                     
                     for answer in qa["answers"]:
                         answer_text = answer["text"].strip()
-                        norm_answer_text = normalize_text(answer_text)
+                        norm_answer_text = spacy_tokenize(answer_text)
                         
                         answer_start = answer["answer_start"]
-                        norm_answer_start = len(normalize_text(context[:answer_start]))
+                        norm_answer_start = len(spacy_tokenize(context[:answer_start]))
                         norm_answer_start = norm_answer_start + 1 if norm_answer_start > 0 else norm_answer_start 
                         
                         norm_answer_word_start, norm_answer_word_end = get_word_span(norm_context,
