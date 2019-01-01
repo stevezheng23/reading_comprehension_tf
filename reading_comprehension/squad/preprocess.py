@@ -83,13 +83,48 @@ def spacy_tokenize(text, lower_case=False, remove_punc=False):
     
     return norm_text
 
-def get_word_span(context, text, start):
-    end = start + len(text)
-    span_length = len(text.split(" "))
-    span_end = len(context[:end].split(" ")) - 1
-    span_start = span_end - span_length + 1
+def get_char_spans(raw_text, norm_text):
+    special = ("\"", "''", "``")
+    pattern = "([{}])".format("".join(special))
+    spans = []
+    idx = 0
+    norm_tokens = norm_text.split(' ')
+    for token in norm_tokens:
+        if re.match(pattern, token):
+            span = re.search(pattern, raw_text[idx:])
+            idx += span.start()
+            token_len = span.end() - span.start()
+        else:
+            idx = raw_text.find(token, idx)
+            token_len = len(token)
+        
+        if idx < 0 or token is None or token_len == 0:
+            raise ValueError("invalid text: {0} <--> {1}".format(raw_text, norm_text))
+        
+        spans.append((idx, idx + token_len))
+        idx += token_len
     
-    return span_start, span_end
+    return spans
+
+def get_word_span(char_spans, answer_start, answer_end):
+    word_answer_start = None
+    word_answer_end = None
+    for word_idx, (char_start_idx, char_end_indx) in enumerate(char_spans):
+        if char_start_idx <= answer_start <= char_end_indx:
+            word_answer_start = word_idx
+        if char_start_idx <= answer_end <= char_end_indx:
+            word_answer_end = word_idx
+        if word_answer_start and word_answer_end:
+            break
+    
+    if word_answer_end is None and word_answer_start is not None:
+        if answer_end > char_spans[-1][-1]:
+            word_answer_end = len(char_spans) - 1
+    
+    if word_answer_end is None or word_answer_start is None or word_answer_end < word_answer_start:
+        raise ValueError("invalid word span: ({0}, {1})".format(word_answer_start, word_answer_end))
+    
+    return word_answer_start, word_answer_end
 
 def preprocess(file_name):
     if not os.path.exists(file_name):
@@ -102,6 +137,7 @@ def preprocess(file_name):
             for paragraph in article["paragraphs"]:
                 context = paragraph["context"].strip()
                 norm_context = spacy_tokenize(context)
+                char_spans = get_char_spans(context, norm_context)
                 for qa in paragraph["qas"]:
                     qa_id = qa["id"]
                     question = qa["question"].strip()
@@ -116,19 +152,16 @@ def preprocess(file_name):
                     
                     for answer in qa["answers"]:
                         answer_text = answer["text"].strip()
-                        norm_answer_text = spacy_tokenize(answer_text)
+                        answer_char_start = answer["answer_start"]
+                        answer_char_end = answer_start + len(answer_text)
                         
-                        answer_start = answer["answer_start"]
-                        norm_answer_start = len(spacy_tokenize(context[:answer_start]))
-                        norm_answer_start = norm_answer_start + 1 if norm_answer_start > 0 else norm_answer_start 
-                        
-                        norm_answer_word_start, norm_answer_word_end = get_word_span(norm_context,
-                            norm_answer_text, norm_answer_start)
+                        answer_word_start, answer_word_end = get_word_span(char_spans,
+                            answer_char_start, answer_char_end)
                         
                         processed_data["answers"].append({
-                            "text": norm_answer_text,
-                            "start": norm_answer_word_start,
-                            "end": norm_answer_word_end
+                            "text": answer_text,
+                            "start": answer_word_start,
+                            "end": answer_word_end
                         })
                     
                     processed_data_list.append(processed_data)
