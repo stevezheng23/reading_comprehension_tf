@@ -62,7 +62,7 @@ def extrinsic_eval(logger,
         start = predict_span[i][0]
         end = predict_span[i][1]
         context = context_data[i].split(" ")
-        predict = " ".join(context[start:end+1])
+        predict = " ".join(context[start:end])
         predict_text.append(predict)
         
         answer_text = []
@@ -152,7 +152,7 @@ def decoding_eval(logger,
         start = sample_output_span[i][0]
         end = sample_output_span[i][1]
         sample_context = sample_context_data[i].split(" ")
-        sample_output = " ".join(sample_context[start:end+1])
+        sample_output = " ".join(sample_context[start:end])
         
         sample_reference_list = []
         for sample_answer in sample_input_data[i]["answers"]:
