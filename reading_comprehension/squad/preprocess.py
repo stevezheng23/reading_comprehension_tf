@@ -106,25 +106,25 @@ def get_char_spans(raw_text, norm_text):
     
     return spans
 
-def get_word_span(char_spans, answer_start, answer_end):
-    word_answer_start = None
-    word_answer_end = None
+def get_word_span(char_spans, answer_char_start, answer_char_end):
+    answer_word_start = None
+    answer_word_end = None
     for word_idx, (char_start_idx, char_end_indx) in enumerate(char_spans):
-        if char_start_idx <= answer_start <= char_end_indx:
-            word_answer_start = word_idx
-        if char_start_idx <= answer_end <= char_end_indx:
-            word_answer_end = word_idx
-        if word_answer_start and word_answer_end:
+        if char_start_idx <= answer_char_start <= char_end_indx:
+            answer_word_start = word_idx
+        if char_start_idx <= answer_char_end <= char_end_indx:
+            answer_word_end = word_idx
+        if answer_word_start and answer_word_end:
             break
     
-    if word_answer_end is None and word_answer_start is not None:
-        if answer_end > char_spans[-1][-1]:
-            word_answer_end = len(char_spans) - 1
+    if answer_word_end is None and answer_word_start is not None:
+        if answer_char_end > char_spans[-1][-1]:
+            answer_word_end = len(char_spans) - 1
     
-    if word_answer_end is None or word_answer_start is None or word_answer_end < word_answer_start:
-        raise ValueError("invalid word span: ({0}, {1})".format(word_answer_start, word_answer_end))
+    if answer_word_end is None or answer_word_start is None or answer_word_end < answer_word_start:
+        raise ValueError("invalid word span: ({0}, {1})".format(answer_word_start, answer_word_end))
     
-    return word_answer_start, word_answer_end
+    return answer_word_start, answer_word_end
 
 def preprocess(file_name):
     if not os.path.exists(file_name):
@@ -153,7 +153,7 @@ def preprocess(file_name):
                     for answer in qa["answers"]:
                         answer_text = answer["text"].strip()
                         answer_char_start = answer["answer_start"]
-                        answer_char_end = answer_start + len(answer_text)
+                        answer_char_end = answer_char_start + len(answer_text)
                         
                         answer_word_start, answer_word_end = get_word_span(char_spans,
                             answer_char_start, answer_char_end)
