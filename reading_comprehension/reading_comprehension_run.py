@@ -58,31 +58,35 @@ def extrinsic_eval(logger,
     label_text = []
     for i in range(data_size):
         sample_id = input_data[i]["id"]
-        
-        start = predict_span[i][0]
-        end = predict_span[i][1]
         context = context_data[i].split(" ")
-        predict = " ".join(context[start:end])
+        
+        predict_start = int(predict_span[i][0])
+        predict_end = int(predict_span[i][1])
+        predict = " ".join(context[predict_start:predict_end+1])
         predict_text.append(predict)
         
-        answer_text = []
-        for answer in input_data[i]["answers"]:
-            answer_text.append(answer["text"])
-        
-        label_text.append(answer_text)
+        label_text.append([])
         sample_output.append({
             "id": sample_id,
             "predict": {
                 "text": predict,
-                "start": int(predict_span[i][0]),
-                "end": int(predict_span[i][1])
+                "start": predict_start,
+                "end": predict_end
             },
-            "answers": [{
-                "text": answer["text"],
-                "start": int(answer["start"]),
-                "end": int(answer["end"])
-            } for answer in input_data[i]["answers"]]
+            "answers": []
         })
+        
+        for answer in input_data[i]["answers"]:
+            label_start = int(answer["start"])
+            label_end = int(answer["end"])
+            label = " ".join(context[label_start:label_end+1])
+            label_text[-1].append(label)
+            
+            sample_output[-1]["answers"].append({
+                "text": label,
+                "start": label_start,
+                "end": label_end
+            })
     
     eval_result_list = []
     for metric in metric_list:
@@ -148,15 +152,18 @@ def decoding_eval(logger,
     eval_result_list = []
     for i in range(sample_size):
         sample_input = sample_input_data[i]
-        
-        start = sample_output_span[i][0]
-        end = sample_output_span[i][1]
         sample_context = sample_context_data[i].split(" ")
-        sample_output = " ".join(sample_context[start:end])
+        
+        output_start = int(sample_output_span[i][0])
+        output_end = int(sample_output_span[i][1])
+        sample_output = " ".join(sample_context[output_start:output_end+1])
         
         sample_reference_list = []
         for sample_answer in sample_input_data[i]["answers"]:
-            sample_reference_list.append(sample_answer["text"])
+            reference_start = int(sample_answer["start"])
+            reference_end = int(sample_answer["end"])
+            sample_reference = " ".join(sample_context[reference_start:reference_end+1])
+            sample_reference_list.append(sample_reference)
         
         eval_result = DecodingEvalLog(sample_input=sample_input,
             sample_output=sample_output, sample_reference=sample_reference_list)
