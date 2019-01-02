@@ -84,8 +84,7 @@ def spacy_tokenize(text, lower_case=False, remove_punc=False):
     return norm_text
 
 def get_char_spans(raw_text, norm_text):
-    special = ("\"", "''", "``")
-    pattern = "([{}])".format("".join(special))
+    pattern = "\"|``|''"
     spans = []
     idx = 0
     norm_tokens = norm_text.split(' ')
@@ -114,8 +113,6 @@ def get_word_span(char_spans, answer_char_start, answer_char_end):
             answer_word_start = word_idx
         if char_start_idx <= answer_char_end <= char_end_indx:
             answer_word_end = word_idx
-        if answer_word_start and answer_word_end:
-            break
     
     if answer_word_end is None and answer_word_start is not None:
         if answer_char_end > char_spans[-1][-1]:
@@ -153,7 +150,7 @@ def preprocess(file_name):
                     for answer in qa["answers"]:
                         answer_text = answer["text"].strip()
                         answer_char_start = answer["answer_start"]
-                        answer_char_end = answer_char_start + len(answer_text)
+                        answer_char_end = answer_char_start + len(answer_text) - 1
                         
                         answer_word_start, answer_word_end = get_word_span(char_spans,
                             answer_char_start, answer_char_end)
