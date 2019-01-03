@@ -368,37 +368,36 @@ class BaseModel(object):
                 batch_size, summary) = sess.run([self.infer_answer_start, self.infer_answer_end,
                     self.infer_answer_start_mask, self.infer_answer_end_mask, self.batch_size, self.infer_summary])
         
-        max_length = self.hyperparams.data_max_context_length
+        max_context_length = self.hyperparams.data_max_context_length
+        max_answer_length = self.hyperparams.data_max_answer_length
+        
+        predict_start = np.expand_dims(answer_start[:max_context_length], axis=-1)
+        predict_start_mask = np.expand_dims(answer_start_mask[:max_context_length], axis=-1)
+        predict_start_start = predict_start * predict_start_mask
+        predict_end = np.expand_dims(answer_end[:max_context_length], axis=-1)
+        predict_end_mask = np.expand_dims(answer_end_mask[:max_context_length], axis=-1)
+        predict_end = predict_end * predict_end_mask
+        
+        predict_span = np.matmul(predict_start, predict_end.transpose((0,2,1)))
+        predict_span_mask = np.matmul(predict_start_mask, predict_end_mask.transpose((0,2,1)))
+        predict_span = predict_span * predict_span_mask
         
         predict = np.full((batch_size, 2), -1)
         for k in range(batch_size):
-            curr_max_value = np.full((max_length), float('-inf'))
-            curr_max_span = np.full((max_length, 2), -1)
+            max_prob = float('-inf')
+            max_prob_start = -1
+            max_prob_end = -1
+            for i in range(max_context_length):
+                for j in range(i, min(max_context_length, i+max_answer_length)):
+                    if predict_span[k, i, j] > max_prob:
+                        max_prob = predict_span[k, i, j]
+                        max_prob_start = i
+                        max_prob_end = j
             
-            start_max_length = np.count_nonzero(answer_start_mask[k, :])
-            for i in range(start_max_length):
-                if i == 0:
-                    curr_max_value[i] = answer_start[k, i]
-                    curr_max_span[i, 0] = i
-                else:
-                    if answer_start[k, i] < curr_max_value[i-1]:
-                        curr_max_value[i] = curr_max_value[i-1]
-                        curr_max_span[i, 0] = curr_max_span[i-1, 0]
-                    else:
-                        curr_max_value[i] = answer_start[k, i]
-                        curr_max_span[i, 0] = i
-            
-            end_max_length = np.count_nonzero(answer_end_mask[k, :])
-            for j in range(end_max_length):
-                curr_max_value[j] = curr_max_value[j] * answer_end[k, j]
-                curr_max_span[j, 1] = j
-            
-            index = np.argmax(curr_max_value)
-            predict[k, :] = curr_max_span[index, :]
+            predict[k, 0] = max_prob_start
+            predict[k, 1] = max_prob_end
         
-        predict_start = np.expand_dims(answer_start, axis=1)
-        predict_end = np.expand_dims(answer_end, axis=1)
-        predict_detail = np.concatenate((predict_start, predict_end), axis=1)
+        predict_detail = np.concatenate((predict_start, predict_end), axis=-1)
         
         return InferResult(predict=predict, predict_detail=predict_detail, batch_size=batch_size, summary=summary)
     
