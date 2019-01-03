@@ -654,6 +654,43 @@ def load_mrc_data(input_file,
     
     return input_data, question_data, context_data, answer_data
 
+def validate_data(logger,
+                  input_mrc_data,
+                  input_question_data,
+                  input_context_data,
+                  input_answer_data,
+                  max_question_length,
+                  max_context_length,
+                  max_answer_length,
+                  answer_type):
+    output_mrc_data = []
+    output_question_data = []
+    output_context_data = []
+    output_answer_data = []
+    
+    input_data = zip(input_mrc_data, input_question_data, input_context_data, input_answer_data)
+    for input_mrc, input_question, input_context, input_answer in input_data:
+        if answer_type == "text":
+            answer_length = len(input_answer.split(' '))
+            max_answer_index = -1
+        elif answer_type == "span":
+            answer_span = input_answer.split('|')
+            answer_start = int(answer_span[0].strip())
+            answer_end = int(answer_span[1].strip())
+            answer_length = answer_end - answer_start + 1
+            max_answer_index = max(answer_start, answer_end)
+        
+        if (answer_length > max_answer_length or
+            max_answer_index >= max_context_length):
+            continue
+        
+        output_mrc_data.append(input_mrc)
+        output_question_data.append(input_question)
+        output_context_data.append(input_context)
+        output_answer_data.append(input_answer)
+    
+    return output_mrc_data, output_question_data, output_context_data, output_answer_data
+
 def prepare_data(logger,
                  input_data,
                  word_vocab_file,
@@ -784,6 +821,10 @@ def prepare_mrc_data(logger,
                      input_file_type,
                      input_answer_type,
                      input_expand_multiple_answer,
+                     max_question_length,
+                     max_context_length,
+                     max_answer_length,
+                     enable_validation,
                      word_vocab_file,
                      word_vocab_size,
                      word_vocab_threshold,
@@ -810,7 +851,6 @@ def prepare_mrc_data(logger,
                      char_pad,
                      char_feat_enable):
     """prepare mrc data"""
-    input_data = set()
     logger.log_print("# loading input mrc data from {0}".format(input_mrc_file))
     (input_mrc_data, input_question_data, input_context_data,
         input_answer_data) = load_mrc_data(input_mrc_file,
@@ -825,15 +865,23 @@ def prepare_mrc_data(logger,
     if input_answer_size != input_question_size or input_answer_size != input_context_size:
         raise ValueError("question, context & answer input data must have the same size")
     
-    input_data.update(input_question_data)
-    input_data.update(input_context_data)
-    if input_answer_type == "text":
-        input_data.update(input_answer_data)
+    if enable_validation == True:
+        (input_mrc_data, input_question_data, input_context_data,
+            input_answer_data) = validate_data(logger, input_mrc_data, input_question_data, input_context_data, input_answer_data,
+            max_question_length, max_context_length, max_answer_length, input_answer_type)
+        input_mrc_size = len(input_mrc_data)
+        logger.log_print("# input mrc data has {0} lines after validation".format(input_mrc_size))
     
-    input_data = list(input_data)
+    input_text_data = set()
+    input_text_data.update(input_question_data)
+    input_text_data.update(input_context_data)
+    if input_answer_type == "text":
+        input_text_data.update(input_answer_data)
+    
+    input_text_data = list(input_text_data)
     (word_embed_data, word_vocab_size, word_vocab_index, word_vocab_inverted_index,
         subword_vocab_size, subword_vocab_index, subword_vocab_inverted_index,
-        char_vocab_size, char_vocab_index, char_vocab_inverted_index) = prepare_data(logger, input_data,
+        char_vocab_size, char_vocab_index, char_vocab_inverted_index) = prepare_data(logger, input_text_data,
             word_vocab_file, word_vocab_size, word_vocab_threshold, word_embed_dim, word_embed_file,
             full_word_embed_file, word_unk, word_pad, word_sos, word_eos, word_feat_enable, pretrain_word_embed,
             subword_vocab_file, subword_vocab_size, subword_vocab_threshold, subword_unk, subword_pad, subword_size,
