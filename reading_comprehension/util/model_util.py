@@ -91,10 +91,10 @@ def create_infer_model(logger,
              word_embed_data, word_vocab_size, word_vocab_index, word_vocab_inverted_index,
              subword_vocab_size, subword_vocab_index, subword_vocab_inverted_index,
              char_vocab_size, char_vocab_index, char_vocab_inverted_index) = prepare_mrc_data(logger,
-             hyperparams.data_eval_mrc_file, hyperparams.data_eval_mrc_file_type, "text", False,
-             hyperparams.data_max_question_length, hyperparams.data_max_context_length, hyperparams.data_max_answer_length,
-             hyperparams.data_enable_validation, hyperparams.data_word_vocab_file, hyperparams.data_word_vocab_size,
-             hyperparams.data_word_vocab_threshold, hyperparams.model_representation_word_embed_dim,
+             hyperparams.data_eval_mrc_file, hyperparams.data_eval_mrc_file_type, hyperparams.data_answer_type,
+             hyperparams.data_expand_multiple_answer, hyperparams.data_max_question_length, hyperparams.data_max_context_length,
+             hyperparams.data_max_answer_length, hyperparams.data_enable_validation, hyperparams.data_word_vocab_file,
+             hyperparams.data_word_vocab_size, hyperparams.data_word_vocab_threshold, hyperparams.model_representation_word_embed_dim,
              hyperparams.data_embedding_file, hyperparams.data_full_embedding_file, hyperparams.data_word_unk,
              hyperparams.data_word_pad, hyperparams.data_word_sos, hyperparams.data_word_eos,
              hyperparams.model_representation_word_feat_enable, hyperparams.model_representation_word_embed_pretrained,
@@ -128,7 +128,7 @@ def create_infer_model(logger,
         logger.log_print("# create inference answer dataset")
         answer_placeholder = tf.placeholder(shape=[None], dtype=tf.string)
         answer_dataset = tf.data.Dataset.from_tensor_slices(answer_placeholder)
-        input_answer_dataset = create_trg_dataset(answer_dataset, "text",
+        input_answer_dataset = create_trg_dataset(answer_dataset, hyperparams.data_answer_type,
             word_vocab_index, hyperparams.data_max_answer_length, hyperparams.data_word_pad,
             hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable)
         
@@ -137,7 +137,7 @@ def create_infer_model(logger,
         batch_size_placeholder = tf.placeholder(shape=[], dtype=tf.int64)
         data_pipeline = create_dynamic_pipeline(input_question_word_dataset,
             input_question_subword_dataset, input_question_char_dataset, input_context_word_dataset,
-            input_context_subword_dataset, input_context_char_dataset, input_answer_dataset, "text",
+            input_context_subword_dataset, input_context_char_dataset, input_answer_dataset, hyperparams.data_answer_type,
             word_vocab_index, hyperparams.data_word_pad, hyperparams.model_representation_word_feat_enable,
             subword_vocab_index, hyperparams.data_subword_pad, hyperparams.model_representation_subword_feat_enable,
             char_vocab_index, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable,
