@@ -74,15 +74,14 @@ def create_activation_function(activation):
 
 def softmax_with_mask(input_data,
                       input_mask,
-                      axis=-1,
-                      keepdims=True):
+                      axis=-1):
     """compute softmax with masking"""    
-    return tf.nn.softmax(input_data + MIN_FLOAT * (1 - input_mask), axis=axis)
+    return tf.nn.softmax(input_data * input_mask + MIN_FLOAT * (1 - input_mask), axis=axis)
 
 def generate_masked_logit(input_data,
                           input_mask):
     """generate masked logit"""
-    return input_data + MIN_FLOAT * (1 - input_mask)
+    return input_data * input_mask + MIN_FLOAT * (1 - input_mask)
 
 def generate_onehot_label(input_data,
                           input_depth):
