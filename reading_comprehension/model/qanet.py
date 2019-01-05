@@ -85,14 +85,7 @@ class QANet(BaseModel):
                 answer_result_shape = tf.shape(answer_result)
                 answer_start_result = tf.reshape(answer_result[:,0], shape=[answer_result_shape[0]])
                 answer_end_result = tf.reshape(answer_result[:,1], shape=[answer_result_shape[0]])
-                print(answer_start_result.get_shape())
-                print(answer_start_result_mask.get_shape())
-                print(answer_end_result.get_shape())
-                print(answer_end_result_mask.get_shape())
-                print(answer_start_output.get_shape())
-                print(answer_start_output_mask.get_shape())
-                print(answer_end_output.get_shape())
-                print(answer_end_output_mask.get_shape())
+                
                 start_loss = self._compute_loss(answer_start_result, answer_start_result_mask,
                     answer_start_output, answer_start_output_mask, self.hyperparams.train_label_smoothing)
                 end_loss = self._compute_loss(answer_end_result, answer_end_result_mask,
