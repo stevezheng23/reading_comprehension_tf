@@ -171,7 +171,6 @@
     "model_output_answer_end_cell_type": "lstm",
     "model_output_answer_end_hidden_activation": "tanh",
     "model_output_answer_end_dropout": 0.2,
-    "model_output_answer_attention_dropout": 0.0,
     "model_output_answer_end_forget_bias": 1.0,
     "model_output_answer_end_residual_connect": false,
     "model_output_answer_end_trainable": true,

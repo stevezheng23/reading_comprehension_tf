@@ -41,8 +41,8 @@ class RNet(BaseModel):
             context_word_mask = self.data_pipeline.input_context_word_mask
             context_subword_mask = self.data_pipeline.input_context_subword_mask
             context_char_mask = self.data_pipeline.input_context_char_mask
-            answer_result = self.data_pipeline.input_answer
-            answer_result_mask = self.data_pipeline.input_answer_mask
+            answer_result = tf.squeeze(self.data_pipeline.input_answer, axis=-1)
+            answer_result_mask = tf.squeeze(self.data_pipeline.input_answer_mask, axis=-1)
             
             """build graph for rnet model"""
             self.logger.log_print("# build graph")
@@ -50,10 +50,10 @@ class RNet(BaseModel):
                 answer_end_output_mask) = self._build_graph(question_word, question_word_mask,
                     question_subword, question_subword_mask, question_char, question_char_mask,
                     context_word, context_word_mask, context_subword, context_subword_mask, context_char, context_char_mask)
-            answer_start_output_mask = tf.squeeze(answer_start_output_mask)
-            answer_end_output_mask = tf.squeeze(answer_end_output_mask)
-            answer_start_output = tf.squeeze(answer_start_output)
-            answer_end_output = tf.squeeze(answer_end_output)
+            answer_start_output_mask = tf.squeeze(answer_start_output_mask, axis=-2)
+            answer_end_output_mask = tf.squeeze(answer_end_output_mask, axis=-2)
+            answer_start_output = tf.squeeze(answer_start_output, axis=-2)
+            answer_end_output = tf.squeeze(answer_end_output, axis=-2)
             self.answer_start_mask = answer_start_output_mask
             self.answer_end_mask = answer_end_output_mask
             self.answer_start = softmax_with_mask(answer_start_output, answer_start_output_mask, axis=-1) * self.answer_start_mask
@@ -79,10 +79,12 @@ class RNet(BaseModel):
             if self.mode == "train":
                 """compute optimization loss"""
                 self.logger.log_print("# setup loss computation mechanism")
-                answer_start_result_mask = answer_result_mask
-                answer_end_result_mask = answer_result_mask
-                answer_start_result = tf.squeeze(answer_result[:,0,:])
-                answer_end_result = tf.squeeze(answer_result[:,1,:])
+                answer_result_mask_shape = tf.shape(answer_result_mask)
+                answer_start_result_mask = tf.reshape(answer_result_mask[:,0], shape=[answer_result_mask_shape[0]])
+                answer_end_result_mask = tf.reshape(answer_result_mask[:,1], shape=[answer_result_mask_shape[0]])
+                answer_result_shape = tf.shape(answer_result)
+                answer_start_result = tf.reshape(answer_result[:,0], shape=[answer_result_shape[0]])
+                answer_end_result = tf.reshape(answer_result[:,1], shape=[answer_result_shape[0]])
                 
                 start_loss = self._compute_loss(answer_start_result, answer_start_result_mask,
                     answer_start_output, answer_start_output_mask, self.hyperparams.train_label_smoothing)
@@ -548,16 +550,14 @@ class RNet(BaseModel):
                       label_smoothing):
         """compute optimization loss"""
         masked_predict = generate_masked_data(predict, predict_mask)
-        masked_label = tf.cast(label * label_mask, dtype=tf.int32)
+        masked_label = tf.cast(label, dtype=tf.int32) * tf.cast(label_mask, dtype=tf.int32)
         
         if label_smoothing > 1e-10:
             onehot_label = generate_onehot_label(masked_label, tf.shape(masked_predict)[-1])
-            cross_entropy = tf.losses.softmax_cross_entropy(onehot_labels=onehot_label,
+            loss = tf.losses.softmax_cross_entropy(onehot_labels=onehot_label,
                 logits=masked_predict, label_smoothing=label_smoothing)
         else:
-            cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=masked_label, logits=masked_predict)
-        
-        loss = tf.reduce_sum(cross_entropy * tf.squeeze(predict_mask, axis=-1)) / tf.cast(self.batch_size, dtype=tf.float32)
+            loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=masked_label, logits=masked_predict)
         
         return loss
     
