@@ -318,6 +318,32 @@ def generate_word_feat(sentence,
                        word_sos,
                        word_eos,
                        word_placeholder_enable):
+    """generate word feature for sentence"""
+    def get_word_index(word):
+        """get index for word"""
+        default_word_index = tf.constant(0, shape=[], dtype=tf.int64)
+        
+        original_word_shape = tf.shape(word)
+        original_word_index = word_vocab_index.lookup(word)
+        lower_word = tf.reshape(tf.py_func(lambda x: x.lower(), [word], tf.string, stateful=False), shape=original_word_shape)
+        lower_word_index = word_vocab_index.lookup(lower_word)
+        capitalize_word = tf.reshape(tf.py_func(lambda x: x.capitalize(), [word], tf.string, stateful=False), shape=original_word_shape)
+        capitalize_word_index = word_vocab_index.lookup(capitalize_word)
+        upper_word = tf.reshape(tf.py_func(lambda x: x.upper(), [word], tf.string, stateful=False), shape=original_word_shape)
+        upper_word_index = word_vocab_index.lookup(upper_word)
+        
+        word_index = tf.cond(original_word_index > default_word_index,
+            lambda: original_word_index,
+            lambda: tf.cond(lower_word_index > default_word_index,
+                lambda: lower_word_index,
+                lambda: tf.cond(capitalize_word_index > default_word_index,
+                    lambda: capitalize_word_index,
+                    lambda: tf.cond(upper_word_index > default_word_index,
+                        lambda: upper_word_index,
+                        lambda: default_word_index))))
+        
+        return word_index
+    
     """process words for sentence"""
     words = tf.string_split([sentence], delimiter=' ').values
     if word_placeholder_enable == True:
@@ -328,11 +354,11 @@ def generate_word_feat(sentence,
         words = tf.concat([words[:word_max_length],
             tf.constant(word_pad, shape=[word_max_length])], axis=0)
     words = tf.reshape(words[:word_max_length], shape=[word_max_length])
-    words = word_vocab_index.lookup(words)
+    words = tf.cast(word_vocab_index.lookup(words), dtype=tf.int64)
     words = tf.expand_dims(words, axis=-1)
     
     return words
-             
+
 def generate_subword_feat(sentence,
                           subword_vocab_index,
                           word_max_length,
@@ -539,10 +565,12 @@ def create_word_vocab(input_data):
     for sentence in input_data:
         words = sentence.strip().split(' ')
         for word in words:
-            if word not in word_vocab:
-                word_vocab[word] = 1
-            else:
-                word_vocab[word] += 1
+            word_forms = [word, word.lower(), word.capitalize(), word.upper()]
+            for word_form in word_forms:
+                if word_form not in word_vocab:
+                    word_vocab[word_form] = 1
+                else:
+                    word_vocab[word_form] += 1
     
     return word_vocab
 
@@ -565,12 +593,14 @@ def create_subword_vocab(input_data,
     for sentence in input_data:
         words = sentence.strip().split(' ')
         for word in words:
-            subwords = generate_subword(word, subword_size)
-            for subword in subwords:
-                if subword not in subword_vocab:
-                    subword_vocab[subword] = 1
-                else:
-                    subword_vocab[subword] += 1
+            word_forms = [word, word.lower(), word.capitalize(), word.upper()]
+            for word_form in word_forms:
+                subwords = generate_subword(word_form, subword_size)
+                for subword in subwords:
+                    if subword not in subword_vocab:
+                        subword_vocab[subword] = 1
+                    else:
+                        subword_vocab[subword] += 1
     
     return subword_vocab
 
@@ -580,12 +610,14 @@ def create_char_vocab(input_data):
     for sentence in input_data:
         words = sentence.strip().split(' ')
         for word in words:
-            chars = list(word)
-            for ch in chars:
-                if ch not in char_vocab:
-                    char_vocab[ch] = 1
-                else:
-                    char_vocab[ch] += 1
+            word_forms = [word, word.lower(), word.capitalize(), word.upper()]
+            for word_form in word_forms:
+                chars = list(word_form)
+                for ch in chars:
+                    if ch not in char_vocab:
+                        char_vocab[ch] = 1
+                    else:
+                        char_vocab[ch] += 1
     
     return char_vocab
 
