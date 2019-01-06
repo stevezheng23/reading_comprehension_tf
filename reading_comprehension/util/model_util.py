@@ -40,39 +40,83 @@ def create_train_model(logger,
              hyperparams.data_char_vocab_size, hyperparams.data_char_vocab_threshold, hyperparams.data_char_unk,
              hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
-        logger.log_print("# create train question dataset")
-        question_dataset = tf.data.Dataset.from_tensor_slices(input_question_data)
-        (input_question_word_dataset, input_question_subword_dataset,
-             input_question_char_dataset) = create_src_dataset(question_dataset,
-             word_vocab_index, hyperparams.data_max_question_length, hyperparams.data_word_pad, hyperparams.data_word_sos,
-             hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable, hyperparams.model_representation_word_feat_enable,
-             subword_vocab_index, hyperparams.data_max_subword_length, hyperparams.data_subword_pad,
-             hyperparams.data_subword_size, hyperparams.model_representation_subword_feat_enable, char_vocab_index,
-             hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
+        word_vocab_tensor_index = (tf.contrib.lookup.index_table_from_tensor(mapping=tf.constant(list(word_vocab_index.keys())),
+            default_value=0) if hyperparams.model_representation_word_feat_enable else None)
+        subword_vocab_tensor_index = (tf.contrib.lookup.index_table_from_tensor(mapping=tf.constant(list(subword_vocab_index.keys())),
+            default_value=0) if hyperparams.model_representation_subword_feat_enable else None)
+        char_vocab_tensor_index = (tf.contrib.lookup.index_table_from_tensor(mapping=tf.constant(list(char_vocab_index.keys())),
+            default_value=0) if hyperparams.model_representation_char_feat_enable else None)
         
-        logger.log_print("# create train context dataset")
-        context_dataset = tf.data.Dataset.from_tensor_slices(input_context_data)
-        (input_context_word_dataset, input_context_subword_dataset,
-             input_context_char_dataset) = create_src_dataset(context_dataset,
-             word_vocab_index, hyperparams.data_max_context_length, hyperparams.data_word_pad, hyperparams.data_word_sos,
-             hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable, hyperparams.model_representation_word_feat_enable,
-             subword_vocab_index, hyperparams.data_max_subword_length, hyperparams.data_subword_pad,
-             hyperparams.data_subword_size, hyperparams.model_representation_subword_feat_enable, char_vocab_index,
-             hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
-        
-        logger.log_print("# create train answer dataset")
-        answer_dataset = tf.data.Dataset.from_tensor_slices(input_answer_data)
-        input_answer_dataset = create_trg_dataset(answer_dataset, hyperparams.data_answer_type,
-            word_vocab_index, hyperparams.data_max_answer_length, hyperparams.data_word_pad,
-            hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable)
+        if hyperparams.data_enable_preprocessing == True:
+            logger.log_print("# create train question dataset")
+            (input_question_word_data, input_question_subword_data,
+                 input_question_char_data) = create_src_data(input_question_data,
+                 word_vocab_index, hyperparams.data_max_question_length, hyperparams.data_word_pad, hyperparams.data_word_sos,
+                 hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable, hyperparams.model_representation_word_feat_enable,
+                 subword_vocab_index, hyperparams.data_max_subword_length, hyperparams.data_subword_pad,
+                 hyperparams.data_subword_size, hyperparams.model_representation_subword_feat_enable, char_vocab_index,
+                 hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
+            input_question_word_dataset = (tf.data.Dataset.from_tensor_slices(input_question_word_data)
+                if hyperparams.model_representation_word_feat_enable else None)
+            input_question_subword_dataset = (tf.data.Dataset.from_tensor_slices(input_question_subword_data)
+                if hyperparams.model_representation_subword_feat_enable else None)
+            input_question_char_dataset = (tf.data.Dataset.from_tensor_slices(input_question_char_data)
+                if hyperparams.model_representation_char_feat_enable else None)
+            
+            logger.log_print("# create train context dataset")
+            (input_context_word_data, input_context_subword_data,
+                 input_context_char_data) = create_src_data(input_context_data,
+                 word_vocab_index, hyperparams.data_max_context_length, hyperparams.data_word_pad, hyperparams.data_word_sos,
+                 hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable, hyperparams.model_representation_word_feat_enable,
+                 subword_vocab_index, hyperparams.data_max_subword_length, hyperparams.data_subword_pad,
+                 hyperparams.data_subword_size, hyperparams.model_representation_subword_feat_enable, char_vocab_index,
+                 hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
+            input_context_word_dataset = (tf.data.Dataset.from_tensor_slices(input_context_word_data)
+                if hyperparams.model_representation_word_feat_enable else None)
+            input_context_subword_dataset = (tf.data.Dataset.from_tensor_slices(input_context_subword_data)
+                if hyperparams.model_representation_subword_feat_enable else None)
+            input_context_char_dataset = (tf.data.Dataset.from_tensor_slices(input_context_char_data)
+                if hyperparams.model_representation_char_feat_enable else None)
+            
+            logger.log_print("# create train answer dataset")
+            input_answer_data = create_trg_data(input_answer_data, hyperparams.data_answer_type,
+                word_vocab_index, hyperparams.data_max_answer_length, hyperparams.data_word_pad,
+                hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable)
+            input_answer_dataset = tf.data.Dataset.from_tensor_slices(input_answer_data)
+        else:
+            logger.log_print("# create train question dataset")
+            input_question_dataset = tf.data.Dataset.from_tensor_slices(input_question_data)
+            (input_question_word_dataset, input_question_subword_dataset,
+                 input_question_char_dataset) = create_src_dataset(input_question_dataset,
+                 word_vocab_tensor_index, hyperparams.data_max_question_length, hyperparams.data_word_pad, hyperparams.data_word_sos,
+                 hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable, hyperparams.model_representation_word_feat_enable,
+                 subword_vocab_tensor_index, hyperparams.data_max_subword_length, hyperparams.data_subword_pad,
+                 hyperparams.data_subword_size, hyperparams.model_representation_subword_feat_enable, char_vocab_tensor_index,
+                 hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
+
+            logger.log_print("# create train context dataset")
+            input_context_dataset = tf.data.Dataset.from_tensor_slices(input_context_data)
+            (input_context_word_dataset, input_context_subword_dataset,
+                 input_context_char_dataset) = create_src_dataset(input_context_dataset,
+                 word_vocab_tensor_index, hyperparams.data_max_context_length, hyperparams.data_word_pad, hyperparams.data_word_sos,
+                 hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable, hyperparams.model_representation_word_feat_enable,
+                 subword_vocab_tensor_index, hyperparams.data_max_subword_length, hyperparams.data_subword_pad,
+                 hyperparams.data_subword_size, hyperparams.model_representation_subword_feat_enable, char_vocab_tensor_index,
+                 hyperparams.data_max_char_length, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
+
+            logger.log_print("# create train answer dataset")
+            input_answer_dataset = tf.data.Dataset.from_tensor_slices(input_answer_data)
+            input_answer_dataset = create_trg_dataset(input_answer_dataset, hyperparams.data_answer_type,
+                word_vocab_tensor_index, hyperparams.data_max_answer_length, hyperparams.data_word_pad,
+                hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable)
         
         logger.log_print("# create train data pipeline")
         data_pipeline = create_data_pipeline(input_question_word_dataset,
             input_question_subword_dataset, input_question_char_dataset, input_context_word_dataset,
             input_context_subword_dataset, input_context_char_dataset, input_answer_dataset, hyperparams.data_answer_type,
-            word_vocab_index, hyperparams.data_word_pad, hyperparams.model_representation_word_feat_enable,
-            subword_vocab_index, hyperparams.data_subword_pad, hyperparams.model_representation_subword_feat_enable,
-            char_vocab_index, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable,
+            word_vocab_tensor_index, hyperparams.data_word_pad, hyperparams.model_representation_word_feat_enable,
+            subword_vocab_tensor_index, hyperparams.data_subword_pad, hyperparams.model_representation_subword_feat_enable,
+            char_vocab_tensor_index, hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable,
             hyperparams.train_enable_shuffle, hyperparams.train_shuffle_buffer_size, len(input_answer_data),
             hyperparams.train_batch_size, hyperparams.train_random_seed)
         
@@ -133,8 +177,8 @@ def create_infer_model(logger,
             hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable)
         
         logger.log_print("# create inference data pipeline")
-        data_size_placeholder = tf.placeholder(shape=[], dtype=tf.int64)
-        batch_size_placeholder = tf.placeholder(shape=[], dtype=tf.int64)
+        data_size_placeholder = tf.placeholder(shape=[], dtype=tf.int32)
+        batch_size_placeholder = tf.placeholder(shape=[], dtype=tf.int32)
         data_pipeline = create_dynamic_pipeline(input_question_word_dataset,
             input_question_subword_dataset, input_question_char_dataset, input_context_word_dataset,
             input_context_subword_dataset, input_context_char_dataset, input_answer_dataset, hyperparams.data_answer_type,
