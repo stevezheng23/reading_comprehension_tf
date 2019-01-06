@@ -623,11 +623,12 @@ class QANet(BaseModel):
         """compute optimization loss"""
         masked_predict = generate_masked_data(predict, predict_mask)
         masked_label = tf.cast(label, dtype=tf.int32) * tf.cast(label_mask, dtype=tf.int32)
-        
+                
         if label_smoothing > 1e-10:
             onehot_label = generate_onehot_label(masked_label, tf.shape(masked_predict)[-1])
-            loss = tf.losses.softmax_cross_entropy(onehot_labels=onehot_label,
-                logits=masked_predict, label_smoothing=label_smoothing)
+            onehot_label = (onehot_label * (1 - label_smoothing) +
+                label_smoothing / tf.cast(tf.shape(masked_predict)[-1], dtype=tf.float32)) * predict_mask
+            loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=onehot_label, logits=masked_predict)
         else:
             loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=masked_label, logits=masked_predict)
         
