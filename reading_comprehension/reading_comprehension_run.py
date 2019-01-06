@@ -24,11 +24,7 @@ def extrinsic_eval(logger,
                    summary_writer,
                    sess,
                    model,
-                   input_data,
-                   question_data,
-                   context_data,
-                   answer_data,
-                   word_embedding,
+                   enable_prepro,
                    batch_size,
                    metric_list,
                    detail_type,
@@ -36,19 +32,39 @@ def extrinsic_eval(logger,
                    epoch,
                    ckpt_file,
                    eval_mode):
-    data_size = len(input_data)
+    data_size = len(model.input_data)
     load_model(sess, model, ckpt_file, eval_mode)
-    sess.run(model.data_pipeline.initializer,
-        feed_dict={model.data_pipeline.input_question_placeholder: question_data,
-            model.data_pipeline.input_context_placeholder: context_data,
-            model.data_pipeline.input_answer_placeholder: answer_data,
+    
+    if enable_prepro == True:
+        feed_dict = {model.data_pipeline.input_answer_placeholder: model.input_answer,
             model.data_pipeline.data_size_placeholder: data_size,
-            model.data_pipeline.batch_size_placeholder: batch_size})
+            model.data_pipeline.batch_size_placeholder: batch_size}
+        
+        if model.data_pipeline.input_question_word_placeholder is not None and model.input_question_word is not None:
+            feed_dict[model.data_pipeline.input_question_word_placeholder] = model.input_question_word
+        if model.data_pipeline.input_question_subword_placeholder is not None and model.input_question_subword is not None:
+            feed_dict[model.data_pipeline.input_question_subword_placeholder] = model.input_question_subword
+        if model.data_pipeline.input_question_char_placeholder is not None and model.input_question_char is not None:
+            feed_dict[model.data_pipeline.input_question_char_placeholder] = model.input_question_char
+        if model.data_pipeline.input_context_word_placeholder is not None and model.input_context_word is not None:
+            feed_dict[model.data_pipeline.input_context_word_placeholder] = model.input_context_word
+        if model.data_pipeline.input_context_subword_placeholder is not None and model.input_context_subword is not None:
+            feed_dict[model.data_pipeline.input_context_subword_placeholder] = model.input_context_subword
+        if model.data_pipeline.input_context_char_placeholder is not None and model.input_context_char is not None:
+            feed_dict[model.data_pipeline.input_context_char_placeholder] = model.input_context_char
+    else:
+        feed_dict={model.data_pipeline.input_question_placeholder: model.input_question,
+            model.data_pipeline.input_context_placeholder: model.input_context,
+            model.data_pipeline.input_answer_placeholder: model.input_answer,
+            model.data_pipeline.data_size_placeholder: data_size,
+            model.data_pipeline.batch_size_placeholder: batch_size}
+    
+    sess.run(model.data_pipeline.initializer, feed_dict=feed_dict)
     
     predict_span = []
     while True:
         try:
-            infer_result = model.model.infer(sess, word_embedding)
+            infer_result = model.model.infer(sess, model.word_embedding)
             predict_span.extend(infer_result.predict)
         except  tf.errors.OutOfRangeError:
             break
@@ -57,8 +73,8 @@ def extrinsic_eval(logger,
     predict_text = []
     label_text = []
     for i in range(data_size):
-        sample_id = input_data[i]["id"]
-        context = context_data[i].split(" ")
+        sample_id = model.input_data[i]["id"]
+        context = model.input_context[i].split(" ")
         
         predict_start = int(predict_span[i][0])
         predict_end = int(predict_span[i][1])
@@ -76,7 +92,7 @@ def extrinsic_eval(logger,
             "answers": []
         })
         
-        for answer in input_data[i]["answers"]:
+        for answer in model.input_data[i]["answers"]:
             label_start = int(answer["start"])
             label_end = int(answer["end"])
             label = " ".join(context[label_start:label_end+1])
@@ -112,11 +128,7 @@ def decoding_eval(logger,
                   summary_writer,
                   sess,
                   model,
-                  input_data,
-                  question_data,
-                  context_data,
-                  answer_data,
-                  word_embedding,
+                  enable_prepro,
                   sample_size,
                   random_seed,
                   global_step,
@@ -124,24 +136,49 @@ def decoding_eval(logger,
                   ckpt_file,
                   eval_mode):
     np.random.seed(random_seed)
-    sample_ids = np.random.randint(0, len(input_data)-1, size=sample_size)
-    sample_input_data = [input_data[sample_id] for sample_id in sample_ids]
-    sample_question_data = [question_data[sample_id] for sample_id in sample_ids]
-    sample_context_data = [context_data[sample_id] for sample_id in sample_ids]
-    sample_answer_data = [answer_data[sample_id] for sample_id in sample_ids]
-    
+    sample_ids = np.random.randint(0, len(model.input_data)-1, size=sample_size)
+    sample_input_data = [model.input_data[sample_id] for sample_id in sample_ids]
+    sample_question_data = [model.input_question[sample_id] for sample_id in sample_ids]
+    sample_context_data = [model.input_context[sample_id] for sample_id in sample_ids]
+    sample_answer_data = [model.input_answer[sample_id] for sample_id in sample_ids]
     load_model(sess, model, ckpt_file, eval_mode)
-    sess.run(model.data_pipeline.initializer,
+    
+    if enable_prepro == True:
+        feed_dict={model.data_pipeline.input_answer_placeholder: sample_answer_data,
+            model.data_pipeline.data_size_placeholder: sample_size,
+            model.data_pipeline.batch_size_placeholder: sample_size}
+        
+        if model.data_pipeline.input_question_word_placeholder is not None and model.input_question_word is not None:
+            sample_question_word = [model.input_question_word[sample_id] for sample_id in sample_ids]
+            feed_dict[model.data_pipeline.input_question_word_placeholder] = sample_question_word
+        if model.data_pipeline.input_question_subword_placeholder is not None and model.input_question_subword is not None:
+            sample_question_subword = [model.input_question_subword[sample_id] for sample_id in sample_ids]
+            feed_dict[model.data_pipeline.input_question_subword_placeholder] = sample_question_subword
+        if model.data_pipeline.input_question_char_placeholder is not None and model.input_question_char is not None:
+            sample_question_char = [model.input_question_char[sample_id] for sample_id in sample_ids]
+            feed_dict[model.data_pipeline.input_question_char_placeholder] = sample_question_char
+        if model.data_pipeline.input_context_word_placeholder is not None and model.input_context_word is not None:
+            sample_context_word = [model.input_context_word[sample_id] for sample_id in sample_ids]
+            feed_dict[model.data_pipeline.input_context_word_placeholder] = sample_context_word
+        if model.data_pipeline.input_context_subword_placeholder is not None and model.input_context_subword is not None:
+            sample_context_subword = [model.input_context_subword[sample_id] for sample_id in sample_ids]
+            feed_dict[model.data_pipeline.input_context_subword_placeholder] = sample_context_subword
+        if model.data_pipeline.input_context_char_placeholder is not None and model.input_context_char is not None:
+            sample_context_char = [model.input_context_char[sample_id] for sample_id in sample_ids]
+            feed_dict[model.data_pipeline.input_context_char_placeholder] = sample_context_char
+    else:
         feed_dict={model.data_pipeline.input_question_placeholder: sample_question_data,
             model.data_pipeline.input_context_placeholder: sample_context_data,
             model.data_pipeline.input_answer_placeholder: sample_answer_data,
             model.data_pipeline.data_size_placeholder: sample_size,
-            model.data_pipeline.batch_size_placeholder: sample_size})
+            model.data_pipeline.batch_size_placeholder: sample_size}
+    
+    sess.run(model.data_pipeline.initializer, feed_dict=feed_dict)
     
     sample_output_span = []
     while True:
         try:
-            infer_result = model.model.infer(sess, word_embedding)
+            infer_result = model.model.infer(sess, model.word_embedding)
             sample_output_span.extend(infer_result.predict)
         except  tf.errors.OutOfRangeError:
             break
@@ -230,14 +267,12 @@ def train(logger,
                     train_model.model.save(train_sess, global_step, "debug")
                 if step_in_epoch % hyperparams.train_step_per_eval == 0 and enable_eval == True:
                     ckpt_file = infer_model.model.get_latest_ckpt("debug")
-                    extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
-                        infer_model, infer_model.input_data, infer_model.input_question,
-                        infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
-                        hyperparams.train_eval_batch_size, hyperparams.train_eval_metric,
-                        hyperparams.train_eval_detail_type, global_step, epoch, ckpt_file, "debug")
+                    extrinsic_eval(eval_logger, infer_summary_writer, infer_sess, infer_model,
+                        hyperparams.data_enable_preprocessing, hyperparams.train_eval_batch_size,
+                        hyperparams.train_eval_metric, hyperparams.train_eval_detail_type,
+                        global_step, epoch, ckpt_file, "debug")
                     decoding_eval(eval_logger, infer_summary_writer, infer_sess, infer_model,
-                        infer_model.input_data, infer_model.input_question, infer_model.input_context,
-                        infer_model.input_answer, infer_model.word_embedding, hyperparams.train_decoding_sample_size,
+                        hyperparams.data_enable_preprocessing, hyperparams.train_decoding_sample_size,
                         hyperparams.train_random_seed + global_step, global_step, epoch, ckpt_file, "debug")
             except tf.errors.OutOfRangeError:
                 train_logger.check()
@@ -245,14 +280,12 @@ def train(logger,
                 train_model.model.save(train_sess, global_step, "epoch")
                 if enable_eval == True:
                     ckpt_file = infer_model.model.get_latest_ckpt("epoch")
-                    extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
-                        infer_model, infer_model.input_data, infer_model.input_question,
-                        infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
-                        hyperparams.train_eval_batch_size, hyperparams.train_eval_metric,
-                        hyperparams.train_eval_detail_type, global_step, epoch, ckpt_file, "epoch")
+                    extrinsic_eval(eval_logger, infer_summary_writer, infer_sess, infer_model,
+                        hyperparams.data_enable_preprocessing, hyperparams.train_eval_batch_size,
+                        hyperparams.train_eval_metric, hyperparams.train_eval_detail_type,
+                        global_step, epoch, ckpt_file, "epoch")
                     decoding_eval(eval_logger, infer_summary_writer, infer_sess, infer_model,
-                        infer_model.input_data, infer_model.input_question, infer_model.input_context,
-                        infer_model.input_answer, infer_model.word_embedding, hyperparams.train_decoding_sample_size,
+                        hyperparams.data_enable_preprocessing, hyperparams.train_decoding_sample_size,
                         hyperparams.train_random_seed + global_step, global_step, epoch, ckpt_file, "epoch")
                 break
 
@@ -288,15 +321,13 @@ def evaluate(logger,
     eval_mode = "debug" if enable_debug == True else "epoch"
     ckpt_file_list = infer_model.model.get_ckpt_list(eval_mode)
     for i, ckpt_file in enumerate(ckpt_file_list):
-        extrinsic_eval(eval_logger, infer_summary_writer, infer_sess,
-            infer_model, infer_model.input_data, infer_model.input_question,
-            infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
-            hyperparams.train_eval_batch_size, hyperparams.train_eval_metric,
-            hyperparams.train_eval_detail_type, global_step, i, ckpt_file, eval_mode)
-        decoding_eval(eval_logger, infer_summary_writer, infer_sess,
-            infer_model, infer_model.input_data, infer_model.input_question,
-            infer_model.input_context, infer_model.input_answer, infer_model.word_embedding,
-            hyperparams.train_decoding_sample_size, hyperparams.train_random_seed, global_step, i, ckpt_file, eval_mode)
+        extrinsic_eval(eval_logger, infer_summary_writer, infer_sess, infer_model,
+            hyperparams.data_enable_preprocessing, hyperparams.train_eval_batch_size,
+            hyperparams.train_eval_metric, hyperparams.train_eval_detail_type,
+            global_step, i, ckpt_file, eval_mode)
+        decoding_eval(eval_logger, infer_summary_writer, infer_sess, infer_model,
+            hyperparams.data_enable_preprocessing, hyperparams.train_decoding_sample_size,
+            hyperparams.train_random_seed, global_step, i, ckpt_file, eval_mode)
     
     infer_summary_writer.close_writer()
     logger.log_print("##### finish evaluation #####")
