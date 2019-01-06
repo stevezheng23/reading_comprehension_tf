@@ -926,7 +926,7 @@ class SubwordFeat(object):
             input_subword_embedding = self.embedding_layer(input_subword)
             
             (input_subword_dropout,
-                input_subword_dropout_mask) = self.dropout_layer(input_char_embedding, input_char_embedding_mask)
+                input_subword_dropout_mask) = self.dropout_layer(input_subword_embedding, input_subword_embedding_mask)
             
             (input_subword_pool,
                 input_subword_pool_mask) = self.pooling_layer(input_subword_dropout, input_subword_dropout_mask)
