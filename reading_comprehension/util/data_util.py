@@ -30,34 +30,37 @@ class DataPipeline(collections.namedtuple("DataPipeline",
     pass
 
 def create_data_pipeline(input_question_word_dataset,
-                            input_question_subword_dataset,
-                            input_question_char_dataset,
-                            input_context_word_dataset,
-                            input_context_subword_dataset,
-                            input_context_char_dataset,
-                            input_answer_dataset,
-                            input_answer_type,
-                            word_vocab_index,
-                            word_pad,
-                            word_feat_enable,
-                            subword_vocab_index,
-                            subword_pad,
-                            subword_feat_enable,
-                            char_vocab_index,
-                            char_pad,
-                            char_feat_enable,
-                            input_question_placeholder,
-                            input_question_word_placeholder,
-                            input_question_subword_placeholder,
-                            input_question_char_placeholder,
-                            input_context_placeholder,
-                            input_context_word_placeholder,
-                            input_context_subword_placeholder,
-                            input_context_char_placeholder,
-                            input_answer_placeholder,
-                            data_size_placeholder,
-                            batch_size_placeholder):
-    """create dynamic data pipeline for reading comprehension model"""
+                         input_question_subword_dataset,
+                         input_question_char_dataset,
+                         input_context_word_dataset,
+                         input_context_subword_dataset,
+                         input_context_char_dataset,
+                         input_answer_dataset,
+                         input_answer_type,
+                         word_vocab_index,
+                         word_pad,
+                         word_feat_enable,
+                         subword_vocab_index,
+                         subword_pad,
+                         subword_feat_enable,
+                         char_vocab_index,
+                         char_pad,
+                         char_feat_enable,
+                         enable_shuffle,
+                         buffer_size,
+                         random_seed,
+                         input_question_placeholder,
+                         input_question_word_placeholder,
+                         input_question_subword_placeholder,
+                         input_question_char_placeholder,
+                         input_context_placeholder,
+                         input_context_word_placeholder,
+                         input_context_subword_placeholder,
+                         input_context_char_placeholder,
+                         input_answer_placeholder,
+                         data_size_placeholder,
+                         batch_size_placeholder):
+    """create data pipeline for reading comprehension model"""
     default_pad_id = tf.constant(0, shape=[], dtype=tf.int32)
     default_dataset_tensor = tf.constant(0, shape=[1,1], dtype=tf.int32)
     
@@ -85,6 +88,9 @@ def create_data_pipeline(input_question_word_dataset,
     
     dataset = tf.data.Dataset.zip((input_question_word_dataset, input_question_subword_dataset, input_question_char_dataset,
         input_context_word_dataset, input_context_subword_dataset, input_context_char_dataset, input_answer_dataset))
+    
+    if enable_shuffle == True:
+        dataset = dataset.shuffle(buffer_size, random_seed)
     
     dataset = dataset.batch(batch_size=batch_size_placeholder)
     
