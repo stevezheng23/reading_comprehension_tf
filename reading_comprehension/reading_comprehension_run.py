@@ -32,33 +32,10 @@ def extrinsic_eval(logger,
                    epoch,
                    ckpt_file,
                    eval_mode):
-    data_size = len(model.input_data)
     load_model(sess, model, ckpt_file, eval_mode)
     
-    if enable_prepro == True:
-        feed_dict = {model.data_pipeline.input_answer_placeholder: model.input_answer,
-            model.data_pipeline.data_size_placeholder: data_size,
-            model.data_pipeline.batch_size_placeholder: batch_size}
-        
-        if model.data_pipeline.input_question_word_placeholder is not None and model.input_question_word is not None:
-            feed_dict[model.data_pipeline.input_question_word_placeholder] = model.input_question_word
-        if model.data_pipeline.input_question_subword_placeholder is not None and model.input_question_subword is not None:
-            feed_dict[model.data_pipeline.input_question_subword_placeholder] = model.input_question_subword
-        if model.data_pipeline.input_question_char_placeholder is not None and model.input_question_char is not None:
-            feed_dict[model.data_pipeline.input_question_char_placeholder] = model.input_question_char
-        if model.data_pipeline.input_context_word_placeholder is not None and model.input_context_word is not None:
-            feed_dict[model.data_pipeline.input_context_word_placeholder] = model.input_context_word
-        if model.data_pipeline.input_context_subword_placeholder is not None and model.input_context_subword is not None:
-            feed_dict[model.data_pipeline.input_context_subword_placeholder] = model.input_context_subword
-        if model.data_pipeline.input_context_char_placeholder is not None and model.input_context_char is not None:
-            feed_dict[model.data_pipeline.input_context_char_placeholder] = model.input_context_char
-    else:
-        feed_dict={model.data_pipeline.input_question_placeholder: model.input_question,
-            model.data_pipeline.input_context_placeholder: model.input_context,
-            model.data_pipeline.input_answer_placeholder: model.input_answer,
-            model.data_pipeline.data_size_placeholder: data_size,
-            model.data_pipeline.batch_size_placeholder: batch_size}
-    
+    data_size = len(model.input_data)
+    feed_dict, data_dict = generate_feed_dict(model, enable_prepro, data_size, batch_size)
     sess.run(model.data_pipeline.initializer, feed_dict=feed_dict)
     
     predict_span = []
@@ -73,8 +50,8 @@ def extrinsic_eval(logger,
     predict_text = []
     label_text = []
     for i in range(data_size):
-        sample_id = model.input_data[i]["id"]
-        context = model.input_context[i].split(" ")
+        sample_id = data_dict["input_data"][i]["id"]
+        context = data_dict["input_context"][i].split(" ")
         
         predict_start = int(predict_span[i][0])
         predict_end = int(predict_span[i][1])
@@ -92,7 +69,7 @@ def extrinsic_eval(logger,
             "answers": []
         })
         
-        for answer in model.input_data[i]["answers"]:
+        for answer in data_dict["input_data"][i]["answers"]:
             label_start = int(answer["start"])
             label_end = int(answer["end"])
             label = " ".join(context[label_start:label_end+1])
@@ -135,44 +112,9 @@ def decoding_eval(logger,
                   epoch,
                   ckpt_file,
                   eval_mode):
-    np.random.seed(random_seed)
-    sample_ids = np.random.randint(0, len(model.input_data)-1, size=sample_size)
-    sample_input_data = [model.input_data[sample_id] for sample_id in sample_ids]
-    sample_question_data = [model.input_question[sample_id] for sample_id in sample_ids]
-    sample_context_data = [model.input_context[sample_id] for sample_id in sample_ids]
-    sample_answer_data = [model.input_answer[sample_id] for sample_id in sample_ids]
     load_model(sess, model, ckpt_file, eval_mode)
     
-    if enable_prepro == True:
-        feed_dict={model.data_pipeline.input_answer_placeholder: sample_answer_data,
-            model.data_pipeline.data_size_placeholder: sample_size,
-            model.data_pipeline.batch_size_placeholder: sample_size}
-        
-        if model.data_pipeline.input_question_word_placeholder is not None and model.input_question_word is not None:
-            sample_question_word = [model.input_question_word[sample_id] for sample_id in sample_ids]
-            feed_dict[model.data_pipeline.input_question_word_placeholder] = sample_question_word
-        if model.data_pipeline.input_question_subword_placeholder is not None and model.input_question_subword is not None:
-            sample_question_subword = [model.input_question_subword[sample_id] for sample_id in sample_ids]
-            feed_dict[model.data_pipeline.input_question_subword_placeholder] = sample_question_subword
-        if model.data_pipeline.input_question_char_placeholder is not None and model.input_question_char is not None:
-            sample_question_char = [model.input_question_char[sample_id] for sample_id in sample_ids]
-            feed_dict[model.data_pipeline.input_question_char_placeholder] = sample_question_char
-        if model.data_pipeline.input_context_word_placeholder is not None and model.input_context_word is not None:
-            sample_context_word = [model.input_context_word[sample_id] for sample_id in sample_ids]
-            feed_dict[model.data_pipeline.input_context_word_placeholder] = sample_context_word
-        if model.data_pipeline.input_context_subword_placeholder is not None and model.input_context_subword is not None:
-            sample_context_subword = [model.input_context_subword[sample_id] for sample_id in sample_ids]
-            feed_dict[model.data_pipeline.input_context_subword_placeholder] = sample_context_subword
-        if model.data_pipeline.input_context_char_placeholder is not None and model.input_context_char is not None:
-            sample_context_char = [model.input_context_char[sample_id] for sample_id in sample_ids]
-            feed_dict[model.data_pipeline.input_context_char_placeholder] = sample_context_char
-    else:
-        feed_dict={model.data_pipeline.input_question_placeholder: sample_question_data,
-            model.data_pipeline.input_context_placeholder: sample_context_data,
-            model.data_pipeline.input_answer_placeholder: sample_answer_data,
-            model.data_pipeline.data_size_placeholder: sample_size,
-            model.data_pipeline.batch_size_placeholder: sample_size}
-    
+    feed_dict, data_dict = generate_feed_dict(model, enable_prepro, sample_size, sample_size, True, random_seed)
     sess.run(model.data_pipeline.initializer, feed_dict=feed_dict)
     
     sample_output_span = []
@@ -188,15 +130,15 @@ def decoding_eval(logger,
     
     eval_result_list = []
     for i in range(sample_size):
-        sample_input = sample_input_data[i]
-        sample_context = sample_context_data[i].split(" ")
+        sample_input = data_dict["input_data"][i]
+        sample_context = data_dict["input_context"][i].split(" ")
         
         output_start = int(sample_output_span[i][0])
         output_end = int(sample_output_span[i][1])
         sample_output = " ".join(sample_context[output_start:output_end+1])
         
         sample_reference_list = []
-        for sample_answer in sample_input_data[i]["answers"]:
+        for sample_answer in data_dict["input_data"][i]["answers"]:
             reference_start = int(sample_answer["start"])
             reference_end = int(sample_answer["end"])
             sample_reference = " ".join(sample_context[reference_start:reference_end+1])
@@ -210,6 +152,84 @@ def decoding_eval(logger,
     
     logger.update_decoding_eval(eval_result_list, basic_info)
     logger.check_decoding_eval()
+
+def generate_feed_dict(model,
+                       enable_prepro,
+                       data_size,
+                       batch_size,
+                       enable_sample=False,
+                       random_seed=0):
+    if enable_sample == True:
+        np.random.seed(random_seed)
+        sample_ids = np.random.randint(0, len(model.input_data)-1, size=data_size)
+        input_data = [model.input_data[sample_id] for sample_id in sample_ids]
+        input_question = [model.input_question[sample_id] for sample_id in sample_ids]
+        input_question_word = ([model.input_question_word[sample_id]
+            for sample_id in sample_ids] if model.input_question_word is not None else None)
+        input_question_subword = ([model.input_question_subword[sample_id]
+            for sample_id in sample_ids] if model.input_question_subword is not None else None)
+        input_question_char = ([model.input_question_char[sample_id]
+            for sample_id in sample_ids] if model.input_question_char is not None else None)
+        input_context = [model.input_context[sample_id] for sample_id in sample_ids]
+        input_context_word = ([model.input_context_word[sample_id]
+            for sample_id in sample_ids] if model.input_context_word is not None else None)
+        input_context_subword = ([model.input_context_subword[sample_id]
+            for sample_id in sample_ids] if model.input_context_subword is not None else None)
+        input_context_char = ([model.input_context_char[sample_id]
+            for sample_id in sample_ids] if model.input_context_char is not None else None)
+        input_answer = [model.input_answer[sample_id] for sample_id in sample_ids]
+    else:
+        data_size = min(data_size, len(model.input_data))
+        input_data = model.input_data[:data_size]
+        input_question = model.input_question[:data_size]
+        input_question_word = model.input_question_word[:data_size] if model.input_question_word is not None else None
+        input_question_subword = model.input_question_subword[:data_size] if model.input_question_subword is not None else None
+        input_question_char = model.input_question_char[:data_size] if model.input_question_char is not None else None
+        input_context = model.input_context[:data_size]
+        input_context_word = model.input_context_word[:data_size] if model.input_context_word is not None else None
+        input_context_subword = model.input_context_subword[:data_size] if model.input_context_subword is not None else None
+        input_context_char = model.input_context_char[:data_size] if model.input_context_char is not None else None
+        input_answer = model.input_answer[:data_size]
+    
+    data_dict = {
+        "input_data": input_data,
+        "input_question": input_question,
+        "input_question_word": input_question_word,
+        "input_question_subword": input_question_subword,
+        "input_question_char": input_question_char,
+        "input_context": input_context,
+        "input_context_word": input_context_word,
+        "input_context_subword": input_context_subword,
+        "input_context_char": input_context_char,
+        "input_answer": input_answer,
+        "data_size": data_size
+    }
+    
+    if enable_prepro == True:
+        feed_dict = {model.data_pipeline.input_answer_placeholder: input_answer,
+            model.data_pipeline.data_size_placeholder: data_size,
+            model.data_pipeline.batch_size_placeholder: batch_size}
+
+        if model.data_pipeline.input_question_word_placeholder is not None and input_question_word is not None:
+            feed_dict[model.data_pipeline.input_question_word_placeholder] = input_question_word
+        if model.data_pipeline.input_question_subword_placeholder is not None and input_question_subword is not None:
+            feed_dict[model.data_pipeline.input_question_subword_placeholder] = input_question_subword
+        if model.data_pipeline.input_question_char_placeholder is not None and input_question_char is not None:
+            feed_dict[model.data_pipeline.input_question_char_placeholder] = input_question_char
+        if model.data_pipeline.input_context_word_placeholder is not None and input_context_word is not None:
+            feed_dict[model.data_pipeline.input_context_word_placeholder] = input_context_word
+        if model.data_pipeline.input_context_subword_placeholder is not None and input_context_subword is not None:
+            feed_dict[model.data_pipeline.input_context_subword_placeholder] = input_context_subword
+        if model.data_pipeline.input_context_char_placeholder is not None and input_context_char is not None:
+            feed_dict[model.data_pipeline.input_context_char_placeholder] = input_context_char
+    else:
+        feed_dict={model.data_pipeline.input_question_placeholder: input_question,
+            model.data_pipeline.input_context_placeholder: input_context,
+            model.data_pipeline.input_answer_placeholder: input_answer,
+            model.data_pipeline.data_size_placeholder: data_size,
+            model.data_pipeline.batch_size_placeholder: batch_size}
+    
+    return feed_dict, data_dict
 
 def train(logger,
           hyperparams,
@@ -246,9 +266,11 @@ def train(logger,
     
     logger.log_print("##### start training #####")
     global_step = 0
-    train_model.model.save(train_sess, global_step, "debug")
     for epoch in range(hyperparams.train_num_epoch):
-        train_sess.run(train_model.data_pipeline.initializer)
+        feed_dict, data_dict = generate_feed_dict(train_model, hyperparams.data_enable_preprocessing,
+            len(train_model.input_answer), hyperparams.train_batch_size)
+        train_sess.run(train_model.data_pipeline.initializer, feed_dict=feed_dict)
+        
         step_in_epoch = 0
         while True:
             try:

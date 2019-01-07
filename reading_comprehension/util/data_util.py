@@ -8,7 +8,7 @@ import tensorflow as tf
 
 from util.default_util import *
 
-__all__ = ["DataPipeline", "create_dynamic_pipeline", "create_data_pipeline",
+__all__ = ["DataPipeline", "create_data_pipeline",
            "create_src_data", "create_trg_data", "create_src_dataset", "create_trg_dataset",
            "generate_word_feat", "generate_subword_feat", "generate_char_feat",
            "create_embedding_file", "load_embedding_file", "convert_embedding",
@@ -29,7 +29,7 @@ class DataPipeline(collections.namedtuple("DataPipeline",
      "input_answer_placeholder", "data_size_placeholder", "batch_size_placeholder"))):
     pass
 
-def create_dynamic_pipeline(input_question_word_dataset,
+def create_data_pipeline(input_question_word_dataset,
                             input_question_subword_dataset,
                             input_question_char_dataset,
                             input_context_word_dataset,
@@ -152,123 +152,6 @@ def create_dynamic_pipeline(input_question_word_dataset,
         input_context_char_placeholder=input_context_char_placeholder,
         input_answer_placeholder=input_answer_placeholder,
         data_size_placeholder=data_size_placeholder, batch_size_placeholder=batch_size_placeholder)
-
-def create_data_pipeline(input_question_word_dataset,
-                         input_question_subword_dataset,
-                         input_question_char_dataset,
-                         input_context_word_dataset,
-                         input_context_subword_dataset,
-                         input_context_char_dataset,
-                         input_answer_dataset,
-                         input_answer_type,
-                         word_vocab_index,
-                         word_pad,
-                         word_feat_enable,
-                         subword_vocab_index,
-                         subword_pad,
-                         subword_feat_enable,
-                         char_vocab_index,
-                         char_pad,
-                         char_feat_enable,
-                         enable_shuffle,
-                         buffer_size,
-                         data_size,
-                         batch_size,
-                         random_seed):
-    """create data pipeline for reading comprehension model"""
-    default_pad_id = tf.constant(0, shape=[], dtype=tf.int32)
-    default_dataset_tensor = tf.constant(0, shape=[1,1], dtype=tf.int32)
-    
-    if word_feat_enable == True:
-        word_pad_id = tf.cast(word_vocab_index.lookup(tf.constant(word_pad)), dtype=tf.int32)
-    else:
-        word_pad_id = default_pad_id
-        input_question_word_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(data_size)
-        input_context_word_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(data_size)
-        input_answer_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(data_size)
-    
-    if subword_feat_enable == True:
-        subword_pad_id = tf.cast(subword_vocab_index.lookup(tf.constant(subword_pad)), dtype=tf.int32)
-    else:
-        subword_pad_id = default_pad_id
-        input_question_subword_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(data_size)
-        input_context_subword_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(data_size)
-    
-    if char_feat_enable == True:
-        char_pad_id = tf.cast(char_vocab_index.lookup(tf.constant(char_pad)), dtype=tf.int32)
-    else:
-        char_pad_id = default_pad_id
-        input_question_char_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(data_size)
-        input_context_char_dataset = tf.data.Dataset.from_tensors(default_dataset_tensor).repeat(data_size)
-    
-    dataset = tf.data.Dataset.zip((input_question_word_dataset, input_question_subword_dataset, input_question_char_dataset,
-        input_context_word_dataset, input_context_subword_dataset, input_context_char_dataset, input_answer_dataset))
-    
-    if enable_shuffle == True:
-        buffer_size = min(buffer_size, data_size)
-        dataset = dataset.shuffle(buffer_size, random_seed)
-    
-    dataset = dataset.batch(batch_size=batch_size)
-    
-    iterator = dataset.make_initializable_iterator()
-    batch_data = iterator.get_next()
-    
-    if word_feat_enable == True:
-        input_question_word = batch_data[0]
-        input_question_word_mask = tf.cast(tf.not_equal(batch_data[0], word_pad_id), dtype=tf.float32)
-        input_context_word = batch_data[3]
-        input_context_word_mask = tf.cast(tf.not_equal(batch_data[3], word_pad_id), dtype=tf.float32)
-    else:
-        input_question_word = None
-        input_question_word_mask = None
-        input_context_word = None
-        input_context_word_mask = None
-    
-    if subword_feat_enable == True:
-        input_question_subword = batch_data[1]
-        input_question_subword_mask = tf.cast(tf.not_equal(batch_data[1], subword_pad_id), dtype=tf.float32)
-        input_context_subword = batch_data[4]
-        input_context_subword_mask = tf.cast(tf.not_equal(batch_data[4], subword_pad_id), dtype=tf.float32)
-    else:
-        input_question_subword = None
-        input_question_subword_mask = None
-        input_context_subword = None
-        input_context_subword_mask = None
-    
-    if char_feat_enable == True:
-        input_question_char = batch_data[2]
-        input_question_char_mask = tf.cast(tf.not_equal(batch_data[2], char_pad_id), dtype=tf.float32)
-        input_context_char = batch_data[5]
-        input_context_char_mask = tf.cast(tf.not_equal(batch_data[5], char_pad_id), dtype=tf.float32)
-    else:
-        input_question_char = None
-        input_question_char_mask = None
-        input_context_char = None
-        input_context_char_mask = None
-    
-    if input_answer_type == "span":
-        index_pad_id = tf.constant(0, shape=[], dtype=tf.int32)
-        input_answer = batch_data[6]
-        input_answer_mask = tf.cast(tf.greater_equal(batch_data[6], index_pad_id), dtype=tf.float32)
-    elif input_answer_type == "text":
-        input_answer = batch_data[6]
-        input_answer_mask = tf.cast(tf.not_equal(batch_data[6], word_pad_id), dtype=tf.float32)
-    else:
-        input_answer = None
-        input_answer_mask = None
-    
-    return DataPipeline(initializer=iterator.initializer,
-        input_question_word=input_question_word, input_question_subword=input_question_subword,
-        input_question_char=input_question_char, input_context_word=input_context_word, input_context_subword=input_context_subword,
-        input_context_char=input_context_char, input_answer=input_answer, input_question_word_mask=input_question_word_mask,
-        input_question_subword_mask=input_question_subword_mask, input_question_char_mask=input_question_char_mask,
-        input_context_word_mask=input_context_word_mask, input_context_subword_mask=input_context_subword_mask,
-        input_context_char_mask=input_context_char_mask, input_answer_mask=input_answer_mask,
-        input_question_placeholder=None, input_question_word_placeholder=None,
-        input_question_subword_placeholder=None, input_question_char_placeholder=None,
-        input_context_placeholder=None, input_context_word_placeholder=None,
-        input_context_subword_placeholder=None, input_context_char_placeholder=None,
-        input_answer_placeholder=None, data_size_placeholder=None, batch_size_placeholder=None)
 
 def create_src_data(input_data,
                     word_vocab_index,
