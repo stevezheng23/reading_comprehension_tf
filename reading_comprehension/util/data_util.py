@@ -472,15 +472,15 @@ def create_embedding_file(embedding_file,
                           embedding_table):
     """create embedding file based on embedding table"""
     embedding_dir = os.path.dirname(embedding_file)
-    if not tf.gfile.Exists(embedding_dir):
-        tf.gfile.MakeDirs(embedding_dir)
+    if not os.path.exists(embedding_dir):
+        os.path.mkdir(embedding_dir)
     
-    if not tf.gfile.Exists(embedding_file):
-        with codecs.getwriter("utf-8")(tf.gfile.GFile(embedding_file, "w")) as file:
+    if not os.path.exists(embedding_file):
+        with open(embedding_file, 'wb') as file:
             for vocab in embedding_table.keys():
                 embed = embedding_table[vocab]
                 embed_str = " ".join(map(str, embed))
-                file.write("{0} {1}\n".format(vocab, embed_str))
+                file.write("{0} {1}\n".format(vocab, embed_str).encode('utf-8'))
 
 def load_embedding_file(embedding_file,
                         embedding_size,
@@ -489,11 +489,11 @@ def load_embedding_file(embedding_file,
                         sos,
                         eos):
     """load pre-train embeddings from embedding file"""
-    if tf.gfile.Exists(embedding_file):
-        with codecs.getreader("utf-8")(tf.gfile.GFile(embedding_file, "rb")) as file:
+    if os.path.exists(embedding_file):
+        with open(embedding_file, 'rb') as file:
             embedding = {}
             for line in file:
-                items = line.strip().split(' ')
+                items = line.decode('utf-8').strip().split(' ')
                 if len(items) != embedding_size + 1:
                     continue
                 word = items[0]
@@ -526,21 +526,21 @@ def create_vocab_file(vocab_file,
                       vocab_table):
     """create vocab file based on vocab table"""
     vocab_dir = os.path.dirname(vocab_file)
-    if not tf.gfile.Exists(vocab_dir):
-        tf.gfile.MakeDirs(vocab_dir)
+    if not os.path.exists(vocab_dir):
+        os.path.mkdir(vocab_dir)
     
-    if not tf.gfile.Exists(vocab_file):
-        with codecs.getwriter("utf-8")(tf.gfile.GFile(vocab_file, "w")) as file:
+    if not os.path.exists(vocab_file):
+        with open(vocab_file, 'wb') as file:
             for vocab in vocab_table:
-                file.write("{0}\n".format(vocab))
+                file.write("{0}\n".format(vocab).encode('utf-8'))
 
 def load_vocab_file(vocab_file):
     """load vocab data from vocab file"""
-    if tf.gfile.Exists(vocab_file):
-        with codecs.getreader("utf-8")(tf.gfile.GFile(vocab_file, "rb")) as file:
+    if os.path.exists(vocab_file):
+        with open(vocab_file, 'rb') as file:
             vocab = {}
             for line in file:
-                items = line.strip().split('\t')
+                items = line.decode('utf-8').strip().split('\t')
                 
                 item_size = len(items)
                 if item_size > 1:
@@ -655,11 +655,11 @@ def create_char_vocab(input_data):
 
 def load_tsv_data(input_file):
     """load data from tsv file"""
-    if tf.gfile.Exists(input_file):
-        with codecs.getreader("utf-8")(tf.gfile.GFile(input_file, "rb")) as file:
+    if os.path.exists(input_file):
+        with open(input_file, 'rb') as file:
             input_data = []
             for line in file:
-                input_data.append(line.strip())
+                input_data.append(line.decode('utf-8').strip())
             
             return input_data
     else:
@@ -667,8 +667,8 @@ def load_tsv_data(input_file):
 
 def load_json_data(input_file):
     """load data from json file"""
-    if tf.gfile.Exists(input_file):
-        with codecs.getreader("utf-8")(tf.gfile.GFile(input_file, "rb")) as file:
+    if os.path.exists(input_file):
+        with open(input_file, 'r') as file:
             input_data = json.load(file)
             
             return input_data
@@ -785,11 +785,11 @@ def prepare_data(logger,
     """prepare data"""    
     word_embed_data = None
     if pretrain_word_embed == True:
-        if tf.gfile.Exists(word_embed_file):
+        if os.path.exists(word_embed_file):
             logger.log_print("# loading word embeddings from {0}".format(word_embed_file))
             word_embed_data = load_embedding_file(word_embed_file,
                 word_embed_dim, word_unk, word_pad, word_sos, word_eos)
-        elif tf.gfile.Exists(full_word_embed_file):
+        elif os.path.exists(full_word_embed_file):
             logger.log_print("# loading word embeddings from {0}".format(full_word_embed_file))
             word_embed_data = load_embedding_file(full_word_embed_file,
                 word_embed_dim, word_unk, word_pad, word_sos, word_eos)
@@ -802,7 +802,7 @@ def prepare_data(logger,
     word_vocab = None
     word_vocab_index = None
     word_vocab_inverted_index = None
-    if tf.gfile.Exists(word_vocab_file):
+    if os.path.exists(word_vocab_file):
         logger.log_print("# loading word vocab table from {0}".format(word_vocab_file))
         word_vocab = load_vocab_file(word_vocab_file)
         (word_vocab_table, word_vocab_size, word_vocab_index,
@@ -825,7 +825,7 @@ def prepare_data(logger,
     subword_vocab_index = None
     subword_vocab_inverted_index = None
     if subword_feat_enable is True:
-        if tf.gfile.Exists(subword_vocab_file):
+        if os.path.exists(subword_vocab_file):
             logger.log_print("# loading subword vocab table from {0}".format(subword_vocab_file))
             subword_vocab = load_vocab_file(subword_vocab_file)
             (_, subword_vocab_size, subword_vocab_index,
@@ -848,7 +848,7 @@ def prepare_data(logger,
     char_vocab_index = None
     char_vocab_inverted_index = None
     if char_feat_enable is True:
-        if tf.gfile.Exists(char_vocab_file):
+        if os.path.exists(char_vocab_file):
             logger.log_print("# loading char vocab table from {0}".format(char_vocab_file))
             char_vocab = load_vocab_file(char_vocab_file)
             (_, char_vocab_size, char_vocab_index,
@@ -870,7 +870,7 @@ def prepare_data(logger,
     if word_embed_data is not None and word_vocab_table is not None:
         word_embed_data = { k: word_embed_data[k] for k in word_vocab_table if k in word_embed_data }
         logger.log_print("# word embedding table has {0} words after filtering".format(len(word_embed_data)))
-        if not tf.gfile.Exists(word_embed_file):
+        if not os.path.exists(word_embed_file):
             logger.log_print("# creating word embedding file {0}".format(word_embed_file))
             create_embedding_file(word_embed_file, word_embed_data)
         
