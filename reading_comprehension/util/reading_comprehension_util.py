@@ -12,6 +12,8 @@ def create_variable_initializer(initializer_type,
     """create variable initializer"""
     if initializer_type == "zero":
         initializer = tf.zeros_initializer
+    elif initializer_type == "one":
+        initializer = tf.ones_initializer
     elif initializer_type == "orthogonal":
         initializer = tf.orthogonal_initializer(seed=random_seed, dtype=data_type)
     elif initializer_type == "random_uniform":
