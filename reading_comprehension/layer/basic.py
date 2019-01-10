@@ -53,7 +53,7 @@ class LayerNorm(object):
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            gamma_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
+            gamma_initializer = create_variable_initializer("one")
             beta_initializer = create_variable_initializer("zero")
             self.gamma = tf.get_variable("gamma", shape=[self.layer_dim], initializer=gamma_initializer,
                 regularizer=self.regularizer, trainable=self.trainable, dtype=tf.float32)

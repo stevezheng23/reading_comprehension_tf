@@ -155,6 +155,8 @@ def preprocess(file_name):
                         answer_word_start, answer_word_end = get_word_span(char_spans,
                             answer_char_start, answer_char_end)
                         
+                        answer_text = " ".join(norm_context.split(' ')[answer_word_start:answer_word_end+1])
+                        
                         processed_data["answers"].append({
                             "text": answer_text,
                             "start": answer_word_start,
