@@ -193,7 +193,6 @@ class BiDAF(BaseModel):
         fusion_hidden_activation = self.hyperparams.model_representation_fusion_hidden_activation
         fusion_dropout = self.hyperparams.model_representation_fusion_dropout if self.mode == "train" else 0.0
         fusion_trainable = self.hyperparams.model_representation_fusion_trainable
-        random_seed = self.hyperparams.train_random_seed
         default_representation_gpu_id = self.default_gpu_id
         
         with tf.variable_scope("representation", reuse=tf.AUTO_REUSE):
@@ -205,7 +204,7 @@ class BiDAF(BaseModel):
             if word_feat_enable == True:
                 self.logger.log_print("# build word-level representation layer")
                 word_feat_layer = WordFeat(vocab_size=word_vocab_size, embed_dim=word_embed_dim, pretrained=word_embed_pretrained,
-                    regularizer=self.regularizer, random_seed=random_seed, trainable=word_feat_trainable)
+                    regularizer=self.regularizer, random_seed=self.random_seed, trainable=word_feat_trainable)
                 
                 (input_question_word_feat,
                     input_question_word_feat_mask) = word_feat_layer(input_question_word, input_question_word_mask)
@@ -229,7 +228,7 @@ class BiDAF(BaseModel):
                     unit_dim=subword_unit_dim, window_size=subword_window_size, hidden_activation=subword_hidden_activation,
                     pooling_type=subword_pooling_type, dropout=subword_dropout, num_gpus=self.num_gpus,
                     default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer,
-                    random_seed=random_seed, trainable=subword_feat_trainable)
+                    random_seed=self.random_seed, trainable=subword_feat_trainable)
                 
                 (input_question_subword_feat,
                     input_question_subword_feat_mask) = subword_feat_layer(input_question_subword, input_question_subword_mask)
@@ -249,7 +248,7 @@ class BiDAF(BaseModel):
                     unit_dim=char_unit_dim, window_size=char_window_size, hidden_activation=char_hidden_activation,
                     pooling_type=char_pooling_type, dropout=char_dropout, num_gpus=self.num_gpus,
                     default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer,
-                    random_seed=random_seed, trainable=char_feat_trainable)
+                    random_seed=self.random_seed, trainable=char_feat_trainable)
                 
                 (input_question_char_feat,
                     input_question_char_feat_mask) = char_feat_layer(input_question_char, input_question_char_mask)
@@ -266,7 +265,7 @@ class BiDAF(BaseModel):
             feat_unit_dim = word_unit_dim + subword_unit_dim + char_unit_dim
             feat_fusion_layer = self._create_fusion_layer(feat_unit_dim, fusion_unit_dim,
                 fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_representation_gpu_id, self.regularizer, random_seed, fusion_trainable)
+                self.num_gpus, default_representation_gpu_id, self.regularizer, self.random_seed, fusion_trainable)
             
             input_question_feat, input_question_feat_mask = self._build_fusion_result(input_question_feat_list,
                 input_question_feat_mask_list, feat_fusion_layer)
@@ -298,7 +297,6 @@ class BiDAF(BaseModel):
         context_understanding_residual_connect = self.hyperparams.model_understanding_context_residual_connect
         context_understanding_trainable = self.hyperparams.model_understanding_context_trainable
         enable_understanding_sharing = self.hyperparams.model_understanding_enable_sharing
-        random_seed = self.hyperparams.train_random_seed
         default_understanding_gpu_id = self.default_gpu_id
         
         with tf.variable_scope("understanding", reuse=tf.AUTO_REUSE):
@@ -307,7 +305,7 @@ class BiDAF(BaseModel):
                 question_understanding_layer = create_recurrent_layer("bi", question_understanding_num_layer,
                     question_understanding_unit_dim, question_understanding_cell_type, question_understanding_hidden_activation,
                     question_understanding_dropout, question_understanding_forget_bias, question_understanding_residual_connect,
-                    None, self.num_gpus, default_understanding_gpu_id, random_seed, question_understanding_trainable)
+                    None, self.num_gpus, default_understanding_gpu_id, self.random_seed, question_understanding_trainable)
                 
                 (question_understanding, question_understanding_mask,
                     _, _) = question_understanding_layer(question_feat, question_feat_mask)
@@ -320,7 +318,7 @@ class BiDAF(BaseModel):
                     context_understanding_layer = create_recurrent_layer("bi", context_understanding_num_layer,
                         context_understanding_unit_dim, context_understanding_cell_type, context_understanding_hidden_activation,
                         context_understanding_dropout, context_understanding_forget_bias, context_understanding_residual_connect,
-                        None, self.num_gpus, default_understanding_gpu_id, random_seed, context_understanding_trainable)
+                        None, self.num_gpus, default_understanding_gpu_id, self.random_seed, context_understanding_trainable)
                 
                 (context_understanding, context_understanding_mask,
                     _, _) = context_understanding_layer(context_feat, context_feat_mask)
@@ -355,8 +353,7 @@ class BiDAF(BaseModel):
         fusion_trainable = self.hyperparams.model_interaction_fusion_trainable
         fusion_combo_enable = self.hyperparams.model_interaction_fusion_combo_enable
         enable_interaction_sharing = self.hyperparams.model_interaction_enable_sharing
-        random_seed = self.hyperparams.train_random_seed
-        default_interaction_gpu_id = self.default_gpu_id + 1
+        default_interaction_gpu_id = self.default_gpu_id
         
         with tf.variable_scope("interaction", reuse=tf.AUTO_REUSE):
             answer_intermediate_list = [context_understanding]
@@ -372,7 +369,7 @@ class BiDAF(BaseModel):
                         context2question_interaction_attention_dim, context2question_interaction_score_type,
                         context2question_interaction_dropout, context2question_interaction_att_dropout, 0.0,
                         False, False, False, attention_matrix, self.num_gpus, default_interaction_gpu_id,
-                        self.regularizer, random_seed, context2question_interaction_trainable)
+                        self.regularizer, self.random_seed, context2question_interaction_trainable)
                     
                     if enable_interaction_sharing == True:
                         attention_matrix = context2question_attention_layer.get_attention_matrix()
@@ -401,7 +398,7 @@ class BiDAF(BaseModel):
                         question2context_interaction_attention_dim, question2context_interaction_score_type,
                         question2context_interaction_dropout, question2context_interaction_att_dropout, 0.0,
                         False, False, False, attention_matrix, self.num_gpus, default_interaction_gpu_id,
-                        self.regularizer, random_seed, question2context_interaction_trainable)
+                        self.regularizer, self.random_seed, question2context_interaction_trainable)
                     
                     (question2context_interaction,
                         question2context_interaction_mask) = question2context_attention_layer(context_understanding,
@@ -420,7 +417,7 @@ class BiDAF(BaseModel):
             
             answer_interaction_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim,
                 fusion_unit_dim, fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_interaction_gpu_id, self.regularizer, random_seed, fusion_trainable)
+                self.num_gpus, default_interaction_gpu_id, self.regularizer, self.random_seed, fusion_trainable)
             answer_interaction, answer_interaction_mask = self._build_fusion_result(answer_intermediate_list,
                 answer_intermediate_mask_list, answer_interaction_fusion_layer)
         
@@ -449,15 +446,14 @@ class BiDAF(BaseModel):
         fusion_hidden_activation = self.hyperparams.model_modeling_fusion_hidden_activation
         fusion_dropout = self.hyperparams.model_modeling_fusion_dropout if self.mode == "train" else 0.0
         fusion_trainable = self.hyperparams.model_modeling_fusion_trainable
-        random_seed = self.hyperparams.train_random_seed
-        default_modeling_gpu_id = self.default_gpu_id + 2
+        default_modeling_gpu_id = self.default_gpu_id
         
         with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE):
             self.logger.log_print("# build answer modeling layer")
             answer_modeling_sequence_layer = create_recurrent_layer("bi", answer_modeling_num_layer,
                 answer_modeling_unit_dim, answer_modeling_cell_type, answer_modeling_hidden_activation,
                 answer_modeling_dropout, answer_modeling_forget_bias, answer_modeling_residual_connect,
-                None, self.num_gpus, default_modeling_gpu_id, random_seed, answer_modeling_trainable)
+                None, self.num_gpus, default_modeling_gpu_id, self.random_seed, answer_modeling_trainable)
             
             (answer_modeling_sequence, answer_modeling_sequence_mask,
                 _, _) = answer_modeling_sequence_layer(answer_interaction, answer_interaction_mask)
@@ -471,7 +467,7 @@ class BiDAF(BaseModel):
                     answer_modeling_sequence_unit_dim, answer_modeling_sequence_unit_dim,
                     answer_modeling_attention_dim, answer_modeling_score_type,
                     answer_modeling_dropout, answer_modeling_att_dropout, 0.0, False, False, True, None,
-                    self.num_gpus, default_modeling_gpu_id, self.regularizer, random_seed, answer_modeling_trainable)
+                    self.num_gpus, default_modeling_gpu_id, self.regularizer, self.random_seed, answer_modeling_trainable)
 
                 (answer_modeling_attention, answer_modeling_attention_mask,
                     _, _) = answer_modeling_attention_layer(answer_modeling_sequence,
@@ -488,7 +484,7 @@ class BiDAF(BaseModel):
             
             answer_modeling_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim,
                 fusion_unit_dim, fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_modeling_gpu_id, self.regularizer, random_seed, fusion_trainable)
+                self.num_gpus, default_modeling_gpu_id, self.regularizer, self.random_seed, fusion_trainable)
             answer_modeling, answer_modeling_mask = self._build_fusion_result(answer_intermediate_list,
                 answer_intermediate_mask_list, answer_modeling_fusion_layer)
         
@@ -515,7 +511,6 @@ class BiDAF(BaseModel):
         answer_end_forget_bias = self.hyperparams.model_output_answer_end_forget_bias
         answer_end_residual_connect = self.hyperparams.model_output_answer_end_residual_connect
         answer_end_trainable = self.hyperparams.model_output_answer_end_trainable
-        random_seed = self.hyperparams.train_random_seed
         default_output_gpu_id = self.default_gpu_id
         
         with tf.variable_scope("output", reuse=tf.AUTO_REUSE):
@@ -529,7 +524,7 @@ class BiDAF(BaseModel):
                 answer_start_layer = create_recurrent_layer("bi", answer_start_num_layer,
                     answer_start_unit_dim, answer_start_cell_type, answer_start_hidden_activation,
                     answer_start_dropout, answer_start_forget_bias, answer_start_residual_connect,
-                    None, self.num_gpus, default_output_gpu_id, random_seed, answer_start_trainable)
+                    None, self.num_gpus, default_output_gpu_id, self.random_seed, answer_start_trainable)
                 answer_start, answer_start_mask, _, _ = answer_start_layer(answer_modeling, answer_modeling_mask)
                 
                 (answer_start_fusion,
@@ -538,7 +533,7 @@ class BiDAF(BaseModel):
                 
                 answer_start_output_layer = create_dense_layer("single", 1, 1, 1, "",
                     [answer_start_dropout], None, False, False, False, self.num_gpus, default_output_gpu_id,
-                    self.regularizer, random_seed, answer_start_trainable)
+                    self.regularizer, self.random_seed, answer_start_trainable)
                 (answer_start_output,
                     answer_start_output_mask) = answer_start_output_layer(answer_start_fusion,
                         answer_start_fusion_mask)
@@ -555,7 +550,7 @@ class BiDAF(BaseModel):
                 answer_end_layer = create_recurrent_layer("bi", answer_end_num_layer,
                     answer_end_unit_dim, answer_end_cell_type, answer_end_hidden_activation,
                     answer_end_dropout, answer_end_forget_bias, answer_end_residual_connect,
-                    None, self.num_gpus, default_output_gpu_id, random_seed, answer_end_trainable)
+                    None, self.num_gpus, default_output_gpu_id, self.random_seed, answer_end_trainable)
                 answer_end, answer_end_mask, _, _ = answer_end_layer(answer_intermediate, answer_intermediate_mask)
                 
                 (answer_end_fusion,
@@ -564,7 +559,7 @@ class BiDAF(BaseModel):
                 
                 answer_end_output_layer = create_dense_layer("single", 1, 1, 1, "",
                     [answer_end_dropout], None, False, False, False, self.num_gpus, default_output_gpu_id,
-                    self.regularizer, random_seed, answer_end_trainable)
+                    self.regularizer, self.random_seed, answer_end_trainable)
                 (answer_end_output,
                     answer_end_output_mask) = answer_end_output_layer(answer_end_fusion,
                         answer_end_fusion_mask)
