@@ -57,6 +57,8 @@ class BaseModel(object):
                 self.hyperparams.train_regularization_scale)
         else:
             self.regularizer = None
+        
+        self.random_seed = self.hyperparams.train_random_seed
     
     def _create_fusion_layer(self,
                              input_unit_dim,
@@ -159,7 +161,6 @@ class BaseModel(object):
         fusion_hidden_activation = self.hyperparams.model_representation_fusion_hidden_activation
         fusion_dropout = self.hyperparams.model_representation_fusion_dropout if self.mode == "train" else 0.0
         fusion_trainable = self.hyperparams.model_representation_fusion_trainable
-        random_seed = self.hyperparams.train_random_seed
         default_representation_gpu_id = self.default_gpu_id
         
         with tf.variable_scope("representation", reuse=tf.AUTO_REUSE):
@@ -171,7 +172,7 @@ class BaseModel(object):
             if word_feat_enable == True:
                 self.logger.log_print("# build word-level representation layer")
                 word_feat_layer = WordFeat(vocab_size=word_vocab_size, embed_dim=word_embed_dim, pretrained=word_embed_pretrained,
-                    regularizer=self.regularizer, random_seed=random_seed, trainable=word_feat_trainable)
+                    regularizer=self.regularizer, random_seed=self.random_seed, trainable=word_feat_trainable)
                 
                 (input_question_word_feat,
                     input_question_word_feat_mask) = word_feat_layer(input_question_word, input_question_word_mask)
@@ -195,7 +196,7 @@ class BaseModel(object):
                     unit_dim=subword_unit_dim, window_size=subword_window_size, hidden_activation=subword_hidden_activation,
                     pooling_type=subword_pooling_type, dropout=subword_dropout, num_gpus=self.num_gpus,
                     default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer,
-                    random_seed=random_seed, trainable=subword_feat_trainable)
+                    random_seed=self.random_seed, trainable=subword_feat_trainable)
                 
                 (input_question_subword_feat,
                     input_question_subword_feat_mask) = subword_feat_layer(input_question_subword, input_question_subword_mask)
@@ -215,7 +216,7 @@ class BaseModel(object):
                     unit_dim=char_unit_dim, window_size=char_window_size, hidden_activation=char_hidden_activation,
                     pooling_type=char_pooling_type, dropout=char_dropout, num_gpus=self.num_gpus,
                     default_gpu_id=default_representation_gpu_id, regularizer=self.regularizer,
-                    random_seed=random_seed, trainable=char_feat_trainable)
+                    random_seed=self.random_seed, trainable=char_feat_trainable)
                 
                 (input_question_char_feat,
                     input_question_char_feat_mask) = char_feat_layer(input_question_char, input_question_char_mask)
@@ -232,7 +233,7 @@ class BaseModel(object):
             feat_unit_dim = word_unit_dim + subword_unit_dim + char_unit_dim
             feat_fusion_layer = self._create_fusion_layer(feat_unit_dim, fusion_unit_dim,
                 fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_representation_gpu_id, self.regularizer, random_seed, fusion_trainable)
+                self.num_gpus, default_representation_gpu_id, self.regularizer, self.random_seed, fusion_trainable)
             
             input_question_feat, input_question_feat_mask = self._build_fusion_result(input_question_feat_list,
                 input_question_feat_mask_list, feat_fusion_layer)
