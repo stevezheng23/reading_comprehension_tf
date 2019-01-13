@@ -51,6 +51,7 @@
     "train_step_per_eval": 1000,
     "train_clip_norm": 5.0,
     "train_label_smoothing": 0.0,
+    "train_enable_debugging": false,
     "train_ema_enable": true,
     "train_ema_decay_rate": 0.9999,
     "train_regularization_enable": true,

@@ -58,7 +58,7 @@ class BaseModel(object):
         else:
             self.regularizer = None
         
-        self.random_seed = self.hyperparams.train_random_seed
+        self.random_seed = self.hyperparams.train_random_seed if self.hyperparams.train_enable_debugging else None
     
     def _create_fusion_layer(self,
                              input_unit_dim,
