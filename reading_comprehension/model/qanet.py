@@ -727,7 +727,7 @@ class EncoderBlock(object):
         self.scope = scope
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
-            self.position_layer = create_position_layer("sin_pos", self.unit_dim, 0, 10000,
+            self.position_layer = create_position_layer("sin_pos", 0, 0, 1, 10000,
                 self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
             
             conv_layer_dropout = [self.layer_dropout * float(i + self.sublayer_skip) / self.num_sublayer for i in range(self.num_conv)]

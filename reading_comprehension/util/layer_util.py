@@ -43,7 +43,8 @@ def create_embedding_layer(vocab_size,
 def create_position_layer(position_type,
                           unit_dim,
                           max_length,
-                          time_scale,
+                          min_time_scale,
+                          max_time_scale,
                           num_gpus,
                           default_gpu_id,
                           regularizer,
@@ -52,7 +53,7 @@ def create_position_layer(position_type,
     """create position layer"""
     scope = "position/{0}".format(position_type)
     if position_type == "sin_pos":
-        position_layer = SinusoidPosition(unit_dim=unit_dim, time_scale=time_scale,
+        position_layer = SinusoidPosition(min_time_scale=min_time_scale, max_time_scale=max_time_scale,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, scope=scope)
     elif position_type == "abs_pos":
         position_layer = AbsolutePosition(unit_dim=unit_dim, max_length=max_length,
