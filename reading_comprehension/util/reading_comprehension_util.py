@@ -30,6 +30,9 @@ def create_variable_initializer(initializer_type,
         initializer = tf.glorot_normal_initializer(seed=random_seed, dtype=data_type)
     elif initializer_type == "xavier_normal":
         initializer = tf.contrib.layers.xavier_initializer(uniform=False, seed=random_seed, dtype=tf.float32)
+    elif initializer_type == "variance_scaling":
+        initializer = tf.contrib.layers.variance_scaling_initializer(factor=2.0,
+            mode='FAN_IN', uniform=False, seed=random_seed, dtype=tf.float32)
     else:
         initializer = None
     
