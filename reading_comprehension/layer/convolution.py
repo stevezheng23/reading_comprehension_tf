@@ -47,7 +47,8 @@ class Conv1D(object):
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            weight_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
+            weight_initializer = (create_variable_initializer("variance_scaling", self.random_seed)
+                if self.activation == "relu" else create_variable_initializer("glorot_uniform", self.random_seed))
             bias_initializer = create_variable_initializer("zero")
             conv_activation = create_activation_function(self.activation)
             self.conv_layer = tf.layers.Conv1D(filters=self.num_filter, kernel_size=window_size,
@@ -124,7 +125,8 @@ class Conv2D(object):
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            weight_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
+            weight_initializer = (create_variable_initializer("variance_scaling", self.random_seed)
+                if self.activation == "relu" else create_variable_initializer("glorot_uniform", self.random_seed))
             bias_initializer = create_variable_initializer("zero")
             conv_activation = create_activation_function(self.activation)
             self.conv_layer = tf.layers.Conv2D(filters=self.num_filter, kernel_size=[1, window_size],
@@ -337,7 +339,8 @@ class SeparableConv1D(object):
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            weight_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
+            weight_initializer = (create_variable_initializer("variance_scaling", self.random_seed)
+                if self.activation == "relu" else create_variable_initializer("glorot_uniform", self.random_seed))
             bias_initializer = create_variable_initializer("zero")
             self.depthwise_filter = tf.get_variable("depthwise_filter",
                 shape=[1, self.window_size, self.num_channel, self.num_multiplier], initializer=weight_initializer,
@@ -428,7 +431,8 @@ class SeparableConv2D(object):
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            weight_initializer = create_variable_initializer("glorot_uniform", self.random_seed)
+            weight_initializer = (create_variable_initializer("variance_scaling", self.random_seed)
+                if self.activation == "relu" else create_variable_initializer("glorot_uniform", self.random_seed))
             bias_initializer = create_variable_initializer("zero")
             self.depthwise_filter = tf.get_variable("depthwise_filter",
                 shape=[1, self.window_size, self.num_channel, self.num_multiplier], initializer=weight_initializer,
