@@ -121,29 +121,24 @@ class QANet(BaseModel):
                 
                 """minimize optimization loss"""
                 self.logger.log_print("# setup loss minimization mechanism")
-                self.update_model, self.clipped_gradients, self.gradient_norm = self._minimize_loss(self.train_loss)
+                self.opt_op, self.clipped_gradients, self.gradient_norm = self._minimize_loss(self.train_loss)
                 
                 if self.hyperparams.train_ema_enable == True:
-                    with tf.control_dependencies([self.update_model]):
-                        self.update_op = self.ema.apply(self.trainable_variables)
-                        self.variable_lookup = {}
-                        for v in self.global_variables:
-                            avg_v = self.ema.average(v)
-                            if avg_v is not None:
-                                self.variable_lookup[self.ema.average_name(v)] = avg_v
-                            else:
-                                self.variable_lookup[v.op.name] = v
+                    with tf.control_dependencies([self.opt_op]):
+                        self.ema_op = self.ema.apply(self.trainable_variables)
+                        with tf.control_dependencies([self.ema_op]):
+                            assign_op_list = []
+                            for v in self.global_variables:
+                                avg_v = self.ema.average(v)
+                                if avg_v is not None:
+                                    assign_op_list.append(tf.assign(v, avg_v))
+                            
+                            self.update_op = tf.group(assign_op_list)
                 else:
-                    self.update_op = self.update_model
+                    self.update_op = self.update_op
                 
                 """create train summary"""
                 self.train_summary = self._get_train_summary()
-            
-            
-            train_set = set([v.op.name for v in self.trainable_variables])
-            global_set = set([v.op.name for v in self.global_variables])
-            diff_set = global_set.difference(train_set)
-            print(diff_set)
             
             """create checkpoint saver"""
             if not tf.gfile.Exists(self.hyperparams.train_ckpt_output_dir):
@@ -161,7 +156,7 @@ class QANet(BaseModel):
             self.ckpt_debug_name = os.path.join(self.ckpt_debug_dir, "model_debug_ckpt")
             self.ckpt_epoch_name = os.path.join(self.ckpt_epoch_dir, "model_epoch_ckpt")
             self.ckpt_debug_saver = tf.train.Saver(self.variable_lookup)
-            self.ckpt_epoch_saver = tf.train.Saver(self.variable_lookup, max_to_keep=self.hyperparams.train_num_epoch)
+            self.ckpt_epoch_saver = tf.train.Saver(self.variable_lookup, max_to_keep=self.hyperparams.train_num_epoch)      
     
     def _build_representation_layer(self,
                                     input_question_word,
