@@ -734,6 +734,9 @@ def validate_data(logger,
     
     input_data = zip(input_mrc_data, input_question_data, input_context_data, input_answer_data)
     for input_mrc, input_question, input_context, input_answer in input_data:
+        question_length = len(input_question.split(' '))
+        context_length = len(input_context.split(' '))
+        
         if answer_type == "text":
             answer_length = len(input_answer.split(' '))
             max_answer_index = -1
@@ -744,7 +747,9 @@ def validate_data(logger,
             answer_length = answer_end - answer_start + 1
             max_answer_index = max(answer_start, answer_end)
         
-        if (answer_length > max_answer_length or
+        if (question_length > max_question_length or 
+            context_length > max_context_length or 
+            answer_length > max_answer_length or
             max_answer_index >= max_context_length):
             continue
         
