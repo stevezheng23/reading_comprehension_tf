@@ -61,11 +61,11 @@ class QANet(BaseModel):
             
             self.trainable_variables = tf.trainable_variables()
             self.global_variables = tf.global_variables()
-            self.variable_lookup = {v.op.name: v for v in self.global_variables}
+            self.variable_list = self.global_variables
             
             if self.hyperparams.train_ema_enable == True:
                 self.ema = tf.train.ExponentialMovingAverage(decay=self.hyperparams.train_ema_decay_rate)
-                self.variable_lookup = self.ema.variables_to_restore(self.trainable_variables)
+                self.variable_list = self.ema.variables_to_restore(self.trainable_variables)
             
             if self.mode == "infer":
                 """get infer answer"""
@@ -124,16 +124,9 @@ class QANet(BaseModel):
                 self.opt_op, self.clipped_gradients, self.gradient_norm = self._minimize_loss(self.train_loss)
                 
                 if self.hyperparams.train_ema_enable == True:
+                    self.variable_list = self.global_variables
                     with tf.control_dependencies([self.opt_op]):
-                        self.ema_op = self.ema.apply(self.trainable_variables)
-                        with tf.control_dependencies([self.ema_op]):
-                            assign_op_list = []
-                            for v in self.global_variables:
-                                avg_v = self.ema.average(v)
-                                if avg_v is not None:
-                                    assign_op_list.append(tf.assign(v, avg_v))
-                            
-                            self.update_op = tf.group(assign_op_list)
+                        self.update_op = self.ema.apply(self.trainable_variables)
                 else:
                     self.update_op = self.update_op
                 
@@ -155,8 +148,8 @@ class QANet(BaseModel):
             
             self.ckpt_debug_name = os.path.join(self.ckpt_debug_dir, "model_debug_ckpt")
             self.ckpt_epoch_name = os.path.join(self.ckpt_epoch_dir, "model_epoch_ckpt")
-            self.ckpt_debug_saver = tf.train.Saver(self.variable_lookup)
-            self.ckpt_epoch_saver = tf.train.Saver(self.variable_lookup, max_to_keep=self.hyperparams.train_num_epoch)      
+            self.ckpt_debug_saver = tf.train.Saver(self.variable_list)
+            self.ckpt_epoch_saver = tf.train.Saver(self.variable_list, max_to_keep=self.hyperparams.train_num_epoch)      
     
     def _build_representation_layer(self,
                                     input_question_word,
