@@ -59,13 +59,11 @@ class QANet(BaseModel):
             self.answer_start = softmax_with_mask(answer_start_output, answer_start_output_mask, axis=-1) * self.answer_start_mask
             self.answer_end = softmax_with_mask(answer_end_output, answer_end_output_mask, axis=-1) * self.answer_end_mask
             
-            self.trainable_variables = tf.trainable_variables()
-            self.global_variables = tf.global_variables()
-            self.variable_list = self.global_variables
-            
             if self.hyperparams.train_ema_enable == True:
                 self.ema = tf.train.ExponentialMovingAverage(decay=self.hyperparams.train_ema_decay_rate)
-                self.variable_list = self.ema.variables_to_restore(self.trainable_variables)
+                self.variable_list = self.ema.variables_to_restore(tf.trainable_variables())
+            else:
+                self.variable_list = tf.global_variables()
             
             if self.mode == "infer":
                 """get infer answer"""
@@ -124,14 +122,13 @@ class QANet(BaseModel):
                 self.opt_op, self.clipped_gradients, self.gradient_norm = self._minimize_loss(self.train_loss)
                 
                 if self.hyperparams.train_ema_enable == True:
-                    self.variable_list = self.global_variables
                     with tf.control_dependencies([self.opt_op]):
-                        self.update_op = self.ema.apply(self.trainable_variables)
+                        self.update_op = self.ema.apply(tf.trainable_variables())
                 else:
-                    self.update_op = self.update_op
+                    self.update_op = self.opt_op
                 
-                """create train summary"""
                 self.train_summary = self._get_train_summary()
+                self.variable_list = tf.global_variables()
             
             """create checkpoint saver"""
             if not tf.gfile.Exists(self.hyperparams.train_ckpt_output_dir):
