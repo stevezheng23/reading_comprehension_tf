@@ -127,8 +127,8 @@ class QANet(BaseModel):
                 else:
                     self.update_op = self.opt_op
                 
+                """create train summary"""                
                 self.train_summary = self._get_train_summary()
-                self.variable_list = tf.global_variables()
             
             """create checkpoint saver"""
             if not tf.gfile.Exists(self.hyperparams.train_ckpt_output_dir):
@@ -145,8 +145,14 @@ class QANet(BaseModel):
             
             self.ckpt_debug_name = os.path.join(self.ckpt_debug_dir, "model_debug_ckpt")
             self.ckpt_epoch_name = os.path.join(self.ckpt_epoch_dir, "model_epoch_ckpt")
-            self.ckpt_debug_saver = tf.train.Saver(self.variable_list)
-            self.ckpt_epoch_saver = tf.train.Saver(self.variable_list, max_to_keep=self.hyperparams.train_num_epoch)      
+            
+            if self.mode == "infer":
+                self.ckpt_debug_saver = tf.train.Saver(self.variable_list)
+                self.ckpt_epoch_saver = tf.train.Saver(self.variable_list, max_to_keep=self.hyperparams.train_num_epoch)  
+            
+            if self.mode == "train":
+                self.ckpt_debug_saver = tf.train.Saver()
+                self.ckpt_epoch_saver = tf.train.Saver(max_to_keep=self.hyperparams.train_num_epoch)      
     
     def _build_representation_layer(self,
                                     input_question_word,
