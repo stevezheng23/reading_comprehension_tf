@@ -54,6 +54,8 @@
     "train_enable_debugging": false,
     "train_ema_enable": true,
     "train_ema_decay_rate": 0.9999,
+    "train_ema_enable_debias": false,
+    "train_ema_enable_dynamic_decay": false,
     "train_regularization_enable": true,
     "train_regularization_type": "l2",
     "train_regularization_scale": 3e-7,
