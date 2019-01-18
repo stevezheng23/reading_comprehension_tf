@@ -127,8 +127,8 @@ class RNet(BaseModel):
                 else:
                     self.update_op = self.opt_op
                 
+                """create train summary"""                
                 self.train_summary = self._get_train_summary()
-                self.variable_list = tf.global_variables()
             
             """create checkpoint saver"""
             if not tf.gfile.Exists(self.hyperparams.train_ckpt_output_dir):
@@ -145,8 +145,14 @@ class RNet(BaseModel):
             
             self.ckpt_debug_name = os.path.join(self.ckpt_debug_dir, "model_debug_ckpt")
             self.ckpt_epoch_name = os.path.join(self.ckpt_epoch_dir, "model_epoch_ckpt")
-            self.ckpt_debug_saver = tf.train.Saver(self.variable_list)
-            self.ckpt_epoch_saver = tf.train.Saver(self.variable_list, max_to_keep=self.hyperparams.train_num_epoch)
+            
+            if self.mode == "infer":
+                self.ckpt_debug_saver = tf.train.Saver(self.variable_list)
+                self.ckpt_epoch_saver = tf.train.Saver(self.variable_list, max_to_keep=self.hyperparams.train_num_epoch)  
+            
+            if self.mode == "train":
+                self.ckpt_debug_saver = tf.train.Saver()
+                self.ckpt_epoch_saver = tf.train.Saver(max_to_keep=self.hyperparams.train_num_epoch) 
     
     def _build_representation_layer(self,
                                     input_question_word,
@@ -638,7 +644,7 @@ class WordFeat(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, self.pretrained, 0, 0, self.regularizer, self.random_seed, self.trainable)
+                self.embed_dim, self.pretrained, 0, 0, None, self.random_seed, self.trainable)
     
     def __call__(self,
                  input_word,
@@ -685,7 +691,7 @@ class SubwordFeat(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, False, 0, 0, self.regularizer, self.random_seed, self.trainable)
+                self.embed_dim, False, 0, 0, None, self.random_seed, self.trainable)
             
             self.recurrent_layer = create_recurrent_layer("bi", 1, self.unit_dim,
                 self.cell_type, self.hidden_activation, self.dropout, 1.0, False, None,
@@ -738,7 +744,7 @@ class CharFeat(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, False, 0, 0, self.regularizer, self.random_seed, self.trainable)
+                self.embed_dim, False, 0, 0, None, self.random_seed, self.trainable)
             
             self.recurrent_layer = create_recurrent_layer("bi", 1, self.unit_dim,
                 self.cell_type, self.hidden_activation, self.dropout, 1.0, False, None,

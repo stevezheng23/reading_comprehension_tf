@@ -861,7 +861,7 @@ class WordFeat(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, self.pretrained, 0, 0, self.regularizer, self.random_seed, self.trainable)
+                self.embed_dim, self.pretrained, 0, 0, None, self.random_seed, self.trainable)
             
             self.dropout_layer = create_dropout_layer(self.dropout, 0, 0, self.random_seed)
     
@@ -912,7 +912,7 @@ class SubwordFeat(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, False, 0, 0, self.regularizer, self.random_seed, self.trainable)
+                self.embed_dim, False, 0, 0, None, self.random_seed, self.trainable)
                         
             self.dropout_layer = create_dropout_layer(self.dropout, 0, 0, self.random_seed)
             
@@ -964,7 +964,7 @@ class CharFeat(object):
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
-                self.embed_dim, False, 0, 0, self.regularizer, self.random_seed, self.trainable)
+                self.embed_dim, False, 0, 0, None, self.random_seed, self.trainable)
             
             self.dropout_layer = create_dropout_layer(self.dropout, 0, 0, self.random_seed)
             
