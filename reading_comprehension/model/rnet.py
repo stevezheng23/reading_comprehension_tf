@@ -60,7 +60,7 @@ class RNet(BaseModel):
             self.answer_end = softmax_with_mask(answer_end_output, answer_end_output_mask, axis=-1) * self.answer_end_mask
             
             if self.hyperparams.train_ema_enable == True:
-                self.ema = tf.train.ExponentialMovingAverage(decay=self.hyperparams.train_ema_decay_rate)
+                self.ema = self._get_exponential_moving_average(self.global_step)
                 self.variable_list = self.ema.variables_to_restore(tf.trainable_variables())
             else:
                 self.variable_list = tf.global_variables()
