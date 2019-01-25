@@ -90,20 +90,8 @@ def create_convolution_layer(conv_type,
             activation=activation, dropout=dropout, layer_dropout=layer_dropout, layer_norm=layer_norm,
             residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
             regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
-    elif conv_type == "2d":
-        conv_layer = StackedConv(layer_creator=Conv2D, num_layer=num_layer, num_channel=num_channel,
-            num_filter=num_filter, window_size=window_size, stride_size=stride_size, padding_type=padding_type,
-            activation=activation, dropout=dropout, layer_dropout=layer_dropout, layer_norm=layer_norm,
-            residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     elif conv_type == "multi_1d":
         conv_layer = StackedMultiConv(layer_creator=MultiConv1D, num_layer=num_layer, num_channel=num_channel,
-            num_filter=num_filter, window_size=window_size, stride_size=stride_size, padding_type=padding_type,
-            activation=activation, dropout=dropout, layer_dropout=layer_dropout, layer_norm=layer_norm,
-            residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
-    elif conv_type == "multi_2d":
-        conv_layer = StackedMultiConv(layer_creator=MultiConv2D, num_layer=num_layer, num_channel=num_channel,
             num_filter=num_filter, window_size=window_size, stride_size=stride_size, padding_type=padding_type,
             activation=activation, dropout=dropout, layer_dropout=layer_dropout, layer_norm=layer_norm,
             residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
@@ -114,20 +102,8 @@ def create_convolution_layer(conv_type,
             stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout, layer_dropout=layer_dropout, 
             layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
             regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
-    elif conv_type == "sep_2d":
-        conv_layer = StackedSeparableConv(layer_creator=SeparableConv2D, num_layer=num_layer,
-            num_channel=num_channel, num_filter=num_filter, num_multiplier=num_multiplier, window_size=window_size, 
-            stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout, layer_dropout=layer_dropout, 
-            layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     elif conv_type == "multi_sep_1d":
         conv_layer = StackedMultiSeparableConv(layer_creator=MultiSeparableConv1D, num_layer=num_layer,
-            num_channel=num_channel, num_filter=num_filter, num_multiplier=num_multiplier, window_size=window_size, 
-            stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout, layer_dropout=layer_dropout, 
-            layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-            regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
-    elif conv_type == "multi_sep_2d":
-        conv_layer = StackedMultiSeparableConv(layer_creator=MultiSeparableConv2D, num_layer=num_layer,
             num_channel=num_channel, num_filter=num_filter, num_multiplier=num_multiplier, window_size=window_size, 
             stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout, layer_dropout=layer_dropout, 
             layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
