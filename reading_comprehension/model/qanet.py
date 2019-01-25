@@ -928,7 +928,7 @@ class SubwordFeat(object):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
                 self.embed_dim, False, 0, 0, None, self.random_seed, self.trainable)
             
-            self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
+            self.conv_layer = create_convolution_layer("multi_1d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
                 False, False, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
             
@@ -988,7 +988,7 @@ class CharFeat(object):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
                 self.embed_dim, False, 0, 0, None, self.random_seed, self.trainable)
             
-            self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
+            self.conv_layer = create_convolution_layer("multi_1d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
                 False, False, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
             
@@ -1001,13 +1001,13 @@ class CharFeat(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             input_char_embedding_mask = tf.expand_dims(input_char_mask, axis=-1)
             input_char_embedding = self.embedding_layer(input_char)
-                        
+            
             (input_char_conv,
                 input_char_conv_mask) = self.conv_layer(input_char_embedding, input_char_embedding_mask)
             
             (input_char_pool,
                 input_char_pool_mask) = self.pooling_layer(input_char_conv, input_char_conv_mask)
-            
+                        
             input_char_feat = input_char_pool
             input_char_feat_mask = input_char_pool_mask
         

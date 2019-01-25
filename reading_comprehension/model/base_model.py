@@ -499,7 +499,7 @@ class SubwordFeat(object):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
                 self.embed_dim, False, 0, 0, None, self.random_seed, self.trainable)
             
-            self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
+            self.conv_layer = create_convolution_layer("multi_1d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
                 False, False, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
             
@@ -559,7 +559,7 @@ class CharFeat(object):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
                 self.embed_dim, False, 0, 0, None, self.random_seed, self.trainable)
             
-            self.conv_layer = create_convolution_layer("multi_2d", 1, self.embed_dim,
+            self.conv_layer = create_convolution_layer("multi_1d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
                 False, False, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
             
