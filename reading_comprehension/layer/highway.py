@@ -50,9 +50,7 @@ class Highway(object):
                  input_mask):
         """call highway layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_data, input_mask = self.dropout_layer(input_data, input_mask)
-            
-            transform = self.transform_layer(input_data)
+            transform, _ = self.dropout_layer(self.transform_layer(input_data), input_mask)
             gate = self.gate_layer(input_data)
             output_highway = transform * gate + input_data * (1 - gate)
             output_mask = input_mask
@@ -106,9 +104,7 @@ class ConvHighway(object):
                  input_mask):
         """call convolutional highway layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_data, input_mask = self.dropout_layer(input_data, input_mask)
-            
-            transform = self.transform_layer(input_data)
+            transform, _ = self.dropout_layer(self.transform_layer(input_data), input_mask)
             gate = self.gate_layer(input_data)
             output_highway = transform * gate + input_data * (1 - gate)
             output_mask = input_mask
