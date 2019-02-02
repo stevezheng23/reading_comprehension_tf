@@ -93,6 +93,7 @@ def create_data_pipeline(input_question_word_dataset,
         dataset = dataset.shuffle(buffer_size, random_seed)
     
     dataset = dataset.batch(batch_size=batch_size_placeholder)
+    dataset = dataset.prefetch(buffer_size=1)
     
     iterator = dataset.make_initializable_iterator()
     batch_data = iterator.get_next()
