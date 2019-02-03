@@ -22,6 +22,7 @@ class Conv1D(object):
                  layer_dropout=0.0,
                  layer_norm=False,
                  residual_connect=False,
+                 use_bias=True,
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
@@ -39,6 +40,7 @@ class Conv1D(object):
         self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
+        self.use_bias = use_bias
         self.regularizer = regularizer
         self.random_seed = random_seed
         self.trainable = trainable
@@ -51,7 +53,7 @@ class Conv1D(object):
             bias_initializer = create_variable_initializer("zero")
             conv_activation = create_activation_function(self.activation)
             self.conv_layer = tf.layers.Conv1D(filters=self.num_filter, kernel_size=window_size,
-                strides=stride_size, padding=self.padding_type, activation=conv_activation, use_bias=True,
+                strides=stride_size, padding=self.padding_type, activation=conv_activation, use_bias=self.use_bias,
                 kernel_initializer=weight_initializer, bias_initializer=bias_initializer,
                 kernel_regularizer=self.regularizer, bias_regularizer=self.regularizer, trainable=trainable)
             
@@ -115,6 +117,7 @@ class MultiConv1D(object):
                  layer_norm=False,
                  layer_dropout=0.0,
                  residual_connect=False,
+                 use_bias=True,
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
@@ -132,6 +135,7 @@ class MultiConv1D(object):
         self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
+        self.use_bias = use_bias
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.regularizer = regularizer
@@ -148,7 +152,7 @@ class MultiConv1D(object):
                 conv_layer = Conv1D(num_channel=self.num_channel, num_filter=self.num_filter,
                     window_size=self.window_size[i], stride_size=self.stride_size, padding_type=self.padding_type,
                     activation=self.activation, dropout=self.dropout, layer_dropout=self.layer_dropout, layer_norm=self.layer_norm,
-                    residual_connect=self.residual_connect, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
+                    residual_connect=self.residual_connect, use_bias=self.use_bias, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
                     regularizer=self.regularizer, random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     
@@ -183,6 +187,7 @@ class SeparableConv1D(object):
                  layer_dropout=0.0,
                  layer_norm=False,
                  residual_connect=False,
+                 use_bias=True,
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
@@ -201,6 +206,7 @@ class SeparableConv1D(object):
         self.layer_dropout=layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
+        self.use_bias = use_bias
         self.regularizer = regularizer
         self.random_seed = random_seed
         self.trainable = trainable
@@ -217,8 +223,9 @@ class SeparableConv1D(object):
             self.pointwise_filter = tf.get_variable("pointwise_filter",
                 shape=[1, 1, self.num_channel * self.num_multiplier, self.num_filter], initializer=weight_initializer,
                 regularizer=self.regularizer, trainable=self.trainable, dtype=tf.float32)
-            self.separable_bias = tf.get_variable("separable_bias", shape=[self.num_filter], initializer=bias_initializer,
-                regularizer=self.regularizer, trainable=trainable, dtype=tf.float32)
+            if self.use_bias == True:
+                self.separable_bias = tf.get_variable("separable_bias", shape=[self.num_filter], initializer=bias_initializer,
+                    regularizer=self.regularizer, trainable=trainable, dtype=tf.float32)
             
             self.strides = [1, 1, self.stride_size, 1]
             self.conv_activation = create_activation_function(self.activation)
@@ -255,7 +262,8 @@ class SeparableConv1D(object):
                 self.pointwise_filter, self.strides, self.padding_type)
             input_conv = tf.squeeze(input_conv, axis=1)
             
-            input_conv = input_conv + self.separable_bias
+            if self.use_bias == True:
+                input_conv = input_conv + self.separable_bias 
             if self.conv_activation != None:
                 input_conv = self.conv_activation(input_conv)
             
@@ -291,6 +299,7 @@ class MultiSeparableConv1D(object):
                  layer_dropout=0.0,
                  layer_norm=False,
                  residual_connect=False,
+                 use_bias=True,
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
@@ -309,6 +318,7 @@ class MultiSeparableConv1D(object):
         self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
+        self.use_bias = use_bias
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.regularizer = regularizer
@@ -325,7 +335,7 @@ class MultiSeparableConv1D(object):
                 conv_layer = SeparableConv1D(num_channel=self.num_channel, num_filter=self.num_filter, num_multiplier=self.num_multiplier,
                     window_size=self.window_size[i], stride_size=self.stride_size, padding_type=self.padding_type,
                     activation=self.activation, dropout=self.dropout, layer_dropout=self.layer_dropout, layer_norm=self.layer_norm,
-                    residual_connect=self.residual_connect, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
+                    residual_connect=self.residual_connect, use_bias=self.use_bias, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
                     regularizer=self.regularizer, random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     
@@ -361,6 +371,7 @@ class StackedConv(object):
                  layer_dropout=None,
                  layer_norm=False,
                  residual_connect=False,
+                 use_bias=True,
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
@@ -380,6 +391,7 @@ class StackedConv(object):
         self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
+        self.use_bias = use_bias
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.regularizer = regularizer
@@ -398,7 +410,7 @@ class StackedConv(object):
                 conv_layer = self.layer_creator(num_channel=self.num_channel, num_filter=self.num_filter,
                     window_size=self.window_size, stride_size=self.stride_size, padding_type=self.padding_type,
                     activation=self.activation, dropout=sublayer_dropout, layer_dropout=sublayer_layer_dropout, layer_norm=self.layer_norm,
-                    residual_connect=self.residual_connect, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
+                    residual_connect=self.residual_connect, use_bias=self.use_bias, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id,
                     regularizer=self.regularizer, random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     
@@ -433,6 +445,7 @@ class StackedMultiConv(object):
                  layer_dropout=None,
                  layer_norm=False,
                  residual_connect=False,
+                 use_bias=True,
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
@@ -452,6 +465,7 @@ class StackedMultiConv(object):
         self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
+        self.use_bias = use_bias
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.regularizer = regularizer
@@ -470,9 +484,9 @@ class StackedMultiConv(object):
                 conv_layer = self.layer_creator(num_channel=self.num_channel, num_filter=self.num_filter,
                     window_size=self.window_size, stride_size=self.stride_size, padding_type=self.padding_type,
                     activation=self.activation, dropout=sublayer_dropout, layer_dropout=sublayer_layer_dropout,
-                    layer_norm=self.layer_norm, residual_connect=self.residual_connect, num_gpus=self.num_gpus,
-                    default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer, random_seed=self.random_seed,
-                    trainable=self.trainable, scope=layer_scope)
+                    layer_norm=self.layer_norm, residual_connect=self.residual_connect, use_bias=self.use_bias,
+                    num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer,
+                    random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     
     def __call__(self,
@@ -507,6 +521,7 @@ class StackedSeparableConv(object):
                  layer_dropout=None,
                  layer_norm=False,
                  residual_connect=False,
+                 use_bias=True,
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
@@ -527,6 +542,7 @@ class StackedSeparableConv(object):
         self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
+        self.use_bias = use_bias
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.regularizer = regularizer
@@ -546,7 +562,7 @@ class StackedSeparableConv(object):
                     num_multiplier=self.num_multiplier, window_size=self.window_size, stride_size=self.stride_size,
                     padding_type=self.padding_type, activation=self.activation, dropout=sublayer_dropout,
                     layer_dropout=sublayer_layer_dropout, layer_norm=self.layer_norm, residual_connect=self.residual_connect,
-                    num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer,
+                    use_bias=self.use_bias, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer,
                     random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     
@@ -582,6 +598,7 @@ class StackedMultiSeparableConv(object):
                  layer_dropout=None,
                  layer_norm=False,
                  residual_connect=False,
+                 use_bias=True,
                  num_gpus=1,
                  default_gpu_id=0,
                  regularizer=None,
@@ -602,6 +619,7 @@ class StackedMultiSeparableConv(object):
         self.layer_dropout = layer_dropout
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
+        self.use_bias = use_bias
         self.num_gpus = num_gpus
         self.default_gpu_id = default_gpu_id
         self.regularizer = regularizer
@@ -621,7 +639,7 @@ class StackedMultiSeparableConv(object):
                     num_multiplier=self.num_multiplier, window_size=self.window_size, stride_size=self.stride_size,
                     padding_type=self.padding_type, activation=self.activation, dropout=sublayer_dropout,
                     layer_dropout=sublayer_layer_dropout, layer_norm=self.layer_norm, residual_connect=self.residual_connect,
-                    num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer,
+                    use_bias=self.use_bias, num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer,
                     random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
                 self.conv_layer_list.append(conv_layer)
     

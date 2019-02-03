@@ -770,7 +770,7 @@ class SubwordFeat(object):
             
             self.conv_layer = create_convolution_layer("multi_1d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
-                False, False, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
+                False, False, True, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
@@ -830,7 +830,7 @@ class CharFeat(object):
             
             self.conv_layer = create_convolution_layer("multi_1d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
-                False, False, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
+                False, False, True, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
