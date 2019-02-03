@@ -26,7 +26,7 @@ class Dropout(object):
         """call dropout layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if self.rate > 0.0:
-                output_dropout = tf.nn.dropout(input_data, self.rate, seed=self.random_seed)
+                output_dropout = tf.nn.dropout(input_data, 1.0 - self.rate, seed=self.random_seed)
             else:
                 output_dropout = input_data
             
