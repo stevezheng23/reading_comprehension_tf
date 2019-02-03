@@ -77,6 +77,7 @@ def create_convolution_layer(conv_type,
                              layer_dropout,
                              layer_norm,
                              residual_connect,
+                             use_bias,
                              num_gpus,
                              default_gpu_id,
                              regularizer,
@@ -88,25 +89,25 @@ def create_convolution_layer(conv_type,
         conv_layer = StackedConv(layer_creator=Conv1D, num_layer=num_layer, num_channel=num_channel,
             num_filter=num_filter, window_size=window_size, stride_size=stride_size, padding_type=padding_type,
             activation=activation, dropout=dropout, layer_dropout=layer_dropout, layer_norm=layer_norm,
-            residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
+            residual_connect=residual_connect, use_bias=use_bias, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
             regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     elif conv_type == "multi_1d":
         conv_layer = StackedMultiConv(layer_creator=MultiConv1D, num_layer=num_layer, num_channel=num_channel,
             num_filter=num_filter, window_size=window_size, stride_size=stride_size, padding_type=padding_type,
             activation=activation, dropout=dropout, layer_dropout=layer_dropout, layer_norm=layer_norm,
-            residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
+            residual_connect=residual_connect, use_bias=use_bias, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
             regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     elif conv_type == "sep_1d":
         conv_layer = StackedSeparableConv(layer_creator=SeparableConv1D, num_layer=num_layer,
             num_channel=num_channel, num_filter=num_filter, num_multiplier=num_multiplier, window_size=window_size, 
             stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout, layer_dropout=layer_dropout, 
-            layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
+            layer_norm=layer_norm, residual_connect=residual_connect, use_bias=use_bias, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
             regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     elif conv_type == "multi_sep_1d":
         conv_layer = StackedMultiSeparableConv(layer_creator=MultiSeparableConv1D, num_layer=num_layer,
             num_channel=num_channel, num_filter=num_filter, num_multiplier=num_multiplier, window_size=window_size, 
             stride_size=stride_size, padding_type=padding_type, activation=activation, dropout=dropout, layer_dropout=layer_dropout, 
-            layer_norm=layer_norm, residual_connect=residual_connect, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
+            layer_norm=layer_norm, residual_connect=residual_connect, use_bias=use_bias, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
             regularizer=regularizer, random_seed=random_seed, trainable=trainable, scope=scope)
     else:
         raise ValueError("unsupported convolution type {0}".format(conv_type))

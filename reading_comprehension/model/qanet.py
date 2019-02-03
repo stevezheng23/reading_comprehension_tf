@@ -743,7 +743,7 @@ class EncoderBlock(object):
             conv_layer_dropout = [self.layer_dropout * float(i + self.sublayer_skip) / self.num_sublayer for i in range(self.num_conv)]
             self.conv_layer = create_convolution_layer("multi_sep_1d", self.num_conv, self.unit_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.activation, [self.dropout] * self.num_conv, conv_layer_dropout,
-                True, True, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
+                True, True, True, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
             
             if unit_dim % num_head != 0 or unit_dim / num_head == 0:
                 raise ValueError("unit dim {0} and # head {1} mis-match".format(unit_dim, num_head))
@@ -928,7 +928,7 @@ class SubwordFeat(object):
             
             self.conv_layer = create_convolution_layer("multi_1d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
-                False, False, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
+                False, False, True, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
@@ -988,7 +988,7 @@ class CharFeat(object):
             
             self.conv_layer = create_convolution_layer("multi_1d", 1, self.embed_dim,
                 self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
-                False, False, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
+                False, False, True, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
     
