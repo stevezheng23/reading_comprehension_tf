@@ -241,7 +241,6 @@ class QANet(BaseModel):
                 (input_context_subword_feat,
                     input_context_subword_feat_mask) = subword_feat_layer(input_context_subword, input_context_subword_mask)
                 
-                subword_unit_dim = subword_embed_dim
                 input_question_feat_list.append(input_question_subword_feat)
                 input_question_feat_mask_list.append(input_question_subword_feat_mask)
                 input_context_feat_list.append(input_context_subword_feat)
@@ -262,7 +261,6 @@ class QANet(BaseModel):
                 (input_context_char_feat,
                     input_context_char_feat_mask) = char_feat_layer(input_context_char, input_context_char_mask)
                 
-                char_unit_dim = char_embed_dim
                 input_question_feat_list.append(input_question_char_feat)
                 input_question_feat_mask_list.append(input_question_char_feat_mask)
                 input_context_feat_list.append(input_context_char_feat)
