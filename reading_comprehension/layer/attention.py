@@ -14,26 +14,32 @@ def _create_attention_matrix(src_unit_dim,
                              attention_score_type,
                              regularizer,
                              random_seed,
-                             trainable):
+                             trainable,
+                             scope="att_matrix"):
     """create attetnion matrix"""
+    scope = "{0}/{1}".format(scope, attention_score_type)
     if attention_score_type == "dot":
         attention_matrix = []
     elif attention_score_type == "scaled_dot":
         attention_matrix = []
     elif attention_score_type == "linear":
-        attention_matrix = _create_linear_attention_matrix(src_unit_dim, trg_unit_dim, regularizer, random_seed, trainable)
+        attention_matrix = _create_linear_attention_matrix(src_unit_dim,
+            trg_unit_dim, regularizer, random_seed, trainable, scope)
     elif attention_score_type == "bilinear":
-        attention_matrix = _create_bilinear_attention_matrix(src_unit_dim, trg_unit_dim, regularizer, random_seed, trainable)
+        attention_matrix = _create_bilinear_attention_matrix(src_unit_dim,
+            trg_unit_dim, regularizer, random_seed, trainable, scope)
     elif attention_score_type == "nonlinear":
         attention_matrix = _create_nonlinear_attention_matrix(src_unit_dim,
-            trg_unit_dim, attention_unit_dim, regularizer, random_seed, trainable)
+            trg_unit_dim, attention_unit_dim, regularizer, random_seed, trainable, scope)
     elif attention_score_type == "linear_plus":
-        attention_matrix = _create_linear_plus_attention_matrix(src_unit_dim, trg_unit_dim, regularizer, random_seed, trainable)
+        attention_matrix = _create_linear_plus_attention_matrix(src_unit_dim,
+            trg_unit_dim, regularizer, random_seed, trainable, scope)
     elif attention_score_type == "nonlinear_plus":
         attention_matrix = _create_nonlinear_plus_attention_matrix(src_unit_dim,
-            trg_unit_dim, attention_unit_dim, regularizer, random_seed, trainable)
+            trg_unit_dim, attention_unit_dim, regularizer, random_seed, trainable, scope)
     elif attention_score_type == "trilinear":
-        attention_matrix = _create_trilinear_attention_matrix(src_unit_dim, trg_unit_dim, regularizer, random_seed, trainable)
+        attention_matrix = _create_trilinear_attention_matrix(src_unit_dim,
+            trg_unit_dim, regularizer, random_seed, trainable, scope)
     else:
         raise ValueError("unsupported attention score type {0}".format(attention_score_type))
     
@@ -43,13 +49,14 @@ def _create_linear_attention_matrix(src_unit_dim,
                                     trg_unit_dim,
                                     regularizer,
                                     random_seed,
-                                    trainable):
+                                    trainable,
+                                    scope="linear"):
     """create linear attetnion matrix"""
     weight_initializer = create_variable_initializer("glorot_uniform", random_seed)
     
-    linear_src_weight = tf.get_variable("linear_src_weight", shape=[1, src_unit_dim],
+    linear_src_weight = tf.get_variable("{0}/src_weight".format(scope), shape=[1, src_unit_dim],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
-    linear_trg_weight = tf.get_variable("linear_trg_weight", shape=[1, trg_unit_dim],
+    linear_trg_weight = tf.get_variable("{0}/trg_weight".format(scope), shape=[1, trg_unit_dim],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
     attention_matrix = [linear_src_weight, linear_trg_weight]
     
@@ -59,11 +66,12 @@ def _create_bilinear_attention_matrix(src_unit_dim,
                                       trg_unit_dim,
                                       regularizer,
                                       random_seed,
-                                      trainable):
+                                      trainable,
+                                      scope="bilinear"):
     """create bilinear attetnion matrix"""
     weight_initializer = create_variable_initializer("glorot_uniform", random_seed)
     
-    bilinear_weight = tf.get_variable("bilinear_weight", shape=[src_unit_dim, trg_unit_dim],
+    bilinear_weight = tf.get_variable("{0}/weight".format(scope), shape=[src_unit_dim, trg_unit_dim],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
     attention_matrix = [bilinear_weight]
     
@@ -74,18 +82,19 @@ def _create_nonlinear_attention_matrix(src_unit_dim,
                                        attention_unit_dim,
                                        regularizer,
                                        random_seed,
-                                       trainable):
+                                       trainable,
+                                       scope="nonlinear"):
     """create nonlinear attetnion matrix"""
     weight_initializer = create_variable_initializer("glorot_uniform", random_seed)
     bias_initializer = create_variable_initializer("zero")
     
-    pre_nonlinear_src_weight = tf.get_variable("pre_nonlinear_src_weight", shape=[attention_unit_dim, src_unit_dim],
+    pre_nonlinear_src_weight = tf.get_variable("{0}/pre/src_weight".format(scope), shape=[attention_unit_dim, src_unit_dim],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
-    pre_nonlinear_trg_weight = tf.get_variable("pre_nonlinear_trg_weight", shape=[attention_unit_dim, trg_unit_dim],
+    pre_nonlinear_trg_weight = tf.get_variable("{0}/pre/trg_weight".format(scope), shape=[attention_unit_dim, trg_unit_dim],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
-    pre_nonlinear_bias = tf.get_variable("pre_nonlinear_bias", shape=[attention_unit_dim],
+    pre_nonlinear_bias = tf.get_variable("{0}/pre/bias".format(scope), shape=[attention_unit_dim],
         initializer=bias_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
-    post_nonlinear_weight = tf.get_variable("post_nonlinear_weight", shape=[1, attention_unit_dim],
+    post_nonlinear_weight = tf.get_variable("{0}/post/weight".format(scope), shape=[1, attention_unit_dim],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
     attention_matrix = [pre_nonlinear_src_weight, pre_nonlinear_trg_weight, pre_nonlinear_bias, post_nonlinear_weight]
     
@@ -95,7 +104,8 @@ def _create_linear_plus_attention_matrix(src_unit_dim,
                                          trg_unit_dim,
                                          regularizer,
                                          random_seed,
-                                         trainable):
+                                         trainable,
+                                         scope="linear_plus"):
     """create linear plus attetnion matrix"""
     weight_initializer = create_variable_initializer("glorot_uniform", random_seed)
     
@@ -104,11 +114,11 @@ def _create_linear_plus_attention_matrix(src_unit_dim,
     else:
         mul_unit_dim = src_unit_dim
     
-    linear_plus_src_weight = tf.get_variable("linear_plus_src_weight", shape=[1, src_unit_dim],
+    linear_plus_src_weight = tf.get_variable("{0}/src_weight".format(scope), shape=[1, src_unit_dim],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
-    linear_plus_trg_weight = tf.get_variable("linear_plus_trg_weight", shape=[1, trg_unit_dim],
+    linear_plus_trg_weight = tf.get_variable("{0}/trg_weight".format(scope), shape=[1, trg_unit_dim],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
-    linear_plus_mul_weight = tf.get_variable("linear_plus_mul_weight", shape=[1, mul_unit_dim],
+    linear_plus_mul_weight = tf.get_variable("{0}/mul_weight".format(scope), shape=[1, mul_unit_dim],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
     attention_matrix = [linear_plus_src_weight, linear_plus_trg_weight, linear_plus_mul_weight]
     
@@ -119,7 +129,8 @@ def _create_nonlinear_plus_attention_matrix(src_unit_dim,
                                             attention_unit_dim,
                                             regularizer,
                                             random_seed,
-                                            trainable):
+                                            trainable,
+                                            scope="nonlinear_plus"):
     """create nonlinear plus attetnion matrix"""
     weight_initializer = create_variable_initializer("glorot_uniform", random_seed)
     bias_initializer = create_variable_initializer("zero")
@@ -129,15 +140,15 @@ def _create_nonlinear_plus_attention_matrix(src_unit_dim,
     else:
         mul_unit_dim = src_unit_dim
     
-    pre_nonlinear_plus_src_weight = tf.get_variable("pre_nonlinear_plus_src_weight", shape=[attention_unit_dim, src_unit_dim],
+    pre_nonlinear_plus_src_weight = tf.get_variable("{0}/pre/src_weight".format(scope), shape=[attention_unit_dim, src_unit_dim],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
-    pre_nonlinear_plus_trg_weight = tf.get_variable("pre_nonlinear_plus_trg_weight", shape=[attention_unit_dim, trg_unit_dim],
+    pre_nonlinear_plus_trg_weight = tf.get_variable("{0}/pre/trg_weight".format(scope), shape=[attention_unit_dim, trg_unit_dim],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
-    pre_nonlinear_plus_mul_weight = tf.get_variable("pre_nonlinear_plus_mul_weight", shape=[attention_unit_dim, mul_unit_dim],
+    pre_nonlinear_plus_mul_weight = tf.get_variable("{0}/pre/mul_weight".format(scope), shape=[attention_unit_dim, mul_unit_dim],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
-    pre_nonlinear_plus_bias = tf.get_variable("pre_nonlinear_plus_bias", shape=[attention_unit_dim],
+    pre_nonlinear_plus_bias = tf.get_variable("{0}/pre/bias".format(scope), shape=[attention_unit_dim],
         initializer=bias_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
-    post_nonlinear_plus_weight = tf.get_variable("post_nonlinear_plus_weight", shape=[1, attention_unit_dim],
+    post_nonlinear_plus_weight = tf.get_variable("{0}/post/weight".format(scope), shape=[1, attention_unit_dim],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
     attention_matrix = [pre_nonlinear_plus_src_weight, pre_nonlinear_plus_trg_weight,
         pre_nonlinear_plus_mul_weight, pre_nonlinear_plus_bias, post_nonlinear_plus_weight]
@@ -148,7 +159,8 @@ def _create_trilinear_attention_matrix(src_unit_dim,
                                        trg_unit_dim,
                                        regularizer,
                                        random_seed,
-                                       trainable):
+                                       trainable,
+                                       scope="trilinear"):
     """create trilinear attetnion matrix"""
     weight_initializer = create_variable_initializer("glorot_uniform", random_seed)
     
@@ -157,11 +169,11 @@ def _create_trilinear_attention_matrix(src_unit_dim,
     else:
         mul_unit_dim = src_unit_dim
     
-    trilinear_src_weight = tf.get_variable("trilinear_src_weight", shape=[src_unit_dim, 1],
+    trilinear_src_weight = tf.get_variable("{0}/src_weight".format(scope), shape=[src_unit_dim, 1],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
-    trilinear_trg_weight = tf.get_variable("trilinear_trg_weight", shape=[trg_unit_dim, 1],
+    trilinear_trg_weight = tf.get_variable("{0}/trg_weight".format(scope), shape=[trg_unit_dim, 1],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
-    trilinear_mul_weight = tf.get_variable("trilinear_mul_weight", shape=[1, 1, mul_unit_dim],
+    trilinear_mul_weight = tf.get_variable("{0}/mul_weight".format(scope), shape=[1, 1, mul_unit_dim],
         initializer=weight_initializer, regularizer=regularizer, trainable=trainable, dtype=tf.float32)
     attention_matrix = [trilinear_src_weight, trilinear_trg_weight, trilinear_mul_weight]
     
@@ -457,7 +469,7 @@ class Attention(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim, self.trg_dim,
-                    self.att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable)
+                    self.att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable, "att_matrix")
             else:
                 self.attention_matrix = external_matrix
             
@@ -563,7 +575,7 @@ class MaxAttention(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim, self.trg_dim,
-                    self.att_dim, self.regularizer, self.score_type, self.random_seed, self.trainable)
+                    self.att_dim, self.regularizer, self.score_type, self.random_seed, self.trainable, "att_matrix")
             else:
                 self.attention_matrix = external_matrix
             
@@ -671,7 +683,7 @@ class CoAttention(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim, self.trg_dim,
-                    self.att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable)
+                    self.att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable, "att_matrix")
             else:
                 self.attention_matrix = external_matrix
                         
@@ -786,7 +798,7 @@ class GatedAttention(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim, self.trg_dim,
-                    self.att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable)
+                    self.att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable, "att_matrix")
             else:
                 self.attention_matrix = external_matrix
                         
@@ -905,7 +917,7 @@ class HeadAttention(object):
                         self.regularizer, self.random_seed, self.trainable, "value_projection")
                 }
                 self.attention_matrix = _create_attention_matrix(q_att_dim, k_att_dim,
-                    k_att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable)
+                    k_att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable, "att_matrix")
             else:
                 self.projection_layer = external_matrix["projection"]
                 self.attention_matrix = external_matrix["attention"]
