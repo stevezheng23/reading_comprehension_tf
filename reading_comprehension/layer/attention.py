@@ -575,7 +575,7 @@ class MaxAttention(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
             if external_matrix == None:
                 self.attention_matrix = _create_attention_matrix(self.src_dim, self.trg_dim,
-                    self.att_dim, self.regularizer, self.score_type, self.random_seed, self.trainable, "att_matrix")
+                    self.att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable, "att_matrix")
             else:
                 self.attention_matrix = external_matrix
             
