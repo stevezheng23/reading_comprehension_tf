@@ -757,6 +757,7 @@ class CharFeat(object):
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE):
             input_char_embedding_mask = tf.expand_dims(input_char_mask, axis=-1)
             input_char_embedding = self.embedding_layer(input_char)
+            
             (_, _, input_char_recurrent,
                 input_char_recurrent_mask) = self.recurrent_layer(input_char_embedding, input_char_embedding_mask)
             

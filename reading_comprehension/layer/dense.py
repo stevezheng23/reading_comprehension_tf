@@ -62,15 +62,15 @@ class Dense(object):
             input_dense = input_data
             input_dense_mask = input_mask
             
-            input_dense, input_dense_mask = self.dropout_layer(input_dense, input_dense_mask)
-            
-            input_dense = self.dense_layer(input_dense)
-            
             if self.layer_norm == True:
                 input_dense, input_dense_mask = self.norm_layer(input_dense, input_dense_mask)
             
+            input_dense = self.dense_layer(input_dense)
+            
             if self.dense_activation != None:
                 input_dense = self.dense_activation(input_dense)
+            
+            input_dense, input_dense_mask = self.dropout_layer(input_dense, input_dense_mask)
             
             if self.residual_connect == True:
                 output_dense, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
@@ -141,7 +141,8 @@ class DoubleDense(object):
             input_dense = input_data
             input_dense_mask = input_mask
             
-            input_dense, input_dense_mask = self.dropout_layer(input_dense, input_dense_mask)
+            if self.layer_norm == True:
+                input_dense, input_dense_mask = self.norm_layer(input_dense, input_dense_mask)
             
             input_dense = self.inner_dense_layer(input_dense)
             
@@ -150,8 +151,7 @@ class DoubleDense(object):
             
             input_dense = self.outer_dense_layer(input_dense)
             
-            if self.layer_norm == True:
-                input_dense, input_dense_mask = self.norm_layer(input_dense, input_dense_mask)
+            input_dense, input_dense_mask = self.dropout_layer(input_dense, input_dense_mask)
             
             if self.residual_connect == True:
                 output_dense, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,

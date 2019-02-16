@@ -768,8 +768,10 @@ class SubwordFeat(object):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
                 self.embed_dim, False, 0, 0, None, self.random_seed, self.trainable)
             
+            self.dropout_layer = create_dropout_layer(self.dropout, 0, 0, self.random_seed)
+            
             self.conv_layer = create_convolution_layer("multi_1d", 1, self.embed_dim,
-                self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
+                self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [0.0], None,
                 False, False, True, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
@@ -782,8 +784,11 @@ class SubwordFeat(object):
             input_subword_embedding_mask = tf.expand_dims(input_subword_mask, axis=-1)
             input_subword_embedding = self.embedding_layer(input_subword)
             
+            (input_subword_dropout,
+                input_subword_dropout_mask) = self.dropout_layer(input_subword_embedding, input_subword_embedding_mask)
+            
             (input_subword_conv,
-                input_subword_conv_mask) = self.conv_layer(input_subword_embedding, input_subword_embedding_mask)
+                input_subword_conv_mask) = self.conv_layer(input_subword_dropout, input_subword_dropout_mask)
             
             (input_subword_pool,
                 input_subword_pool_mask) = self.pooling_layer(input_subword_conv, input_subword_conv_mask)
@@ -828,8 +833,10 @@ class CharFeat(object):
             self.embedding_layer = create_embedding_layer(self.vocab_size,
                 self.embed_dim, False, 0, 0, None, self.random_seed, self.trainable)
             
+            self.dropout_layer = create_dropout_layer(self.dropout, 0, 0, self.random_seed)
+            
             self.conv_layer = create_convolution_layer("multi_1d", 1, self.embed_dim,
-                self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [self.dropout], None,
+                self.unit_dim, 1, self.window_size, 1, "SAME", self.hidden_activation, [0.0], None,
                 False, False, True, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
             
             self.pooling_layer = create_pooling_layer(self.pooling_type, 0, 0)
@@ -842,8 +849,11 @@ class CharFeat(object):
             input_char_embedding_mask = tf.expand_dims(input_char_mask, axis=-1)
             input_char_embedding = self.embedding_layer(input_char)
             
+            (input_char_dropout,
+                input_char_dropout_mask) = self.dropout_layer(input_char_embedding, input_char_embedding_mask)
+            
             (input_char_conv,
-                input_char_conv_mask) = self.conv_layer(input_char_embedding, input_char_embedding_mask)
+                input_char_conv_mask) = self.conv_layer(input_char_dropout, input_char_dropout_mask)
             
             (input_char_pool,
                 input_char_pool_mask) = self.pooling_layer(input_char_conv, input_char_conv_mask)
