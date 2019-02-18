@@ -48,8 +48,8 @@ class QANet(BaseModel):
             self.logger.log_print("# build graph")
             (answer_start_output, answer_end_output, answer_start_output_mask,
                 answer_end_output_mask) = self._build_graph(question_word, question_word_mask,
-                    question_subword, question_subword_mask, question_char, question_char_mask,
-                    context_word, context_word_mask, context_subword, context_subword_mask, context_char, context_char_mask)
+                    question_subword, question_subword_mask, question_char, question_char_mask, context_word,
+                    context_word_mask, context_subword, context_subword_mask, context_char, context_char_mask)
             answer_start_output_mask = tf.squeeze(answer_start_output_mask, axis=-1)
             answer_end_output_mask = tf.squeeze(answer_end_output_mask, axis=-1)
             answer_start_output = tf.squeeze(answer_start_output, axis=-1)
@@ -315,8 +315,8 @@ class QANet(BaseModel):
             with tf.variable_scope("question", reuse=tf.AUTO_REUSE):
                 self.logger.log_print("# build question understanding layer")
                 question_understanding_fusion_layer = self._create_fusion_layer(question_representation_unit_dim,
-                    question_understanding_unit_dim, "conv", 1, question_understanding_hidden_activation, question_understanding_dropout,
-                    self.num_gpus, default_understanding_gpu_id, self.regularizer, self.random_seed, question_understanding_trainable)
+                    question_understanding_unit_dim, "concate", 1, None, question_understanding_dropout, self.num_gpus,
+                    default_understanding_gpu_id, self.regularizer, self.random_seed, question_understanding_trainable)
                 question_understanding_layer = StackedEncoderBlock(num_layer=question_understanding_num_layer,
                     num_conv=question_understanding_num_conv, num_head=question_understanding_num_head,
                     unit_dim=question_understanding_unit_dim, window_size=question_understanding_window_size,
@@ -325,8 +325,9 @@ class QANet(BaseModel):
                     num_gpus=self.num_gpus, default_gpu_id=default_understanding_gpu_id, regularizer=self.regularizer,
                     random_seed=self.random_seed, trainable=question_understanding_trainable)
                 
-                question_understanding_fusion, question_understanding_fusion_mask = self._build_fusion_result([question_feat],
-                    [question_feat_mask], question_understanding_fusion_layer)
+                (question_understanding_fusion,
+                    question_understanding_fusion_mask) = self._build_fusion_result([question_feat],
+                        [question_feat_mask], question_understanding_fusion_layer)
                 (question_understanding,
                     question_understanding_mask) = question_understanding_layer(question_understanding_fusion,
                         question_understanding_fusion_mask)
@@ -340,8 +341,8 @@ class QANet(BaseModel):
                     context_understanding_layer = question_understanding_layer
                 else:
                     context_understanding_fusion_layer = self._create_fusion_layer(context_representation_unit_dim,
-                        context_understanding_unit_dim, "conv", 1, context_understanding_hidden_activation, context_understanding_dropout,
-                        self.num_gpus, default_understanding_gpu_id, self.regularizer, self.random_seed, context_understanding_trainable)
+                        context_understanding_unit_dim, "concate", 1, None, context_understanding_dropout, self.num_gpus,
+                        default_understanding_gpu_id, self.regularizer, self.random_seed, context_understanding_trainable)
                     context_understanding_layer = StackedEncoderBlock(num_layer=context_understanding_num_layer,
                         num_conv=context_understanding_num_conv, num_head=context_understanding_num_head,
                         unit_dim=context_understanding_unit_dim, window_size=context_understanding_window_size,
@@ -350,8 +351,9 @@ class QANet(BaseModel):
                         num_gpus=self.num_gpus, default_gpu_id=default_understanding_gpu_id, regularizer=self.regularizer,
                         random_seed=self.random_seed, trainable=context_understanding_trainable)
                 
-                context_understanding_fusion, context_understanding_fusion_mask = self._build_fusion_result([context_feat],
-                    [context_feat_mask], context_understanding_fusion_layer)
+                (context_understanding_fusion,
+                    context_understanding_fusion_mask) = self._build_fusion_result([context_feat],
+                        [context_feat_mask], context_understanding_fusion_layer)
                 (context_understanding,
                     context_understanding_mask) = context_understanding_layer(context_understanding_fusion,
                         context_understanding_fusion_mask)
@@ -401,11 +403,8 @@ class QANet(BaseModel):
                         context_understanding_unit_dim, question_understanding_unit_dim,
                         context2question_interaction_attention_dim, -1, context2question_interaction_score_type,
                         context2question_interaction_dropout, context2question_interaction_att_dropout, 0.0,
-                        False, False, False, attention_matrix, self.num_gpus, default_interaction_gpu_id,
+                        False, False, False, None, self.num_gpus, default_interaction_gpu_id,
                         self.regularizer, self.random_seed, context2question_interaction_trainable)
-                    
-                    if enable_interaction_sharing == True:
-                        attention_matrix = context2question_interaction_layer.get_attention_matrix()
                     
                     (context2question_interaction, context2question_interaction_mask,
                         _, _) = context2question_interaction_layer(context_understanding,
@@ -413,7 +412,10 @@ class QANet(BaseModel):
                     
                     answer_intermediate_list.append(context2question_interaction)
                     answer_intermediate_mask_list.append(context2question_interaction_mask)
-                    answer_intermediate_unit_dim = answer_intermediate_unit_dim + question_understanding_unit_dim
+                    answer_intermediate_unit_dim += question_understanding_unit_dim
+                    
+                    if enable_interaction_sharing == True:
+                        attention_matrix = context2question_interaction_layer.get_attention_matrix()
                     
                     if fusion_combo_enable == True:
                         if question_understanding_unit_dim == context_understanding_unit_dim:
@@ -421,7 +423,7 @@ class QANet(BaseModel):
                             context2question_combo_mask = context_understanding_mask * context2question_interaction_mask
                             answer_intermediate_list.append(context2question_combo)
                             answer_intermediate_mask_list.append(context2question_combo_mask)
-                            answer_intermediate_unit_dim = answer_intermediate_unit_dim + question_understanding_unit_dim
+                            answer_intermediate_unit_dim += question_understanding_unit_dim
             
             with tf.variable_scope("question2context", reuse=tf.AUTO_REUSE):
                 if question2context_interaction_enable == True:
@@ -442,17 +444,18 @@ class QANet(BaseModel):
                         question2context_combo_mask = context_understanding_mask * question2context_interaction_mask
                         answer_intermediate_list.append(question2context_combo)
                         answer_intermediate_mask_list.append(question2context_combo_mask)
-                        answer_intermediate_unit_dim = answer_intermediate_unit_dim + context_understanding_unit_dim
+                        answer_intermediate_unit_dim += context_understanding_unit_dim
                     else:
                         answer_intermediate_list.append(question2context_interaction)
                         answer_intermediate_mask_list.append(question2context_interaction_mask)
-                        answer_intermediate_unit_dim = answer_intermediate_unit_dim + context_understanding_unit_dim
+                        answer_intermediate_unit_dim += context_understanding_unit_dim
             
             answer_interaction_fusion_layer = self._create_fusion_layer(answer_intermediate_unit_dim,
                 fusion_unit_dim, fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
                 self.num_gpus, default_interaction_gpu_id, self.regularizer, self.random_seed, fusion_trainable)
-            answer_interaction, answer_interaction_mask = self._build_fusion_result(answer_intermediate_list,
-                answer_intermediate_mask_list, answer_interaction_fusion_layer)
+            (answer_interaction,
+                answer_interaction_mask) = self._build_fusion_result(answer_intermediate_list,
+                    answer_intermediate_mask_list, answer_interaction_fusion_layer)
         
         return answer_interaction, answer_interaction_mask
     
@@ -480,10 +483,11 @@ class QANet(BaseModel):
             answer_modeling_mask_list = []
             
             answer_modeling_fusion_layer = self._create_fusion_layer(answer_interaction_unit_dim,
-                answer_modeling_unit_dim, "conv", 1, answer_modeling_hidden_activation, answer_modeling_dropout,
-                self.num_gpus, default_modeling_gpu_id, self.regularizer, self.random_seed, answer_modeling_trainable)
-            answer_modeling_fusion, answer_modeling_fusion_mask = self._build_fusion_result([answer_interaction],
-                [answer_interaction_mask], answer_modeling_fusion_layer)
+                answer_modeling_unit_dim, "concate", 1, None, answer_modeling_dropout, self.num_gpus,
+                default_modeling_gpu_id, self.regularizer, self.random_seed, answer_modeling_trainable)
+            (answer_modeling_fusion,
+                answer_modeling_fusion_mask) = self._build_fusion_result([answer_interaction],
+                    [answer_interaction_mask], answer_modeling_fusion_layer)
             
             with tf.variable_scope("base", reuse=tf.AUTO_REUSE):
                 answer_modeling_base_layer = StackedEncoderBlock(num_layer=answer_modeling_num_layer,
@@ -495,7 +499,8 @@ class QANet(BaseModel):
                     random_seed=self.random_seed, trainable=answer_modeling_trainable)
                 
                 (answer_modeling_base,
-                    answer_modeling_base_mask) = answer_modeling_base_layer(answer_modeling_fusion, answer_modeling_fusion_mask)
+                    answer_modeling_base_mask) = answer_modeling_base_layer(answer_modeling_fusion,
+                        answer_modeling_fusion_mask)
                 answer_modeling_list.append(answer_modeling_base)
                 answer_modeling_mask_list.append(answer_modeling_base_mask)
             
@@ -512,7 +517,8 @@ class QANet(BaseModel):
                         random_seed=self.random_seed, trainable=answer_modeling_trainable)
                 
                 (answer_modeling_start,
-                    answer_modeling_start_mask) = answer_modeling_start_layer(answer_modeling_base, answer_modeling_base_mask)
+                    answer_modeling_start_mask) = answer_modeling_start_layer(answer_modeling_base,
+                        answer_modeling_base_mask)
                 answer_modeling_list.append(answer_modeling_start)
                 answer_modeling_mask_list.append(answer_modeling_start_mask)
             
@@ -529,7 +535,8 @@ class QANet(BaseModel):
                         random_seed=self.random_seed, trainable=answer_modeling_trainable)
                 
                 (answer_modeling_end,
-                    answer_modeling_end_mask) = answer_modeling_end_layer(answer_modeling_start, answer_modeling_start_mask)
+                    answer_modeling_end_mask) = answer_modeling_end_layer(answer_modeling_start,
+                        answer_modeling_start_mask)
                 answer_modeling_list.append(answer_modeling_end)
                 answer_modeling_mask_list.append(answer_modeling_end_mask)
         
@@ -554,9 +561,10 @@ class QANet(BaseModel):
                 answer_start_list = [answer_modeling[0], answer_modeling[1]]
                 answer_start_mask_list = [answer_modeling_mask[0], answer_modeling_mask[1]]
                 (answer_start,
-                    answer_start_mask) = self._build_fusion_result(answer_start_list, answer_start_mask_list, None)
+                    answer_start_mask) = self._build_fusion_result(answer_start_list,
+                        answer_start_mask_list, None)
                 
-                answer_ouput_start_layer = create_dense_layer("single", 1, 1, 1, "",
+                answer_ouput_start_layer = create_dense_layer("single", 1, 1, 1, None,
                     [answer_start_dropout], None, False, False, False, self.num_gpus, default_output_gpu_id,
                     self.regularizer, self.random_seed, answer_start_trainable)
                 answer_output_start, answer_output_start_mask = answer_ouput_start_layer(answer_start, answer_start_mask)
@@ -567,9 +575,10 @@ class QANet(BaseModel):
                 answer_end_list = [answer_modeling[0], answer_modeling[2]]
                 answer_end_mask_list = [answer_modeling_mask[0], answer_modeling_mask[2]]
                 (answer_end,
-                    answer_end_mask) = self._build_fusion_result(answer_end_list, answer_end_mask_list, None)
+                    answer_end_mask) = self._build_fusion_result(answer_end_list,
+                        answer_end_mask_list, None)
                 
-                answer_output_end_layer = create_dense_layer("single", 1, 1, 1, "",
+                answer_output_end_layer = create_dense_layer("single", 1, 1, 1, None,
                     [answer_end_dropout], None, False, False, False, self.num_gpus, default_output_gpu_id,
                     self.regularizer, self.random_seed, answer_end_trainable)
                 answer_output_end, answer_output_end_mask = answer_output_end_layer(answer_end, answer_end_mask)
