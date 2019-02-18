@@ -10,7 +10,7 @@ class Dropout(object):
     """dropout layer"""
     def __init__(self,
                  rate,
-                 num_gpus=0,
+                 num_gpus=1,
                  default_gpu_id=0,
                  random_seed=0,
                  scope="dropout"):
