@@ -33,6 +33,7 @@
     "data_expand_multiple_answer": false,
     "data_enable_validation": false,
     "data_enable_preprocessing": false,
+    "data_num_parallel": 4,
     "data_log_output_dir": "output/bidaf/log",
     "data_result_output_dir": "output/bidaf/result",
     "train_random_seed": 100,

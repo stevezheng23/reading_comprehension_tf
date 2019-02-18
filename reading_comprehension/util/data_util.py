@@ -332,24 +332,28 @@ def create_src_dataset(input_dataset,
                        char_vocab_index,
                        char_max_length,
                        char_pad,
-                       char_feat_enable):
+                       char_feat_enable,
+                       num_parallel):
     """create word/subword/char-level dataset for input source data"""
     dataset = input_dataset
     
     word_dataset = None
     if word_feat_enable == True:
-        word_dataset = dataset.map(lambda sent: generate_word_feat(sent, word_vocab_index,
-            word_max_length, word_pad, word_sos, word_eos, word_placeholder_enable))
+        word_dataset = dataset.map(lambda sent: generate_word_feat(sent,
+            word_vocab_index, word_max_length, word_pad, word_sos, word_eos,
+            word_placeholder_enable), num_parallel_calls=num_parallel)
 
     subword_dataset = None
     if subword_feat_enable == True:
-        subword_dataset = dataset.map(lambda sent: generate_subword_feat(sent, subword_vocab_index,
-            word_max_length, subword_max_length, subword_size, word_sos, word_eos, word_placeholder_enable, subword_pad))
+        subword_dataset = dataset.map(lambda sent: generate_subword_feat(sent,
+            subword_vocab_index, word_max_length, subword_max_length, subword_size,
+            word_sos, word_eos, word_placeholder_enable, subword_pad), num_parallel_calls=num_parallel)
 
     char_dataset = None
     if char_feat_enable == True:
-        char_dataset = dataset.map(lambda sent: generate_char_feat(sent, char_vocab_index,
-            word_max_length, char_max_length, word_sos, word_eos, word_placeholder_enable, char_pad))
+        char_dataset = dataset.map(lambda sent: generate_char_feat(sent,
+            char_vocab_index, word_max_length, char_max_length, word_sos, word_eos,
+            word_placeholder_enable, char_pad), num_parallel_calls=num_parallel)
     
     return word_dataset, subword_dataset, char_dataset
 
@@ -360,17 +364,19 @@ def create_trg_dataset(input_dataset,
                        word_pad,
                        word_sos,
                        word_eos,
-                       word_placeholder_enable):
+                       word_placeholder_enable,
+                       num_parallel):
     """create dataset for input target data"""
     dataset = input_dataset
     
     if input_data_type == "span":
-        dataset = dataset.map(lambda span: tf.string_split([span], delimiter='|').values)
-        dataset = dataset.map(lambda span: tf.string_to_number(span, out_type=tf.int32))
-        dataset = dataset.map(lambda span: tf.expand_dims(span, axis=-1))
+        dataset = dataset.map(lambda span: tf.string_split([span], delimiter='|').values, num_parallel_calls=num_parallel)
+        dataset = dataset.map(lambda span: tf.string_to_number(span, out_type=tf.int32), num_parallel_calls=num_parallel)
+        dataset = dataset.map(lambda span: tf.expand_dims(span, axis=-1), num_parallel_calls=num_parallel)
     elif input_data_type == "text":
-        dataset = dataset.map(lambda sent: generate_word_feat(sent, word_vocab_index,
-            word_max_length, word_pad, word_sos, word_eos, word_placeholder_enable))
+        dataset = dataset.map(lambda sent: generate_word_feat(sent,
+            word_vocab_index, word_max_length, word_pad, word_sos, word_eos,
+            word_placeholder_enable), num_parallel_calls=num_parallel)
     
     return dataset
 
