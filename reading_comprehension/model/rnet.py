@@ -195,7 +195,6 @@ class RNet(BaseModel):
         fusion_hidden_activation = self.hyperparams.model_representation_fusion_hidden_activation
         fusion_dropout = self.hyperparams.model_representation_fusion_dropout if self.mode == "train" else 0.0
         fusion_trainable = self.hyperparams.model_representation_fusion_trainable
-        default_representation_gpu_id = self.default_gpu_id
         
         with tf.variable_scope("representation", reuse=tf.AUTO_REUSE):
             input_question_feat_list = []
@@ -228,7 +227,7 @@ class RNet(BaseModel):
                 self.logger.log_print("# build subword-level representation layer")
                 subword_feat_layer = SubwordFeat(vocab_size=subword_vocab_size, embed_dim=subword_embed_dim,
                     unit_dim=subword_unit_dim, cell_type=subword_cell_type, hidden_activation=subword_hidden_activation,
-                    dropout=subword_dropout, num_gpus=self.num_gpus, default_gpu_id=default_representation_gpu_id,
+                    dropout=subword_dropout, num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id,
                     regularizer=self.regularizer, random_seed=self.random_seed, trainable=subword_feat_trainable)
                 
                 (input_question_subword_feat,
@@ -247,7 +246,7 @@ class RNet(BaseModel):
                 self.logger.log_print("# build char-level representation layer")
                 char_feat_layer = CharFeat(vocab_size=char_vocab_size, embed_dim=char_embed_dim,
                     unit_dim=char_unit_dim, cell_type=char_cell_type, hidden_activation=char_hidden_activation,
-                    dropout=char_dropout, num_gpus=self.num_gpus, default_gpu_id=default_representation_gpu_id,
+                    dropout=char_dropout, num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id,
                     regularizer=self.regularizer, random_seed=self.random_seed, trainable=char_feat_trainable)
                 
                 (input_question_char_feat,
@@ -265,7 +264,7 @@ class RNet(BaseModel):
             feat_unit_dim = word_unit_dim + subword_unit_dim + char_unit_dim
             feat_fusion_layer = self._create_fusion_layer(feat_unit_dim, fusion_unit_dim,
                 fusion_type, fusion_num_layer, fusion_hidden_activation, fusion_dropout,
-                self.num_gpus, default_representation_gpu_id, self.regularizer, self.random_seed, fusion_trainable)
+                self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, fusion_trainable)
             
             input_question_feat, input_question_feat_mask = self._build_fusion_result(input_question_feat_list,
                 input_question_feat_mask_list, feat_fusion_layer)
@@ -297,7 +296,6 @@ class RNet(BaseModel):
         context_understanding_residual_connect = self.hyperparams.model_understanding_context_residual_connect
         context_understanding_trainable = self.hyperparams.model_understanding_context_trainable
         enable_understanding_sharing = self.hyperparams.model_understanding_enable_sharing
-        default_understanding_gpu_id = self.default_gpu_id
         
         with tf.variable_scope("understanding", reuse=tf.AUTO_REUSE):
             with tf.variable_scope("question", reuse=tf.AUTO_REUSE):
@@ -305,7 +303,7 @@ class RNet(BaseModel):
                 question_understanding_layer = create_recurrent_layer("bi", question_understanding_num_layer,
                     question_understanding_unit_dim, question_understanding_cell_type, question_understanding_hidden_activation,
                     question_understanding_dropout, question_understanding_forget_bias, question_understanding_residual_connect,
-                    None, self.num_gpus, default_understanding_gpu_id, self.random_seed, question_understanding_trainable)
+                    None, self.num_gpus, self.default_gpu_id, self.random_seed, question_understanding_trainable)
                 
                 (question_understanding, question_understanding_mask,
                     _, _) = question_understanding_layer(question_feat, question_feat_mask)
@@ -318,7 +316,7 @@ class RNet(BaseModel):
                     context_understanding_layer = create_recurrent_layer("bi", context_understanding_num_layer,
                         context_understanding_unit_dim, context_understanding_cell_type, context_understanding_hidden_activation,
                         context_understanding_dropout, context_understanding_forget_bias, context_understanding_residual_connect,
-                        None, self.num_gpus, default_understanding_gpu_id, self.random_seed, context_understanding_trainable)
+                        None, self.num_gpus, self.default_gpu_id, self.random_seed, context_understanding_trainable)
                 
                 (context_understanding, context_understanding_mask,
                     _, _) = context_understanding_layer(context_feat, context_feat_mask)
@@ -344,7 +342,6 @@ class RNet(BaseModel):
         context2question_interaction_attention_dim = self.hyperparams.model_interaction_context2question_attention_dim
         context2question_interaction_score_type = self.hyperparams.model_interaction_context2question_score_type
         context2question_interaction_trainable = self.hyperparams.model_interaction_context2question_trainable
-        default_interaction_gpu_id = self.default_gpu_id
         
         context2question_attention_mechanism = AttentionMechanism(memory=question_understanding,
             memory_mask=question_understanding_mask, attention_type="gated_att",
@@ -352,7 +349,7 @@ class RNet(BaseModel):
             trg_dim=question_understanding_unit_dim, att_dim=context2question_interaction_attention_dim,
             score_type=context2question_interaction_score_type, dropout=context2question_interaction_dropout,
             att_dropout=context2question_interaction_att_dropout, layer_dropout=0.0, layer_norm=False, residual_connect=False,
-            is_self=False, external_matrix=None, num_gpus=self.num_gpus, default_gpu_id=default_interaction_gpu_id,
+            is_self=False, external_matrix=None, num_gpus=self.num_gpus, default_gpu_id=self.default_gpu_id,
             regularizer=self.regularizer, random_seed=self.random_seed, trainable=context2question_interaction_trainable)
         
         context2question_interaction_layer = create_recurrent_layer("uni",
@@ -360,7 +357,7 @@ class RNet(BaseModel):
             context2question_interaction_cell_type, context2question_interaction_hidden_activation,
             context2question_interaction_dropout, context2question_interaction_forget_bias,
             context2question_interaction_residual_connect, context2question_attention_mechanism,
-            self.num_gpus, default_interaction_gpu_id, self.random_seed, context2question_interaction_trainable)
+            self.num_gpus, self.default_gpu_id, self.random_seed, context2question_interaction_trainable)
         
         (context2question_interaction, context2question_interaction_mask,
             _, _) = context2question_interaction_layer(context_understanding, context_understanding_mask)
@@ -385,7 +382,6 @@ class RNet(BaseModel):
         answer_modeling_attention_dim = self.hyperparams.model_modeling_answer_attention_dim
         answer_modeling_score_type = self.hyperparams.model_modeling_answer_score_type
         answer_modeling_trainable = self.hyperparams.model_modeling_answer_trainable
-        default_modeling_gpu_id = self.default_gpu_id
         
         with tf.variable_scope("modeling", reuse=tf.AUTO_REUSE):
             self.logger.log_print("# build answer modeling layer")
@@ -393,7 +389,7 @@ class RNet(BaseModel):
                 answer_interaction_unit_dim, answer_interaction_unit_dim,
                 answer_modeling_attention_dim, -1, answer_modeling_score_type,
                 answer_modeling_dropout, answer_modeling_att_dropout, 0.0, False, False, True, None,
-                self.num_gpus, default_modeling_gpu_id, self.regularizer, self.random_seed, answer_modeling_trainable)
+                self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, answer_modeling_trainable)
             
             (answer_modeling_attention,
                 answer_modeling_attention_mask) = answer_modeling_attention_layer(answer_interaction,
@@ -402,7 +398,7 @@ class RNet(BaseModel):
             answer_modeling_sequence_layer = create_recurrent_layer("bi", answer_modeling_num_layer,
                 answer_modeling_unit_dim, answer_modeling_cell_type, answer_modeling_hidden_activation,
                 answer_modeling_dropout, answer_modeling_forget_bias, answer_modeling_residual_connect,
-                None, self.num_gpus, default_modeling_gpu_id, self.random_seed, answer_modeling_trainable)
+                None, self.num_gpus, self.default_gpu_id, self.random_seed, answer_modeling_trainable)
             
             (answer_modeling_sequence, answer_modeling_sequence_mask,
                 _, _) = answer_modeling_sequence_layer(answer_modeling_attention, answer_modeling_attention_mask)
@@ -444,7 +440,6 @@ class RNet(BaseModel):
         answer_output_attention_dim = self.hyperparams.model_output_answer_attention_dim
         answer_output_score_type = self.hyperparams.model_output_answer_score_type
         answer_output_trainable = self.hyperparams.model_output_answer_trainable
-        default_output_gpu_id = self.default_gpu_id
         
         with tf.variable_scope("output", reuse=tf.AUTO_REUSE):
             self.logger.log_print("# build answer output layer")
@@ -453,13 +448,13 @@ class RNet(BaseModel):
             
             with tf.variable_scope("base", reuse=tf.AUTO_REUSE):
                 question_base, question_base_mask = create_base_variable(self.batch_size, question_understanding_unit_dim,
-                    self.num_gpus, default_output_gpu_id, None, answer_output_trainable)
+                    self.num_gpus, self.default_gpu_id, None, answer_output_trainable)
                 
                 answer_base_attention_layer = create_attention_layer("att",
                     question_understanding_unit_dim, question_understanding_unit_dim,
                     answer_output_attention_dim, -1, answer_output_score_type,
                     answer_output_dropout, answer_output_att_dropout, 0.0, False, False, False, None,
-                    self.num_gpus, default_output_gpu_id, self.regularizer, self.random_seed, answer_output_trainable)
+                    self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, answer_output_trainable)
                 (answer_base_state, answer_base_state_mask,
                     _, _) = answer_base_attention_layer(question_base,
                         question_understanding, question_base_mask, question_understanding_mask)
@@ -469,7 +464,7 @@ class RNet(BaseModel):
                     question_understanding_unit_dim, answer_modeling_unit_dim,
                     answer_output_attention_dim, -1, answer_output_score_type,
                     answer_output_dropout, answer_output_att_dropout, 0.0, False, False, False, None,
-                    self.num_gpus, default_output_gpu_id, self.regularizer, self.random_seed, answer_output_trainable)
+                    self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, answer_output_trainable)
                 (answer_start_attention, answer_start_attention_mask, answer_start_output,
                     answer_start_output_mask) = answer_start_attention_layer(answer_base_state,
                         answer_modeling, answer_base_state_mask, answer_modeling_mask)
@@ -479,7 +474,7 @@ class RNet(BaseModel):
                 answer_start_sequence_layer = create_recurrent_layer("uni", answer_output_num_layer,
                     answer_output_unit_dim, answer_output_cell_type, answer_output_hidden_activation,
                     answer_output_dropout, answer_output_forget_bias, answer_output_residual_connect,
-                    None, self.num_gpus, default_output_gpu_id, self.random_seed, answer_output_trainable)
+                    None, self.num_gpus, self.default_gpu_id, self.random_seed, answer_output_trainable)
                 (answer_start_state, answer_start_state_mask,
                     _, _) = answer_start_sequence_layer(answer_start_attention, answer_start_attention_mask)
             
@@ -488,7 +483,7 @@ class RNet(BaseModel):
                     answer_output_unit_dim, answer_modeling_unit_dim,
                     answer_output_attention_dim, -1, answer_output_score_type,
                     answer_output_dropout, answer_output_att_dropout, 0.0, False, False, False, None,
-                    self.num_gpus, default_output_gpu_id, self.regularizer, self.random_seed, answer_output_trainable)
+                    self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, answer_output_trainable)
                 (answer_end_attention, answer_end_attention_mask, answer_end_output,
                     answer_end_output_mask) = answer_end_attention_layer(answer_start_state,
                         answer_modeling, answer_start_state_mask, answer_modeling_mask)
