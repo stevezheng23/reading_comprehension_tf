@@ -399,7 +399,7 @@ class QANet(BaseModel):
                     self.logger.log_print("# build context2question interaction layer")
                     context2question_interaction_layer = create_attention_layer("att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
-                        context2question_interaction_attention_dim, context2question_interaction_score_type,
+                        context2question_interaction_attention_dim, -1, context2question_interaction_score_type,
                         context2question_interaction_dropout, context2question_interaction_att_dropout, 0.0,
                         False, False, False, attention_matrix, self.num_gpus, default_interaction_gpu_id,
                         self.regularizer, self.random_seed, context2question_interaction_trainable)
@@ -428,7 +428,7 @@ class QANet(BaseModel):
                     self.logger.log_print("# build question2context interaction layer")
                     question2context_interaction_layer = create_attention_layer("co_att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
-                        question2context_interaction_attention_dim, question2context_interaction_score_type,
+                        question2context_interaction_attention_dim, -1, question2context_interaction_score_type,
                         question2context_interaction_dropout, question2context_interaction_att_dropout, 0.0,
                         False, False, False, attention_matrix, self.num_gpus, default_interaction_gpu_id,
                         self.regularizer, self.random_seed, question2context_interaction_trainable)
@@ -755,8 +755,8 @@ class EncoderBlock(object):
                 att_dim_list.append(att_dim)
             
             att_layer_dropout = self.layer_dropout * float(self.num_conv + self.sublayer_skip) / self.num_sublayer
-            self.attention_layer = create_attention_layer("multi_head_att", self.unit_dim,
-                self.unit_dim, att_dim_list, "scaled_dot", self.dropout, self.att_dropout, att_layer_dropout,
+            self.attention_layer = create_attention_layer("multi_head_att", self.unit_dim, self.unit_dim,
+                self.unit_dim, num_head, "scaled_dot", self.dropout, self.att_dropout, att_layer_dropout,
                 True, True, True, None, self.num_gpus, self.default_gpu_id, self.regularizer, self.random_seed, self.trainable)
             
             dense_layer_dropout = [self.layer_dropout * float(self.num_conv + 1 + self.sublayer_skip) / self.num_sublayer]

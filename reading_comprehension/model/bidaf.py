@@ -370,7 +370,7 @@ class BiDAF(BaseModel):
                     self.logger.log_print("# build context2question interaction layer")
                     context2question_attention_layer = create_attention_layer("att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
-                        context2question_interaction_attention_dim, context2question_interaction_score_type,
+                        context2question_interaction_attention_dim, -1, context2question_interaction_score_type,
                         context2question_interaction_dropout, context2question_interaction_att_dropout, 0.0,
                         False, False, False, attention_matrix, self.num_gpus, default_interaction_gpu_id,
                         self.regularizer, self.random_seed, context2question_interaction_trainable)
@@ -399,7 +399,7 @@ class BiDAF(BaseModel):
                     self.logger.log_print("# build question2context interaction layer")
                     question2context_attention_layer = create_attention_layer("max_att",
                         context_understanding_unit_dim, question_understanding_unit_dim,
-                        question2context_interaction_attention_dim, question2context_interaction_score_type,
+                        question2context_interaction_attention_dim, -1, question2context_interaction_score_type,
                         question2context_interaction_dropout, question2context_interaction_att_dropout, 0.0,
                         False, False, False, attention_matrix, self.num_gpus, default_interaction_gpu_id,
                         self.regularizer, self.random_seed, question2context_interaction_trainable)
@@ -469,7 +469,7 @@ class BiDAF(BaseModel):
             if answer_modeling_attention_enable == True:
                 answer_modeling_attention_layer = create_attention_layer("att",
                     answer_modeling_sequence_unit_dim, answer_modeling_sequence_unit_dim,
-                    answer_modeling_attention_dim, answer_modeling_score_type,
+                    answer_modeling_attention_dim, -1, answer_modeling_score_type,
                     answer_modeling_dropout, answer_modeling_att_dropout, 0.0, False, False, True, None,
                     self.num_gpus, default_modeling_gpu_id, self.regularizer, self.random_seed, answer_modeling_trainable)
 

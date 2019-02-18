@@ -391,7 +391,7 @@ class RNet(BaseModel):
             self.logger.log_print("# build answer modeling layer")
             answer_modeling_attention_layer = create_attention_layer("gated_att",
                 answer_interaction_unit_dim, answer_interaction_unit_dim,
-                answer_modeling_attention_dim, answer_modeling_score_type,
+                answer_modeling_attention_dim, -1, answer_modeling_score_type,
                 answer_modeling_dropout, answer_modeling_att_dropout, 0.0, False, False, True, None,
                 self.num_gpus, default_modeling_gpu_id, self.regularizer, self.random_seed, answer_modeling_trainable)
             
@@ -457,7 +457,7 @@ class RNet(BaseModel):
                 
                 answer_base_attention_layer = create_attention_layer("att",
                     question_understanding_unit_dim, question_understanding_unit_dim,
-                    answer_output_attention_dim, answer_output_score_type,
+                    answer_output_attention_dim, -1, answer_output_score_type,
                     answer_output_dropout, answer_output_att_dropout, 0.0, False, False, False, None,
                     self.num_gpus, default_output_gpu_id, self.regularizer, self.random_seed, answer_output_trainable)
                 (answer_base_state, answer_base_state_mask,
@@ -467,7 +467,7 @@ class RNet(BaseModel):
             with tf.variable_scope("start", reuse=tf.AUTO_REUSE):                
                 answer_start_attention_layer = create_attention_layer("att",
                     question_understanding_unit_dim, answer_modeling_unit_dim,
-                    answer_output_attention_dim, answer_output_score_type,
+                    answer_output_attention_dim, -1, answer_output_score_type,
                     answer_output_dropout, answer_output_att_dropout, 0.0, False, False, False, None,
                     self.num_gpus, default_output_gpu_id, self.regularizer, self.random_seed, answer_output_trainable)
                 (answer_start_attention, answer_start_attention_mask, answer_start_output,
@@ -486,7 +486,7 @@ class RNet(BaseModel):
             with tf.variable_scope("end", reuse=tf.AUTO_REUSE):
                 answer_end_attention_layer = create_attention_layer("att",
                     answer_output_unit_dim, answer_modeling_unit_dim,
-                    answer_output_attention_dim, answer_output_score_type,
+                    answer_output_attention_dim, -1, answer_output_score_type,
                     answer_output_dropout, answer_output_att_dropout, 0.0, False, False, False, None,
                     self.num_gpus, default_output_gpu_id, self.regularizer, self.random_seed, answer_output_trainable)
                 (answer_end_attention, answer_end_attention_mask, answer_end_output,

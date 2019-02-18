@@ -6,7 +6,7 @@ from util.reading_comprehension_util import *
 
 from layer.basic import *
 
-__all__ = ["Attention", "MaxAttention", "CoAttention", "GatedAttention", "HeadAttention", "MultiHeadAttention"]
+__all__ = ["Attention", "MaxAttention", "CoAttention", "GatedAttention", "MultiHeadAttention"]
 
 def _create_attention_matrix(src_unit_dim,
                              trg_unit_dim,
@@ -872,122 +872,13 @@ class GatedAttention(object):
     def get_attention_matrix(self):
         return self.attention_matrix
 
-class HeadAttention(object):
-    """head-attention layer"""
-    def __init__(self,
-                 src_dim,
-                 trg_dim,
-                 att_dim,
-                 score_type,
-                 dropout,
-                 att_dropout=0.0,
-                 layer_norm=False,
-                 is_self=False,
-                 external_matrix=None,
-                 num_gpus=1,
-                 default_gpu_id=0,
-                 regularizer=None,
-                 random_seed=0,
-                 trainable=True,
-                 scope="head_att"):
-        """initialize head-attention layer"""
-        self.src_dim = src_dim
-        self.trg_dim = trg_dim
-        self.att_dim = att_dim
-        self.score_type = score_type
-        self.dropout = dropout
-        self.att_dropout = att_dropout
-        self.layer_norm = layer_norm
-        self.is_self = is_self
-        self.regularizer = regularizer
-        self.random_seed = random_seed
-        self.trainable = trainable
-        self.scope = scope
-        self.device_spec = get_device_spec(default_gpu_id, num_gpus)
-        
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            if external_matrix == None:
-                (q_att_dim, k_att_dim, v_att_dim) = tuple(self.att_dim)
-                self.projection_layer = {
-                    "query": _create_projection_layer(q_att_dim, None, False,
-                        self.regularizer, self.random_seed, self.trainable, "query_projection"),
-                    "key": _create_projection_layer(k_att_dim, None, False,
-                        self.regularizer, self.random_seed, self.trainable, "key_projection"),
-                    "value": _create_projection_layer(v_att_dim, None, False,
-                        self.regularizer, self.random_seed, self.trainable, "value_projection")
-                }
-                self.attention_matrix = _create_attention_matrix(q_att_dim, k_att_dim,
-                    k_att_dim, self.score_type, self.regularizer, self.random_seed, self.trainable, "att_matrix")
-            else:
-                self.projection_layer = external_matrix["projection"]
-                self.attention_matrix = external_matrix["attention"]
-                        
-            self.dropout_layer = Dropout(rate=self.dropout, num_gpus=num_gpus,
-                default_gpu_id=default_gpu_id, random_seed=self.random_seed)
-            
-            self.att_dropout_layer = Dropout(rate=self.att_dropout, num_gpus=num_gpus,
-                default_gpu_id=default_gpu_id, random_seed=self.random_seed, scope="att_dropout")
-            
-            if self.layer_norm == True:
-                self.src_norm_layer = LayerNorm(layer_dim=self.src_dim, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-                    regularizer=self.regularizer, trainable=self.trainable, scope="src_layer_norm")
-                
-                if self.is_self == True:
-                    self.trg_norm_layer = self.src_norm_layer
-                else:
-                    self.trg_norm_layer = LayerNorm(layer_dim=self.trg_dim, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
-                    regularizer=self.regularizer, trainable=self.trainable, scope="trg_layer_norm")
-    
-    def __call__(self,
-                 input_src_data,
-                 input_trg_data,
-                 input_src_mask,
-                 input_trg_mask):
-        """call head-attention layer"""
-        with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_src_attention = input_src_data
-            input_trg_attention = input_trg_data
-            input_src_attention_mask = input_src_mask
-            input_trg_attention_mask = input_trg_mask
-            
-            if self.layer_norm == True:
-                input_src_attention, input_src_attention_mask = self.src_norm_layer(input_src_attention, input_src_attention_mask)
-                input_trg_attention, input_trg_attention_mask = self.trg_norm_layer(input_trg_attention, input_trg_attention_mask)
-            
-            input_query_attention = self.projection_layer["query"](input_src_attention)
-            input_key_attention = self.projection_layer["key"](input_trg_attention)
-            input_value_attention = self.projection_layer["value"](input_trg_attention)
-            
-            input_attention_score = _generate_attention_score(input_query_attention,
-                input_key_attention, self.attention_matrix, self.score_type)
-            input_attention_mask = _generate_attention_mask(input_src_attention_mask,
-                input_trg_attention_mask, self.is_self)
-            input_attention_score = input_attention_score * input_attention_mask
-            
-            input_attention_weight = softmax_with_mask(input_attention_score,
-                input_attention_mask, axis=-1) * input_attention_mask
-            input_attention_weight, _ = self.att_dropout_layer(input_attention_weight, input_attention_mask)
-            
-            input_attention = tf.matmul(input_attention_weight, input_value_attention)
-            input_attention, _ = self.dropout_layer(input_attention, input_src_mask)
-            
-            output_attention = input_attention * input_src_mask
-            output_mask = input_src_mask
-        
-        return output_attention, output_mask
-    
-    def get_projection_matrix(self):
-        return self.projection_matrix
-    
-    def get_attention_matrix(self):
-        return self.attention_matrix
-
 class MultiHeadAttention(object):
     """multi-head attention layer"""
     def __init__(self,
                  src_dim,
                  trg_dim,
                  att_dim,
+                 num_head,
                  score_type,
                  dropout,
                  att_dropout=0.0,
@@ -1006,6 +897,7 @@ class MultiHeadAttention(object):
         self.src_dim = src_dim
         self.trg_dim = trg_dim
         self.att_dim = att_dim
+        self.num_head = num_head
         self.score_type = score_type
         self.dropout = dropout
         self.att_dropout = att_dropout
@@ -1013,9 +905,6 @@ class MultiHeadAttention(object):
         self.layer_norm = layer_norm
         self.residual_connect = residual_connect
         self.is_self = is_self
-        self.external_matrix=external_matrix
-        self.num_gpus = num_gpus
-        self.default_gpu_id = default_gpu_id
         self.regularizer = regularizer
         self.random_seed = random_seed
         self.trainable = trainable
@@ -1023,16 +912,44 @@ class MultiHeadAttention(object):
         self.device_spec = get_device_spec(default_gpu_id, num_gpus)
         
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            self.attention_layer_list = []
-            for i in range(len(self.att_dim)):
-                layer_scope = "head_{0}".format(i)
-                layer_default_gpu_id = self.default_gpu_id
-                attention_layer = HeadAttention(src_dim=self.src_dim, trg_dim=self.trg_dim, att_dim=self.att_dim[i],
-                    score_type=self.score_type, dropout=self.dropout, att_dropout=self.att_dropout,
-                    layer_norm=self.layer_norm, is_self=self.is_self, external_matrix=self.external_matrix,
-                    num_gpus=self.num_gpus, default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer,
-                    random_seed=self.random_seed, trainable=self.trainable, scope=layer_scope)
-                self.attention_layer_list.append(attention_layer)
+            if external_matrix == None:
+                query_dim = self.att_dim
+                key_dim = self.att_dim
+                value_dim = self.trg_dim
+                self.projection_layer = {
+                    "query": _create_projection_layer(query_dim, None, False,
+                        self.regularizer, self.random_seed, self.trainable, "query_projection"),
+                    "key": _create_projection_layer(key_dim, None, False,
+                        self.regularizer, self.random_seed, self.trainable, "key_projection"),
+                    "value": _create_projection_layer(value_dim, None, False,
+                        self.regularizer, self.random_seed, self.trainable, "value_projection")
+                }
+                
+                if self.att_dim % self.num_head != 0 or self.att_dim / self.num_head == 0:
+                    raise ValueError("att dim {0} and # head {1} mis-match".format(self.att_dim, self.num_head))
+                
+                head_dim = self.att_dim / self.num_head
+                self.attention_matrix = _create_attention_matrix(head_dim, head_dim,
+                    head_dim, self.score_type, self.regularizer, self.random_seed, self.trainable, "att_matrix")
+            else:
+                self.projection_layer = external_matrix["projection"]
+                self.attention_matrix = external_matrix["attention"]
+                        
+            self.dropout_layer = Dropout(rate=self.dropout, num_gpus=num_gpus,
+                default_gpu_id=default_gpu_id, random_seed=self.random_seed)
+            
+            self.att_dropout_layer = Dropout(rate=self.att_dropout, num_gpus=num_gpus,
+                default_gpu_id=default_gpu_id, random_seed=self.random_seed, scope="att_dropout")
+            
+            if self.layer_norm == True:
+                self.src_norm_layer = LayerNorm(layer_dim=self.src_dim, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
+                    regularizer=self.regularizer, trainable=self.trainable, scope="src_layer_norm")
+                
+                if self.is_self == True:
+                    self.trg_norm_layer = self.src_norm_layer
+                else:
+                    self.trg_norm_layer = LayerNorm(layer_dim=self.trg_dim, num_gpus=num_gpus, default_gpu_id=default_gpu_id,
+                        regularizer=self.regularizer, trainable=self.trainable, scope="trg_layer_norm")
     
     def __call__(self,
                  input_src_data,
@@ -1041,15 +958,47 @@ class MultiHeadAttention(object):
                  input_trg_mask):
         """call multi-head attention layer"""
         with tf.variable_scope(self.scope, reuse=tf.AUTO_REUSE), tf.device(self.device_spec):
-            input_attention_list = []
-            input_attention_mask_list = []
-            for attention_layer in self.attention_layer_list:
-                input_attention, input_attention_mask = attention_layer(input_src_data,
-                    input_trg_data, input_src_mask, input_trg_mask)
-                input_attention_list.append(input_attention)
-                input_attention_mask_list.append(input_attention_mask)
+            input_src_shape = tf.shape(input_src_data)
+            input_trg_shape = tf.shape(input_trg_data)
+            input_src_attention = input_src_data
+            input_trg_attention = input_trg_data
+            input_src_attention_mask = input_src_mask
+            input_trg_attention_mask = input_trg_mask
             
-            input_attention = tf.concat(input_attention_list, axis=-1)
+            if self.layer_norm == True:
+                input_src_attention, input_src_attention_mask = self.src_norm_layer(input_src_attention, input_src_attention_mask)
+                input_trg_attention, input_trg_attention_mask = self.trg_norm_layer(input_trg_attention, input_trg_attention_mask)
+            
+            input_query_attention = self.projection_layer["query"](input_src_attention)
+            input_key_attention = self.projection_layer["key"](input_trg_attention)
+            input_value_attention = self.projection_layer["value"](input_trg_attention)
+            
+            input_query_attention = self.__split_multi_head(input_query_attention,
+                input_src_shape[0], input_src_shape[1], self.num_head)
+            input_key_attention = self.__split_multi_head(input_key_attention,
+                input_trg_shape[0], input_trg_shape[1], self.num_head)
+            input_value_attention = self.__split_multi_head(input_value_attention,
+                input_trg_shape[0], input_trg_shape[1], self.num_head)
+            
+            input_query_attention_mask = self.__split_multi_head_mask(input_src_attention_mask,
+                input_src_shape[0], input_src_shape[1], self.num_head)
+            input_key_attention_mask = self.__split_multi_head_mask(input_trg_attention_mask,
+                input_trg_shape[0], input_trg_shape[1], self.num_head)
+            
+            input_attention_score = _generate_attention_score(input_query_attention,
+                input_key_attention, self.attention_matrix, self.score_type)
+            input_attention_mask = _generate_attention_mask(input_query_attention_mask,
+                input_key_attention_mask, self.is_self)
+            input_attention_score = input_attention_score * input_attention_mask
+            
+            input_attention_weight = softmax_with_mask(input_attention_score,
+                input_attention_mask, axis=-1) * input_attention_mask
+            input_attention_weight, _ = self.att_dropout_layer(input_attention_weight, input_attention_mask)
+            
+            input_attention = tf.matmul(input_attention_weight, input_value_attention)
+            input_attention = self.__merge_multi_head(input_attention,
+                input_src_shape[0], input_src_shape[1], self.num_head)
+            input_attention, _ = self.dropout_layer(input_attention, input_src_mask)
             
             if self.residual_connect == True and self.is_self == True:
                 output_attention, output_mask = tf.cond(tf.random_uniform([]) < self.layer_dropout,
@@ -1061,3 +1010,48 @@ class MultiHeadAttention(object):
                 output_mask = input_src_mask
         
         return output_attention, output_mask
+    
+    def __split_multi_head(self,
+                           input_data,
+                           batch_size,
+                           max_length,
+                           num_head):
+        """split multi-head"""
+        input_split_data = tf.reshape(input_data,
+            shape=[batch_size, max_length, num_head, -1]) # [batch_size, max_len, num_head, -1]
+        input_split_data = tf.transpose(input_split_data, perm=[0,2,1,3]) # [batch_size, num_head, max_len, -1]
+        input_split_data = tf.reshape(input_split_data,
+            shape=[batch_size * num_head, max_length, -1]) # [batch_size * num_head, max_len, -1]
+
+        return input_split_data
+    
+    def __split_multi_head_mask(self,
+                                input_mask,
+                                batch_size,
+                                max_length,
+                                num_head):
+        """split multi-head"""
+        input_split_mask = tf.expand_dims(input_mask, axis=1) # [batch_size, 1, max_len, 1]
+        input_split_mask = tf.tile(input_split_mask,
+            multiples=[1, num_head, 1, 1]) # [batch_size, num_head, max_len, 1]
+        input_split_mask = tf.reshape(input_split_mask,
+            shape=[batch_size * num_head, max_length, 1]) # [batch_size * num_head, max_len, 1]
+
+        return input_split_mask
+    
+    def __merge_multi_head(self,
+                           input_data,
+                           batch_size,
+                           max_length,
+                           num_head):
+        """merge multi-head"""
+        input_merge_data = tf.reshape(input_data,
+            shape=[batch_size, num_head, max_length, -1]) # [batch_size, num_head, max_len, -1]
+        input_merge_data = tf.transpose(input_merge_data, perm=[0,2,1,3]) # [batch_size, max_len, num_head, -1]
+        input_merge_data = tf.reshape(input_merge_data,
+            shape=[batch_size, max_length, -1]) # [batch_size, max_len, -1]
+
+        return input_merge_data
+    
+    def get_projection_matrix(self):
+        return self.projection_matrix
