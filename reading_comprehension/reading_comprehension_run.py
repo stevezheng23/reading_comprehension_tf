@@ -24,7 +24,6 @@ def extrinsic_eval(logger,
                    summary_writer,
                    sess,
                    model,
-                   enable_prepro,
                    batch_size,
                    metric_list,
                    detail_type,
@@ -35,7 +34,7 @@ def extrinsic_eval(logger,
     load_model(sess, model, ckpt_file, eval_mode)
     
     data_size = len(model.input_data)
-    feed_dict, data_dict = generate_feed_dict(model, enable_prepro, data_size, batch_size)
+    feed_dict, data_dict = generate_feed_dict(model, data_size, batch_size)
     sess.run(model.data_pipeline.initializer, feed_dict=feed_dict)
     
     predict_span = []
@@ -105,7 +104,6 @@ def decoding_eval(logger,
                   summary_writer,
                   sess,
                   model,
-                  enable_prepro,
                   sample_size,
                   random_seed,
                   global_step,
@@ -114,7 +112,7 @@ def decoding_eval(logger,
                   eval_mode):
     load_model(sess, model, ckpt_file, eval_mode)
     
-    feed_dict, data_dict = generate_feed_dict(model, enable_prepro, sample_size, sample_size, True, random_seed)
+    feed_dict, data_dict = generate_feed_dict(model, sample_size, sample_size, True, random_seed)
     sess.run(model.data_pipeline.initializer, feed_dict=feed_dict)
     
     sample_output_span = []
@@ -154,7 +152,6 @@ def decoding_eval(logger,
     logger.check_decoding_eval()
 
 def generate_feed_dict(model,
-                       enable_prepro,
                        data_size,
                        batch_size,
                        enable_sample=False,
@@ -205,29 +202,31 @@ def generate_feed_dict(model,
         "data_size": data_size
     }
     
-    if enable_prepro == True:
-        feed_dict = {model.data_pipeline.input_answer_placeholder: input_answer,
-            model.data_pipeline.data_size_placeholder: data_size,
-            model.data_pipeline.batch_size_placeholder: batch_size}
+    feed_dict = {
+        model.data_pipeline.data_size_placeholder: data_size,
+        model.data_pipeline.batch_size_placeholder: batch_size
+    }
 
-        if model.data_pipeline.input_question_word_placeholder is not None and input_question_word is not None:
-            feed_dict[model.data_pipeline.input_question_word_placeholder] = input_question_word
-        if model.data_pipeline.input_question_subword_placeholder is not None and input_question_subword is not None:
-            feed_dict[model.data_pipeline.input_question_subword_placeholder] = input_question_subword
-        if model.data_pipeline.input_question_char_placeholder is not None and input_question_char is not None:
-            feed_dict[model.data_pipeline.input_question_char_placeholder] = input_question_char
-        if model.data_pipeline.input_context_word_placeholder is not None and input_context_word is not None:
-            feed_dict[model.data_pipeline.input_context_word_placeholder] = input_context_word
-        if model.data_pipeline.input_context_subword_placeholder is not None and input_context_subword is not None:
-            feed_dict[model.data_pipeline.input_context_subword_placeholder] = input_context_subword
-        if model.data_pipeline.input_context_char_placeholder is not None and input_context_char is not None:
-            feed_dict[model.data_pipeline.input_context_char_placeholder] = input_context_char
-    else:
-        feed_dict={model.data_pipeline.input_question_placeholder: input_question,
-            model.data_pipeline.input_context_placeholder: input_context,
-            model.data_pipeline.input_answer_placeholder: input_answer,
-            model.data_pipeline.data_size_placeholder: data_size,
-            model.data_pipeline.batch_size_placeholder: batch_size}
+    if model.data_pipeline.input_question_placeholder is not None and input_question is not None:
+        feed_dict[model.data_pipeline.input_question_placeholder] = input_question
+    if model.data_pipeline.input_context_placeholder is not None and input_context is not None:
+        feed_dict[model.data_pipeline.input_context_placeholder] = input_context
+
+    if model.data_pipeline.input_question_word_placeholder is not None and input_question_word is not None:
+        feed_dict[model.data_pipeline.input_question_word_placeholder] = input_question_word
+    if model.data_pipeline.input_question_subword_placeholder is not None and input_question_subword is not None:
+        feed_dict[model.data_pipeline.input_question_subword_placeholder] = input_question_subword
+    if model.data_pipeline.input_question_char_placeholder is not None and input_question_char is not None:
+        feed_dict[model.data_pipeline.input_question_char_placeholder] = input_question_char
+    if model.data_pipeline.input_context_word_placeholder is not None and input_context_word is not None:
+        feed_dict[model.data_pipeline.input_context_word_placeholder] = input_context_word
+    if model.data_pipeline.input_context_subword_placeholder is not None and input_context_subword is not None:
+        feed_dict[model.data_pipeline.input_context_subword_placeholder] = input_context_subword
+    if model.data_pipeline.input_context_char_placeholder is not None and input_context_char is not None:
+        feed_dict[model.data_pipeline.input_context_char_placeholder] = input_context_char
+
+    if model.data_pipeline.input_answer_placeholder is not None and input_answer is not None:
+        feed_dict[model.data_pipeline.input_answer_placeholder] = input_answer
     
     return feed_dict, data_dict
 
@@ -267,8 +266,7 @@ def train(logger,
     logger.log_print("##### start training #####")
     global_step = 0
     for epoch in range(hyperparams.train_num_epoch):
-        feed_dict, data_dict = generate_feed_dict(train_model, hyperparams.data_enable_preprocessing,
-            len(train_model.input_answer), hyperparams.train_batch_size)
+        feed_dict, data_dict = generate_feed_dict(train_model, len(train_model.input_answer), hyperparams.train_batch_size)
         train_sess.run(train_model.data_pipeline.initializer, feed_dict=feed_dict)
         
         step_in_epoch = 0
@@ -290,12 +288,11 @@ def train(logger,
                 if step_in_epoch % hyperparams.train_step_per_eval == 0 and enable_eval == True:
                     ckpt_file = infer_model.model.get_latest_ckpt("debug")
                     extrinsic_eval(eval_logger, infer_summary_writer, infer_sess, infer_model,
-                        hyperparams.data_enable_preprocessing, hyperparams.train_eval_batch_size,
-                        hyperparams.train_eval_metric, hyperparams.train_eval_detail_type,
+                        hyperparams.train_eval_batch_size, hyperparams.train_eval_metric, hyperparams.train_eval_detail_type,
                         global_step, epoch, ckpt_file, "debug")
                     decoding_eval(eval_logger, infer_summary_writer, infer_sess, infer_model,
-                        hyperparams.data_enable_preprocessing, hyperparams.train_decoding_sample_size,
-                        hyperparams.train_random_seed + global_step, global_step, epoch, ckpt_file, "debug")
+                        hyperparams.train_decoding_sample_size, hyperparams.train_random_seed + global_step,
+                        global_step, epoch, ckpt_file, "debug")
             except tf.errors.OutOfRangeError:
                 train_logger.check()
                 train_summary_writer.add_summary(train_result.summary, global_step)
@@ -303,12 +300,11 @@ def train(logger,
                 if enable_eval == True:
                     ckpt_file = infer_model.model.get_latest_ckpt("epoch")
                     extrinsic_eval(eval_logger, infer_summary_writer, infer_sess, infer_model,
-                        hyperparams.data_enable_preprocessing, hyperparams.train_eval_batch_size,
-                        hyperparams.train_eval_metric, hyperparams.train_eval_detail_type,
+                        hyperparams.train_eval_batch_size, hyperparams.train_eval_metric, hyperparams.train_eval_detail_type,
                         global_step, epoch, ckpt_file, "epoch")
                     decoding_eval(eval_logger, infer_summary_writer, infer_sess, infer_model,
-                        hyperparams.data_enable_preprocessing, hyperparams.train_decoding_sample_size,
-                        hyperparams.train_random_seed + global_step, global_step, epoch, ckpt_file, "epoch")
+                        hyperparams.train_decoding_sample_size, hyperparams.train_random_seed + global_step,
+                        global_step, epoch, ckpt_file, "epoch")
                 break
 
     train_summary_writer.close_writer()
@@ -344,12 +340,11 @@ def evaluate(logger,
     ckpt_file_list = infer_model.model.get_ckpt_list(eval_mode)
     for i, ckpt_file in enumerate(ckpt_file_list):
         extrinsic_eval(eval_logger, infer_summary_writer, infer_sess, infer_model,
-            hyperparams.data_enable_preprocessing, hyperparams.train_eval_batch_size,
-            hyperparams.train_eval_metric, hyperparams.train_eval_detail_type,
+            hyperparams.train_eval_batch_size, hyperparams.train_eval_metric, hyperparams.train_eval_detail_type,
             global_step, i, ckpt_file, eval_mode)
         decoding_eval(eval_logger, infer_summary_writer, infer_sess, infer_model,
-            hyperparams.data_enable_preprocessing, hyperparams.train_decoding_sample_size,
-            hyperparams.train_random_seed, global_step, i, ckpt_file, eval_mode)
+            hyperparams.train_decoding_sample_size, hyperparams.train_random_seed,
+            global_step, i, ckpt_file, eval_mode)
     
     infer_summary_writer.close_writer()
     logger.log_print("##### finish evaluation #####")
