@@ -11,6 +11,7 @@ from util.default_util import *
 __all__ = ["DataPipeline", "create_data_pipeline",
            "create_src_data", "create_trg_data", "create_src_dataset", "create_trg_dataset",
            "generate_word_feat", "generate_subword_feat", "generate_char_feat",
+           "generate_dataset_from_tfrecord", "create_tfrecord_file",
            "create_embedding_file", "load_embedding_file", "convert_embedding",
            "create_vocab_file", "load_vocab_file", "process_vocab_table",
            "create_word_vocab", "create_subword_vocab", "create_char_vocab",
@@ -474,6 +475,119 @@ def generate_char_feat(sentence,
     word_chars = tf.cast(char_vocab_index.lookup(word_chars), dtype=tf.int32)
     
     return word_chars
+
+def generate_dataset_from_tfrecord(tfrecord_file,
+                                   word_feat_enable,
+                                   subword_feat_enable,
+                                   char_feat_enable,
+                                   question_max_length,
+                                   context_max_length,
+                                   answer_max_length,
+                                   subword_max_length,
+                                   char_max_length,
+                                   answer_type,
+                                   num_parallel):
+    def parse_example(example):
+        feature = {}
+        
+        if word_feat_enable == True:
+            feature['question_word'] = tf.FixedLenFeature([], tf.string)
+            feature['context_word'] = tf.FixedLenFeature([], tf.string)
+        
+        if subword_feat_enable == True:
+            feature['question_subword'] = tf.FixedLenFeature([], tf.string)
+            feature['context_subword'] = tf.FixedLenFeature([], tf.string)
+        
+        if char_feat_enable == True:
+            feature['question_char'] = tf.FixedLenFeature([], tf.string)
+            feature['context_char'] = tf.FixedLenFeature([], tf.string)
+        
+        feature['answer'] = tf.FixedLenFeature([], tf.string)
+        
+        features = tf.parse_single_example(example, feature)
+        
+        default_tensor = tf.constant(0, shape=[1,1], dtype=tf.int32)
+        
+        question_word = (tf.reshape(tf.decode_raw(features['question_word'], tf.int32),
+            shape=[question_max_length, 1]) if word_feat_enable == True else default_tensor)
+        question_subword = (tf.reshape(tf.decode_raw(features['question_subword'], tf.int32),
+            shape=[question_max_length, subword_max_length]) if subword_feat_enable == True else default_tensor)
+        question_char = (tf.reshape(tf.decode_raw(features['question_char'], tf.int32),
+            shape=[question_max_length, char_max_length]) if char_feat_enable == True else default_tensor)
+        
+        context_word = (tf.reshape(tf.decode_raw(features['context_word'], tf.int32),
+            shape=[context_max_length, 1]) if word_feat_enable == True else default_tensor)
+        context_subword = (tf.reshape(tf.decode_raw(features['context_subword'], tf.int32),
+            shape=[context_max_length, subword_max_length]) if subword_feat_enable == True else default_tensor)
+        context_char = (tf.reshape(tf.decode_raw(features['context_char'], tf.int32),
+            shape=[context_max_length, char_max_length]) if char_feat_enable == True else default_tensor)
+        
+        if answer_type == "span":
+            answer = tf.reshape(tf.decode_raw(features['answer'], tf.int32), shape=[2, 1])
+        elif answer_type == "text":
+            answer = tf.reshape(tf.decode_raw(features['answer'], tf.int32), shape=[answer_max_length, 1])
+        else:
+            answer = tf.decode_raw(features['answer'], tf.int32)
+        
+        return question_word, question_subword, question_char, context_word, context_subword, context_char, answer
+    
+    """generate dataset from tfrecord"""
+    dataset = tf.data.TFRecordDataset([tfrecord_file])
+    dataset = dataset.map(parse_example, num_parallel_calls=num_parallel)
+    
+    
+    question_word_dataset = dataset.map(lambda qw, qs, qc, cw, cs, cc, a: qw) if word_feat_enable == True else None
+    question_subword_dataset = dataset.map(lambda qw, qs, qc, cw, cs, cc, a: qs) if subword_feat_enable == True else None
+    question_char_dataset = dataset.map(lambda qw, qs, qc, cw, cs, cc, a: qc) if char_feat_enable == True else None
+    context_word_dataset = dataset.map(lambda qw, qs, qc, cw, cs, cc, a: cw) if word_feat_enable == True else None
+    context_subword_dataset = dataset.map(lambda qw, qs, qc, cw, cs, cc, a: cs) if subword_feat_enable == True else None
+    context_char_dataset = dataset.map(lambda qw, qs, qc, cw, cs, cc, a: cc) if char_feat_enable == True else None
+    answer_dataset = dataset.map(lambda qw, qs, qc, cw, cs, cc, a: a)
+    
+    return (question_word_dataset, question_subword_dataset, question_char_dataset,
+        context_word_dataset, context_subword_dataset, context_char_dataset, answer_dataset)
+
+def create_tfrecord_file(tfrecord_file,
+                         input_question_word,
+                         input_question_subword,
+                         input_question_char,
+                         input_context_word,
+                         input_context_subword,
+                         input_context_char,
+                         input_answer,
+                         word_feat_enable,
+                         subword_feat_enable,
+                         char_feat_enable):
+    """create tfrecord file"""
+    data_size = len(input_answer)
+    
+    with tf.python_io.TFRecordWriter(tfrecord_file) as writer:
+        for i in range(data_size):
+            feature = {}
+
+            if word_feat_enable == True:
+                question_word = input_question_word[i].tostring()
+                context_word = input_context_word[i].tostring()
+                feature['question_word'] = tf.train.Feature(bytes_list=tf.train.BytesList(value=[question_word]))
+                feature['context_word'] = tf.train.Feature(bytes_list=tf.train.BytesList(value=[context_word]))
+
+            if subword_feat_enable == True:
+                question_subword = input_question_subword[i].tostring()
+                context_subword = input_context_subword[i].tostring()
+                feature['question_subword'] = tf.train.Feature(bytes_list=tf.train.BytesList(value=[question_subword]))
+                feature['context_subword'] = tf.train.Feature(bytes_list=tf.train.BytesList(value=[context_subword]))
+
+            if char_feat_enable == True:
+                question_char = input_question_char[i].tostring()
+                context_char = input_context_char[i].tostring()
+                feature['question_char'] = tf.train.Feature(bytes_list=tf.train.BytesList(value=[question_char]))
+                feature['context_char'] = tf.train.Feature(bytes_list=tf.train.BytesList(value=[context_char]))
+            
+            answer = input_answer[i].tostring()
+            feature['answer'] = tf.train.Feature(bytes_list=tf.train.BytesList(value=[answer]))
+
+            example = tf.train.Example(features=tf.train.Features(feature=feature))
+            writer.write(example.SerializeToString())          
 
 def create_embedding_file(embedding_file,
                           embedding_table):

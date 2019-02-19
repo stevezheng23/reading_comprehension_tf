@@ -1,4 +1,5 @@
 import collections
+import os.path
 
 import numpy as np
 import tensorflow as tf
@@ -52,7 +53,69 @@ def create_train_model(logger,
         char_vocab_tensor_index = (tf.contrib.lookup.index_table_from_tensor(mapping=tf.constant(list(char_vocab_index.keys())),
             default_value=0) if hyperparams.model_representation_char_feat_enable else None)
         
-        if hyperparams.data_enable_preprocessing == True:
+        if hyperparams.data_pipeline_mode == "tfrecord":
+            if not os.path.exists(hyperparams.data_tfrecord_dir):
+                os.mkdir(hyperparams.data_tfrecord_dir)
+            
+            train_tfrecord_file = os.path.join(hyperparams.data_tfrecord_dir, "train.tfrecord")
+            
+            input_question_word_data = None
+            input_question_subword_data = None
+            input_question_char_data = None
+            input_context_word_data = None
+            input_context_subword_data = None
+            input_context_char_data = None
+            if not os.path.exists(train_tfrecord_file):
+                logger.log_print("# create train question data")
+                (input_question_word_data, input_question_subword_data,
+                     input_question_char_data) = create_src_data(input_question_data,
+                     word_vocab_index, hyperparams.data_max_question_length, hyperparams.data_word_pad,
+                     hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable,
+                     hyperparams.model_representation_word_feat_enable, subword_vocab_index,
+                     hyperparams.data_max_subword_length, hyperparams.data_subword_pad, hyperparams.data_subword_size,
+                     hyperparams.model_representation_subword_feat_enable, char_vocab_index, hyperparams.data_max_char_length,
+                     hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
+
+                logger.log_print("# create train context data")
+                (input_context_word_data, input_context_subword_data,
+                     input_context_char_data) = create_src_data(input_context_data,
+                     word_vocab_index, hyperparams.data_max_context_length, hyperparams.data_word_pad,
+                     hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable,
+                     hyperparams.model_representation_word_feat_enable, subword_vocab_index, 
+                     hyperparams.data_max_subword_length, hyperparams.data_subword_pad, hyperparams.data_subword_size,
+                     hyperparams.model_representation_subword_feat_enable, char_vocab_index, hyperparams.data_max_char_length,
+                     hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
+
+                logger.log_print("# create train answer data")
+                input_answer_data = create_trg_data(input_answer_data, hyperparams.data_answer_type,
+                    word_vocab_index, hyperparams.data_max_answer_length, hyperparams.data_word_pad,
+                    hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable)
+
+                logger.log_print("# create train tfrecord file")
+                create_tfrecord_file(train_tfrecord_file, input_question_word_data,
+                    input_question_subword_data, input_question_char_data, input_context_word_data, input_context_subword_data,
+                    input_context_char_data, input_answer_data, hyperparams.model_representation_word_feat_enable,
+                    hyperparams.model_representation_subword_feat_enable, hyperparams.model_representation_char_feat_enable)
+            
+            logger.log_print("# generate train dataset from tfrecord")
+            (input_question_word_dataset, input_question_subword_dataset, input_question_char_dataset,
+                input_context_word_dataset, input_context_subword_dataset, input_context_char_dataset,
+                input_answer_dataset) = generate_dataset_from_tfrecord(train_tfrecord_file,
+                    hyperparams.model_representation_word_feat_enable, hyperparams.model_representation_subword_feat_enable,
+                    hyperparams.model_representation_char_feat_enable, hyperparams.data_max_question_length,
+                    hyperparams.data_max_context_length, hyperparams.data_max_answer_length, hyperparams.data_max_subword_length,
+                    hyperparams.data_max_char_length, hyperparams.data_answer_type, hyperparams.data_num_parallel)
+            
+            input_question_placeholder = None
+            input_question_word_placeholder = None
+            input_question_subword_placeholder = None
+            input_question_char_placeholder = None
+            input_context_placeholder = None
+            input_context_word_placeholder = None
+            input_context_subword_placeholder = None
+            input_context_char_placeholder = None
+            input_answer_placeholder = None
+        elif hyperparams.data_pipeline_mode == "preprocessing":
             logger.log_print("# create train question dataset")
             (input_question_word_data, input_question_subword_data,
                  input_question_char_data) = create_src_data(input_question_data,
@@ -156,6 +219,7 @@ def create_train_model(logger,
                  hyperparams.model_representation_char_feat_enable, hyperparams.data_num_parallel)
 
             logger.log_print("# create train answer dataset")
+            input_answer_data = None
             input_answer_placeholder = tf.placeholder(shape=[None], dtype=tf.string)
             input_answer_dataset = tf.data.Dataset.from_tensor_slices(input_answer_placeholder)
             input_answer_dataset = create_trg_dataset(input_answer_dataset,
@@ -217,7 +281,69 @@ def create_infer_model(logger,
         char_vocab_tensor_index = (tf.contrib.lookup.index_table_from_tensor(mapping=tf.constant(list(char_vocab_index.keys())),
             default_value=0) if hyperparams.model_representation_char_feat_enable else None)
         
-        if hyperparams.data_enable_preprocessing == True:
+        if hyperparams.data_pipeline_mode == "tfrecord":
+            if not os.path.exists(hyperparams.data_tfrecord_dir):
+                os.mkdir(hyperparams.data_tfrecord_dir)
+
+            infer_tfrecord_file = os.path.join(hyperparams.data_tfrecord_dir, "infer.tfrecord")
+            
+            input_question_word_data = None
+            input_question_subword_data = None
+            input_question_char_data = None
+            input_context_word_data = None
+            input_context_subword_data = None
+            input_context_char_data = None
+            if not os.path.exists(infer_tfrecord_file):               
+                logger.log_print("# create infer question data")
+                (input_question_word_data, input_question_subword_data,
+                     input_question_char_data) = create_src_data(input_question_data,
+                     word_vocab_index, hyperparams.data_max_question_length, hyperparams.data_word_pad,
+                     hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable,
+                     hyperparams.model_representation_word_feat_enable, subword_vocab_index,
+                     hyperparams.data_max_subword_length, hyperparams.data_subword_pad, hyperparams.data_subword_size,
+                     hyperparams.model_representation_subword_feat_enable, char_vocab_index, hyperparams.data_max_char_length,
+                     hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
+
+                logger.log_print("# create infer context data")
+                (input_context_word_data, input_context_subword_data,
+                     input_context_char_data) = create_src_data(input_context_data,
+                     word_vocab_index, hyperparams.data_max_context_length, hyperparams.data_word_pad,
+                     hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable,
+                     hyperparams.model_representation_word_feat_enable, subword_vocab_index, 
+                     hyperparams.data_max_subword_length, hyperparams.data_subword_pad, hyperparams.data_subword_size,
+                     hyperparams.model_representation_subword_feat_enable, char_vocab_index, hyperparams.data_max_char_length,
+                     hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
+
+                logger.log_print("# create infer answer data")
+                input_answer_data = create_trg_data(input_answer_data, hyperparams.data_answer_type,
+                    word_vocab_index, hyperparams.data_max_answer_length, hyperparams.data_word_pad,
+                    hyperparams.data_word_sos, hyperparams.data_word_eos, hyperparams.data_word_placeholder_enable)
+
+                logger.log_print("# create infer tfrecord file")
+                create_tfrecord_file(infer_tfrecord_file, input_question_word_data,
+                    input_question_subword_data, input_question_char_data, input_context_word_data, input_context_subword_data,
+                    input_context_char_data, input_answer_data, hyperparams.model_representation_word_feat_enable,
+                    hyperparams.model_representation_subword_feat_enable, hyperparams.model_representation_char_feat_enable)
+            
+            logger.log_print("# generate infer dataset from tfrecord")
+            (input_question_word_dataset, input_question_subword_dataset, input_question_char_dataset,
+                input_context_word_dataset, input_context_subword_dataset, input_context_char_dataset,
+                input_answer_dataset) = generate_dataset_from_tfrecord(infer_tfrecord_file,
+                    hyperparams.model_representation_word_feat_enable, hyperparams.model_representation_subword_feat_enable,
+                    hyperparams.model_representation_char_feat_enable, hyperparams.data_max_question_length,
+                    hyperparams.data_max_context_length, hyperparams.data_max_answer_length, hyperparams.data_max_subword_length,
+                    hyperparams.data_max_char_length, hyperparams.data_answer_type, hyperparams.data_num_parallel)
+            
+            input_question_placeholder = None
+            input_question_word_placeholder = None
+            input_question_subword_placeholder = None
+            input_question_char_placeholder = None
+            input_context_placeholder = None
+            input_context_word_placeholder = None
+            input_context_subword_placeholder = None
+            input_context_char_placeholder = None
+            input_answer_placeholder = None
+        elif hyperparams.data_pipeline_mode == "preprocessing":
             logger.log_print("# create infer question dataset")
             (input_question_word_data, input_question_subword_data,
                  input_question_char_data) = create_src_data(input_question_data,
