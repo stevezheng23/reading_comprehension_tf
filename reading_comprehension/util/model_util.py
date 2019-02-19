@@ -46,6 +46,8 @@ def create_train_model(logger,
              hyperparams.data_char_vocab_size, hyperparams.data_char_vocab_threshold, hyperparams.data_char_unk,
              hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
+        external_data = {}
+        
         word_vocab_tensor_index = (tf.contrib.lookup.index_table_from_tensor(mapping=tf.constant(list(word_vocab_index.keys())),
             default_value=0) if hyperparams.model_representation_word_feat_enable else None)
         subword_vocab_tensor_index = (tf.contrib.lookup.index_table_from_tensor(mapping=tf.constant(list(subword_vocab_index.keys())),
@@ -115,6 +117,9 @@ def create_train_model(logger,
             input_context_subword_placeholder = None
             input_context_char_placeholder = None
             input_answer_placeholder = None
+            
+            if word_embed_data is not None:
+                external_data["word_embedding"] = word_embed_data
         elif hyperparams.data_pipeline_mode == "preprocessing":
             logger.log_print("# create train question dataset")
             (input_question_word_data, input_question_subword_data,
@@ -219,7 +224,6 @@ def create_train_model(logger,
                  hyperparams.model_representation_char_feat_enable, hyperparams.data_num_parallel)
 
             logger.log_print("# create train answer dataset")
-            input_answer_data = None
             input_answer_placeholder = tf.placeholder(shape=[None], dtype=tf.string)
             input_answer_dataset = tf.data.Dataset.from_tensor_slices(input_answer_placeholder)
             input_answer_dataset = create_trg_dataset(input_answer_dataset,
@@ -244,7 +248,7 @@ def create_train_model(logger,
         
         model_creator = get_model_creator(hyperparams.model_type)
         model = model_creator(logger=logger, hyperparams=hyperparams, data_pipeline=data_pipeline,
-            mode="train", scope=hyperparams.model_scope)
+            external_data=external_data, mode="train", scope=hyperparams.model_scope)
         
         return TrainModel(graph=graph, model=model, data_pipeline=data_pipeline,
             word_embedding=word_embed_data, input_data=input_data, input_question=input_question_data,
@@ -273,6 +277,8 @@ def create_infer_model(logger,
              hyperparams.data_subword_unk, hyperparams.data_subword_pad, hyperparams.data_subword_size,                                                  hyperparams.model_representation_subword_feat_enable, hyperparams.data_char_vocab_file,
              hyperparams.data_char_vocab_size, hyperparams.data_char_vocab_threshold, hyperparams.data_char_unk,
              hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
+        
+        external_data = {}
         
         word_vocab_tensor_index = (tf.contrib.lookup.index_table_from_tensor(mapping=tf.constant(list(word_vocab_index.keys())),
             default_value=0) if hyperparams.model_representation_word_feat_enable else None)
@@ -343,6 +349,9 @@ def create_infer_model(logger,
             input_context_subword_placeholder = None
             input_context_char_placeholder = None
             input_answer_placeholder = None
+            
+            if word_embed_data is not None:
+                external_data["word_embedding"] = word_embed_data
         elif hyperparams.data_pipeline_mode == "preprocessing":
             logger.log_print("# create infer question dataset")
             (input_question_word_data, input_question_subword_data,
@@ -470,7 +479,7 @@ def create_infer_model(logger,
         
         model_creator = get_model_creator(hyperparams.model_type)
         model = model_creator(logger=logger, hyperparams=hyperparams, data_pipeline=data_pipeline,
-            mode="infer", scope=hyperparams.model_scope)
+            external_data=external_data, mode="infer", scope=hyperparams.model_scope)
         
         return InferModel(graph=graph, model=model, data_pipeline=data_pipeline,
             word_embedding=word_embed_data, input_data=input_data, input_question=input_question_data,

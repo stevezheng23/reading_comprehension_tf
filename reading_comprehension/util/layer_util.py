@@ -25,6 +25,7 @@ def create_dropout_layer(dropout,
 def create_embedding_layer(vocab_size,
                            embed_dim,
                            pretrained,
+                           embedding,
                            num_gpus,
                            default_gpu_id,
                            regularizer,
@@ -32,7 +33,7 @@ def create_embedding_layer(vocab_size,
                            trainable):
     """create embedding layer"""
     if pretrained == True:
-        embed_layer = PretrainedEmbedding(vocab_size=vocab_size, embed_dim=embed_dim,
+        embed_layer = PretrainedEmbedding(vocab_size=vocab_size, embed_dim=embed_dim, embedding=embedding,
             num_gpus=num_gpus, default_gpu_id=default_gpu_id, regularizer=regularizer, trainable=trainable)
     else:
         embed_layer = Embedding(vocab_size=vocab_size, embed_dim=embed_dim,
