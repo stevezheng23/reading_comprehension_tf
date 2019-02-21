@@ -1,15 +1,19 @@
 # Machine Reading Comprehension
 Machine Reading Comprehension in Tensorflow
 
-## Prerequisites
+## Requirements
 * Python 3.6.6
 * Tensorflow 1.12
 * NumPy 1.15.4
+* NLTK 3.3
+* Spacy 2.0.12
+
+## DataSet
+* [SQuAD](https://rajpurkar.github.io/SQuAD-explorer/) is a reading comprehension dataset, consisting of questions posed by crowdworkers on a set of Wikipedia articles, where the answer to every question is a segment of text, or span, from the corresponding reading passage, or the question might be unanswerable.
+* [GloVe](https://nlp.stanford.edu/projects/glove/) is an unsupervised learning algorithm for obtaining vector representations for words. Training is performed on aggregated global word-word co-occurrence statistics from a corpus, and the resulting representations showcase interesting linear substructures of the word vector space.
 
 ## Usage
-* Download [SQuAD](https://rajpurkar.github.io/SQuAD-explorer/) data
-* Download [GloVe](https://nlp.stanford.edu/projects/glove/) or [FastText](https://research.fb.com/downloads/fasttext/) data
-* Preprocess raw data
+* Preprocess data
 ```bash
 # preprocess train data
 python squad/preprocess.py \
@@ -24,10 +28,25 @@ python squad/preprocess.py \
 ```
 * Run experiment
 ```bash
-# run experiment in train_eval mode
-# run experiment in train_eval mode
-# run experiment in train_eval mode
+# run experiment in train + eval mode
+python reading_comprehension_run.py \
+--mode train_eval \
+--config config/config_mrc_template.xxx.json
+# run experiment in train only mode
+python reading_comprehension_run.py \
+--mode train \
+--config config/config_mrc_template.xxx.json
+# run experiment in eval only mode
+python reading_comprehension_run.py \
+--mode eval \
+--config config/config_mrc_template.xxx.json
 ```
 
 ## QANet
-This repo contains a Tensorflow re-implementation of [QANet](https://arxiv.org/abs/1804.09541). QANet is a new Q&A architecture proposed by Google Brain, which does not require recurrent networks: Its encoder consists exclusively of convolution and self-attention, where convolution models local interactions and self-attention models global interactions.
+This repo contains a Tensorflow re-implementation of [QANet](https://arxiv.org/abs/1804.09541). QANet is a MRC architecture proposed by Google Brain, which does not require recurrent networks: Its encoder consists exclusively of convolution and self-attention, where convolution models local interactions and self-attention models global interactions.
+
+## BiDAF
+This repo contains a Tensorflow re-implementation of [BiDAF](https://allenai.github.io/bi-att-flow/). BiDAF (Bi-Directional Attention Flow) is a MRC architecture proposed by Allen Institute for Artificial Intelligence (AI2), which consists a multi-stage hierarchical process that represents the context at different levels of granularity and uses bidirectional attention flow mechanism to obtain a query-aware context representation without early summarization.
+
+## R-Net
+This repo contains a Tensorflow re-implementation of [R-Net](https://www.microsoft.com/en-us/research/publication/mcr/). R-Net is a MRC architecture proposed by Microsoft Research Asia (MSRA), which first matches the question and passage with gated attention-based recurrent networks to obtain the question-aware passage representation, then uses a self-matching attention mechanism to refine the representation by matching the passage against itself, and finally employs the pointer networks to locate the positions of answers from the passages.
