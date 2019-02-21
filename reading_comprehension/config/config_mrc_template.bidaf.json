@@ -155,7 +155,7 @@
     "model_modeling_answer_forget_bias": 1.0,
     "model_modeling_answer_residual_connect": false,
     "model_modeling_answer_attention_dim": 200,
-    "model_modeling_answer_score_type": "linear_plus",
+    "model_modeling_answer_score_type": "trilinear",
     "model_modeling_answer_attention_enable": false,
     "model_modeling_answer_trainable": true,
     "model_modeling_fusion_type": "concate",
