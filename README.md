@@ -1,7 +1,7 @@
 # Machine Reading Comprehension
 Machine reading comprehension (MRC), a task which asks machine to read a given context then answer questions based on its understanding, is considered one of the key problems in artificial intelligence and has significant interest from both academic and industry. Over the past few years, great progress has been made in this field, thanks to various end-to-end trained neural models and high quality datasets with large amount of examples proposed. In this repo, I'll share more details on MRC task by re-implementing a few MRC models and testing them on standard MRC datasets.
 
-## Requirements
+## Setting
 * Python 3.6.6
 * Tensorflow 1.12
 * NumPy 1.15.4
@@ -29,30 +29,26 @@ python reading_comprehension_run.py --mode train --config config/config_mrc_temp
 # run experiment in eval only mode
 python reading_comprehension_run.py --mode eval --config config/config_mrc_template.xxx.json
 ```
+* Visualize summary
+```bash
+# visualize summary via tensorboard
+tensorboard --logdir=output
+```
+## Experiment
+### QANet
+[QANet](https://arxiv.org/abs/1804.09541) is a MRC architecture proposed by Google Brain, which does not require recurrent networks: Its encoder consists exclusively of convolution and self-attention, where convolution models local interactions and self-attention models global interactions.
 
-## QANet
-This repo contains a Tensorflow re-implementation of [QANet](https://arxiv.org/abs/1804.09541). QANet is a MRC architecture proposed by Google Brain, which does not require recurrent networks: Its encoder consists exclusively of convolution and self-attention, where convolution models local interactions and self-attention models global interactions.
+<img src="/reading_comprehension/document/QANet.architecture.png" width=800><br />
+*Figure 1: An overview of the QANet architecture*
 
-#### QANet Architecture Overview
-<img src="/reading_comprehension/document/QANet.architecture.png" width=800>
+### BiDAF
+[BiDAF](https://allenai.github.io/bi-att-flow/) (Bi-Directional Attention Flow) is a MRC architecture proposed by Allen Institute for Artificial Intelligence (AI2), which consists a multi-stage hierarchical process that represents the context at different levels of granularity and uses bidirectional attention flow mechanism to obtain a query-aware context representation without early summarization.
 
-#### QANet Experiment Result
-TODO
+<img src="/reading_comprehension/document/BiDAF.architecture.png" width=800><br />
+*Figure 2: An overview of the BiDAF architecture*
 
-## BiDAF
-This repo contains a Tensorflow re-implementation of [BiDAF](https://allenai.github.io/bi-att-flow/). BiDAF (Bi-Directional Attention Flow) is a MRC architecture proposed by Allen Institute for Artificial Intelligence (AI2), which consists a multi-stage hierarchical process that represents the context at different levels of granularity and uses bidirectional attention flow mechanism to obtain a query-aware context representation without early summarization.
+### R-Net
+[R-Net](https://www.microsoft.com/en-us/research/publication/mcr/) is a MRC architecture proposed by Microsoft Research Asia (MSRA), which first matches the question and passage with gated attention-based recurrent networks to obtain the question-aware passage representation, then uses a self-matching attention mechanism to refine the representation by matching the passage against itself, and finally employs the pointer networks to locate the positions of answers from the passages.
 
-#### BiDAF Architecture Overview
-<img src="/reading_comprehension/document/BiDAF.architecture.png" width=800>
-
-#### BiDAF Experiment Result
-TODO
-
-## R-Net
-This repo contains a Tensorflow re-implementation of [R-Net](https://www.microsoft.com/en-us/research/publication/mcr/). R-Net is a MRC architecture proposed by Microsoft Research Asia (MSRA), which first matches the question and passage with gated attention-based recurrent networks to obtain the question-aware passage representation, then uses a self-matching attention mechanism to refine the representation by matching the passage against itself, and finally employs the pointer networks to locate the positions of answers from the passages.
-
-#### R-Net Architecture Overview
-<img src="/reading_comprehension/document/R-Net.architecture.png" width=800>
-
-#### R-Net Experiment Result
-TODO
+<img src="/reading_comprehension/document/R-Net.architecture.png" width=800><br />
+*Figure 3: An overview of the R-Net architecture*
