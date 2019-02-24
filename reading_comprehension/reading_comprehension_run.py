@@ -39,6 +39,10 @@ def sample_predict(sess,
         except  tf.errors.OutOfRangeError:
             break
     
+    predict_size = len(predict_span)
+    if data_size != predict_size:
+        raise ValueError("input data size {0} and output data size {1} is not the same".format(data_size, predict_size))
+    
     sample_result = []
     for i in range(data_size):
         sample_id = data_dict["input_data"][i]["id"]
