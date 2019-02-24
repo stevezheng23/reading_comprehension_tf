@@ -49,6 +49,7 @@ tensorboard --logdir=output
 | This implementation |    13   |    ~70,000    |     16     |  87k (no aug) |   8    |  128  |  70.1  |  79.7  |
 |    Original Paper   |   ~13   |     35,000    |     32     |  87k (no aug) |   8    |  128  |   N/A  |  77.0  |
 |    Original Paper   |   ~55   |    150,000    |     32     |  87k (no aug) |   8    |  128  |  73.6  |  82.7  |
+
 *Table 1: The performance results are reported on SQuAD v1 dataset. Both train & dev sets are processed using Spacy. Invalid samples are removed from train set only. Settings for this QANet implementation is selected to be comparable with settings in original paper*
 
 ### BiDAF
@@ -60,10 +61,11 @@ tensorboard --logdir=output
 <img src="/reading_comprehension/document/BiDAF.metric.png" width=1000><br />
 *Figure 4: The experiment details are reported on SQuAD v1 dataset. Both train & dev sets are processed using Spacy. Invalid samples are removed from both train & dev sets. EM results for BiDAF model with/without EMA are shown on left. F1 results for BiDAF model with/without EMA are shown on right*
 
-|        Model        | # Epoch | # Train Steps | Batch Size |   Data Size   | Attention Type | # Dim |   EM   |   F1   |
-|:-------------------:|:-------:|:-------------:|:----------:|:-------------:|:--------------:|:-----:|:------:|:------:|
-| This implementation |    12   |    ~17,500    |     60     |  87k (no aug) |    trilinear   |  100  |  68.8  |  78.1  |
-|    Original Paper   |    12   |    ~17,500    |     60     |  87k (no aug) |    trilinear   |  100  |  67.7  |  77.3  |
+|        Model        | # Epoch | # Train Steps | Batch Size | Attention Type | # Dim |   EM   |   F1   |
+|:-------------------:|:-------:|:-------------:|:----------:|:--------------:|:-----:|:------:|:------:|
+| This implementation |    12   |    ~17,500    |     60     |    trilinear   |  100  |  68.8  |  78.1  |
+|    Original Paper   |    12   |    ~17,500    |     60     |    trilinear   |  100  |  67.7  |  77.3  |
+
 *Table 2: The performance results are reported on SQuAD v1 dataset. Both train & dev sets are processed using Spacy. Invalid samples are removed from train set only. Settings for this BiDAF implementation is selected to be comparable with settings in original paper*
 
 ### R-Net
