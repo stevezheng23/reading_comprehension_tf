@@ -46,7 +46,7 @@ tensorboard --logdir=output
 
 |        Model        | # Epoch | # Train Steps | Batch Size |   Data Size   | # Head | # Dim |   EM   |   F1   |
 |:-------------------:|:-------:|:-------------:|:----------:|:-------------:|:------:|:-----:|:------:|:------:|
-| This implementation |    13   |    ~70,000    |     16     |  87k (no aug) |   8    |  128  |  70.1  |  79.7  |
+| This implementation |    13   |    ~70,000    |     16     |  87k (no aug) |   8    |  128  |  70.2  |  80.0  |
 |    Original Paper   |   ~13   |     35,000    |     32     |  87k (no aug) |   8    |  128  |   N/A  |  77.0  |
 |    Original Paper   |   ~55   |    150,000    |     32     |  87k (no aug) |   8    |  128  |  73.6  |  82.7  |
 
@@ -63,7 +63,7 @@ tensorboard --logdir=output
 
 |        Model        | # Epoch | # Train Steps | Batch Size | Attention Type | # Dim |   EM   |   F1   |
 |:-------------------:|:-------:|:-------------:|:----------:|:--------------:|:-----:|:------:|:------:|
-| This implementation |    12   |    ~17,500    |     60     |    trilinear   |  100  |  68.8  |  78.1  |
+| This implementation |    12   |    ~17,500    |     60     |    trilinear   |  100  |  68.5  |  78.2  |
 |    Original Paper   |    12   |    ~17,500    |     60     |    trilinear   |  100  |  67.7  |  77.3  |
 
 *Table 2: The performance results are reported on SQuAD v1 dataset. Both train & dev sets are processed using Spacy. Invalid samples are removed from train set only. Settings for this BiDAF implementation is selected to be comparable with settings in original paper*
@@ -73,3 +73,8 @@ tensorboard --logdir=output
 
 <img src="/reading_comprehension/document/R-Net.architecture.png" width=700><br />
 *Figure 5: An overview of the R-Net architecture*
+
+## Reference
+* Adams Wei Yu, David Dohan, Minh-Thang Luong, Rui Zhao, Kai Chen, Mohammad Norouzi, and Quoc V Le. [QANet: Combining local convolution with global self-attention for reading comprehension](https://arxiv.org/abs/1804.09541) [ICLR, 2018]
+* Min Joon Seo, Aniruddha Kembhavi, Ali Farhadi, and Hannaneh Hajishirzi. [Bidirectional attention flow for machine comprehension](https://arxiv.org/abs/1611.01603) [ICLR 2017]
+* Wenhui Wang, Nan Yang, Furu Wei, Baobao Chang, and Ming Zhou. [Gated self-matching networks for reading comprehension and question answering](https://aclanthology.info/papers/P17-1018/p17-1018) [ACL 2017]
