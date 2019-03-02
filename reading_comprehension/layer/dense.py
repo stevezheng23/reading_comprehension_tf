@@ -203,13 +203,12 @@ class StackedDense(object):
             self.dense_layer_list = []
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
-                layer_default_gpu_id = self.default_gpu_id
                 sublayer_dropout = self.dropout[i] if self.dropout != None else 0.0
                 sublayer_layer_dropout = self.layer_dropout[i] if self.layer_dropout != None else 0.0
                 dense_layer = self.layer_creator(unit_dim=self.unit_dim, activation=self.activation,
                     dropout=sublayer_dropout, layer_dropout=sublayer_layer_dropout, layer_norm=self.layer_norm,
                     residual_connect=self.residual_connect, use_bias=self.use_bias, num_gpus=self.num_gpus,
-                    default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer, random_seed=self.random_seed,
+                    default_gpu_id=self.default_gpu_id, regularizer=self.regularizer, random_seed=self.random_seed,
                     trainable=self.trainable, scope=layer_scope)
                 self.dense_layer_list.append(dense_layer)
     
@@ -271,13 +270,12 @@ class StackedDoubleDense(object):
             self.dense_layer_list = []
             for i in range(self.num_layer):
                 layer_scope = "layer_{0}".format(i)
-                layer_default_gpu_id = self.default_gpu_id
                 sublayer_dropout = self.dropout[i] if self.dropout != None else 0.0
                 sublayer_layer_dropout = self.layer_dropout[i] if self.layer_dropout != None else 0.0
                 dense_layer = self.layer_creator(unit_dim=self.unit_dim, inner_scale=self.inner_scale, activation=self.activation,
                     dropout=sublayer_dropout, layer_dropout=sublayer_layer_dropout, layer_norm=self.layer_norm,
                     residual_connect=self.residual_connect, use_bias=self.use_bias, num_gpus=self.num_gpus,
-                    default_gpu_id=layer_default_gpu_id, regularizer=self.regularizer, random_seed=self.random_seed,
+                    default_gpu_id=self.default_gpu_id, regularizer=self.regularizer, random_seed=self.random_seed,
                     trainable=self.trainable, scope=layer_scope)
                 self.dense_layer_list.append(dense_layer)
     
