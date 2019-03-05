@@ -29,6 +29,11 @@ python reading_comprehension_run.py --mode train --config config/config_mrc_temp
 # run experiment in eval only mode
 python reading_comprehension_run.py --mode eval --config config/config_mrc_template.xxx.json
 ```
+* Search hyper-parameter
+```bash
+# random search hyper-parameters
+python hparam_search.py --base-config config/config_mrc_template.xxx.json --search-config config/config_search_template.xxx.json --num-group 10 --random-seed 100 --output-dir config/search
+```
 * Visualize summary
 ```bash
 # visualize summary via tensorboard
