@@ -41,7 +41,7 @@ tensorboard --logdir=output
 ```
 ## Experiment
 ### QANet
-[QANet](https://arxiv.org/abs/1804.09541) is a MRC architecture proposed by Google Brain, which does not require recurrent networks: Its encoder consists exclusively of convolution and self-attention, where convolution models local interactions and self-attention models global interactions.
+[QANet](https://github.com/google-research/google-research/tree/master/qanet) is a MRC architecture proposed by Google Brain, which does not require recurrent networks: Its encoder consists exclusively of convolution and self-attention, where convolution models local interactions and self-attention models global interactions.
 
 <img src="/reading_comprehension/document/QANet.architecture.png" width=700><br />
 *Figure 1: An overview of the QANet architecture*
@@ -80,6 +80,7 @@ tensorboard --logdir=output
 *Figure 5: An overview of the R-Net architecture*
 
 ## Reference
-* Adams Wei Yu, David Dohan, Minh-Thang Luong, Rui Zhao, Kai Chen, Mohammad Norouzi, and Quoc V Le. [QANet: Combining local convolution with global self-attention for reading comprehension](https://arxiv.org/abs/1804.09541) [ICLR, 2018]
-* Min Joon Seo, Aniruddha Kembhavi, Ali Farhadi, and Hannaneh Hajishirzi. [Bidirectional attention flow for machine comprehension](https://arxiv.org/abs/1611.01603) [ICLR 2017]
-* Wenhui Wang, Nan Yang, Furu Wei, Baobao Chang, and Ming Zhou. [Gated self-matching networks for reading comprehension and question answering](https://aclanthology.info/papers/P17-1018/p17-1018) [ACL 2017]
+* Adams Wei Yu, David Dohan, Minh-Thang Luong, Rui Zhao, Kai Chen, Mohammad Norouzi, and Quoc V Le. [QANet: Combining local convolution with global self-attention for reading comprehension](https://arxiv.org/abs/1804.09541) [2018]
+* Min Joon Seo, Aniruddha Kembhavi, Ali Farhadi, and Hannaneh Hajishirzi. [Bidirectional attention flow for machine comprehension](https://arxiv.org/abs/1611.01603) [2017]
+* Wenhui Wang, Nan Yang, Furu Wei, Baobao Chang, and Ming Zhou. [Gated self-matching networks for reading comprehension and question answering](https://aclanthology.info/papers/P17-1018/p17-1018) [2017]
+* Danqi Chen. [Neural reading comprehension and beyond](https://cs.stanford.edu/~danqi/papers/thesis.pdf) [2018]
