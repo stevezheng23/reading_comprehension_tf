@@ -349,23 +349,13 @@
     },
     "variables": {
         "embed_dim": {
-            "stype": "uniform",
-            "range": [5, 25],
-            "dtype": "int"
-        },
-        "unit_dim": {
-            "stype": "uniform",
-            "range": [75, 150],
-            "dtype": "int"
-        },
-        "hidden_activation": {
             "stype": "discrete",
-            "set": ["tanh", "relu"],
-            "dtype": "string"
+            "set": [8, 16, 32, 64],
+            "dtype": "int"
         },
         "window_size": {
             "stype": "discrete",
-            "set": [[3], [5]],
+            "set": [[3], [5], [7]],
             "dtype": "list"
         },
         "pooling_type": {
@@ -373,24 +363,34 @@
             "set": ["max"],
             "dtype": "string"
         },
+        "unit_dim": {
+            "stype": "uniform",
+            "range": [50, 200],
+            "dtype": "int"
+        },
+        "hidden_activation": {
+            "stype": "discrete",
+            "set": ["tanh", "relu"],
+            "dtype": "string"
+        },
         "dropout": {
             "stype": "uniform",
-            "range": [0.05, 0.5],
+            "range": [0.0, 0.5],
             "dtype": "float"
         },
         "layer_dropout": {
             "stype": "uniform",
-            "range": [0.05, 0.15],
+            "range": [0.0, 0.5],
             "dtype": "float"
         },
         "score_type": {
             "stype": "discrete",
-            "set": ["dot", "scaled_dot"],
+            "set": ["scaled_dot", "triliear"],
             "dtype": "string"
         },
         "understanding_num_layer": {
             "stype": "discrete",
-            "set": [1, 2, 4],
+            "set": [1, 2, 3, 4],
             "dtype": "int"
         },
         "understanding_num_conv": {
@@ -400,12 +400,12 @@
         },
         "understanding_window_size": {
             "stype": "discrete",
-            "set": [[5], [7]],
+            "set": [[3], [5], [7]],
             "dtype": "list"
         },
         "modeling_num_layer": {
             "stype": "discrete",
-            "set": [2, 4, 8],
+            "set": [2, 4, 8, 12],
             "dtype": "int"
         },
         "modeling_num_conv": {
@@ -415,7 +415,7 @@
         },
         "modeling_window_size": {
             "stype": "discrete",
-            "set": [[5], [7]],
+            "set": [[3], [5], [7]],
             "dtype": "list"
         }
     }

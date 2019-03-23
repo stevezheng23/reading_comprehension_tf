@@ -32,12 +32,12 @@
         },
         "train_optimizer_type": {
             "stype": "discrete",
-            "set": ["adadelta"],
+            "set": ["adam"],
             "dtype": "string"
         },
         "train_optimizer_learning_rate": {
             "stype": "log",
-            "range": [0.5, 1.5],
+            "range": [0.0001, 0.001],
             "dtype": "float"
         },
         "model_representation_word_embed_dim": {
@@ -401,23 +401,38 @@
     },
     "variables": {
         "embed_dim": {
-            "stype": "uniform",
-            "range": [5, 25],
+            "stype": "discrete",
+            "set": [8, 16, 32, 64],
             "dtype": "int"
         },
-        "window_size": {
+        "pooling_type": {
             "stype": "discrete",
-            "set": [[3], [5]],
-            "dtype": "list"
+            "set": ["max"],
+            "dtype": "string"
+        },
+        "unit_dim": {
+            "stype": "uniform",
+            "range": [50, 200],
+            "dtype": "int"
         },
         "hidden_activation": {
             "stype": "discrete",
             "set": ["tanh", "relu"],
             "dtype": "string"
         },
-        "pooling_type": {
+        "cell_type": {
             "stype": "discrete",
-            "set": ["max"],
+            "set": ["lstm", "gru"],
+            "dtype": "string"
+        },
+        "dropout": {
+            "stype": "uniform",
+            "range": [0.1, 0.5],
+            "dtype": "float"
+        },
+        "score_type": {
+            "stype": "discrete",
+            "set": ["scaled_dot", "linear"],
             "dtype": "string"
         },
         "understanding_num_layer": {
@@ -439,26 +454,6 @@
             "stype": "discrete",
             "set": [1],
             "dtype": "int"
-        },
-        "unit_dim": {
-            "stype": "uniform",
-            "range": [25, 125],
-            "dtype": "int"
-        },
-        "cell_type": {
-            "stype": "discrete",
-            "set": ["lstm", "gru"],
-            "dtype": "string"
-        },
-        "dropout": {
-            "stype": "uniform",
-            "range": [0.1, 0.5],
-            "dtype": "float"
-        },
-        "score_type": {
-            "stype": "discrete",
-            "set": ["scaled_dot", "linear"],
-            "dtype": "string"
         }
     }
 }

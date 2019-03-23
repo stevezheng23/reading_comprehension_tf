@@ -394,19 +394,14 @@
     },
     "variables": {
         "embed_dim": {
-            "stype": "uniform",
-            "range": [5, 25],
+            "stype": "discrete",
+            "set": [8, 16, 32, 64],
             "dtype": "int"
         },
         "window_size": {
             "stype": "discrete",
-            "set": [[3], [5]],
+            "set": [[3], [5], [7]],
             "dtype": "list"
-        },
-        "hidden_activation": {
-            "stype": "discrete",
-            "set": ["tanh", "relu"],
-            "dtype": "string"
         },
         "pooling_type": {
             "stype": "discrete",
@@ -415,13 +410,18 @@
         },
         "num_layer": {
             "stype": "discrete",
-            "set": [1, 2],
+            "set": [1, 2, 3, 4],
             "dtype": "int"
         },
         "unit_dim": {
             "stype": "uniform",
-            "range": [50, 150],
+            "range": [50, 200],
             "dtype": "int"
+        },
+        "hidden_activation": {
+            "stype": "discrete",
+            "set": ["tanh", "relu"],
+            "dtype": "string"
         },
         "cell_type": {
             "stype": "discrete",
@@ -430,12 +430,12 @@
         },
         "dropout": {
             "stype": "uniform",
-            "range": [0.1, 0.5],
+            "range": [0.0, 0.5],
             "dtype": "float"
         },
         "score_type": {
             "stype": "discrete",
-            "set": ["dot", "scaled_dot"],
+            "set": ["scaled_dot", "triliear"],
             "dtype": "string"
         }
     }
