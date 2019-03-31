@@ -1,18 +1,18 @@
-# Description
+## Description
 Machine reading comprehension (MRC), a task which asks machine to read a given context then answer questions based on its understanding, is considered one of the key problems in artificial intelligence and has significant interest from both academic and industry. Over the past few years, great progress has been made in this field, thanks to various end-to-end trained neural models and high quality datasets with large amount of examples proposed.
 
-# DataSet
+## DataSet
 * [SQuAD](https://rajpurkar.github.io/SQuAD-explorer/) is a reading comprehension dataset, consisting of questions posed by crowd-workers on a set of Wikipedia articles, where the answer to every question is a segment of text, or span, from the corresponding reading passage, or the question might be unanswerable.
 * [GloVe](https://nlp.stanford.edu/projects/glove/) is an unsupervised learning algorithm for obtaining vector representations for words. Training is performed on aggregated global word-word co-occurrence statistics from a corpus, and the resulting representations showcase interesting linear substructures of the word vector space.
 
-# Experiment
-## QANet
+## Experiment
+### QANet
 [QANet](https://github.com/google-research/google-research/tree/master/qanet) is a MRC architecture proposed by Google Brain, which does not require recurrent networks: Its encoder consists exclusively of convolution and self-attention, where convolution models local interactions and self-attention models global interactions.
 
-<p align="center"><img src="QANet.architecture.png" width=700></p>
+<p align="center">![](QANet.architecture.png)</p>
 <p align="center"><i>Figure 1: An overview of the QANet architecture</i></p>
 
-<p align="center"><img src="QANet.metric.png" width=1000></p>
+<p align="center">![](QANet.metric.png)</p>
 <p><i>Figure 2: The experiment details are reported on SQuAD v1 dataset. Both train & dev sets are processed using Spacy. Invalid samples are removed from both train & dev sets. EM results for QANet model with/without EMA are shown on left. F1 results for QANet model with/without EMA are shown on right</i></p>
 
 |        Model        | # Epoch | # Train Steps | Batch Size |   Data Size   | # Head | # Dim |   EM   |   F1   |
@@ -23,13 +23,13 @@ Machine reading comprehension (MRC), a task which asks machine to read a given c
 
 <p><i>Table 1: The performance results are reported on SQuAD v1 dataset. Both train & dev sets are processed using Spacy. Invalid samples are removed from train set only. Settings for this QANet implementation is selected to be comparable with settings in original paper</i></p>
 
-## BiDAF
+### BiDAF
 [BiDAF](https://allenai.github.io/bi-att-flow/) (Bi-Directional Attention Flow) is a MRC architecture proposed by Allen Institute for Artificial Intelligence (AI2), which consists a multi-stage hierarchical process that represents the context at different levels of granularity and uses bidirectional attention flow mechanism to obtain a query-aware context representation without early summarization.
 
-<p align="center"><img src="BiDAF.architecture.png" width=700></p>
+<p align="center">![](BiDAF.architecture.png)</p>
 <p align="center"><i>Figure 3: An overview of the BiDAF architecture</i></p>
 
-<p align="center"><img src="BiDAF.metric.png" width=1000></p>
+<p align="center">![](BiDAF.metric.png)</p>
 <p><i>Figure 4: The experiment details are reported on SQuAD v1 dataset. Both train & dev sets are processed using Spacy. Invalid samples are removed from both train & dev sets. EM results for BiDAF model with/without EMA are shown on left. F1 results for BiDAF model with/without EMA are shown on right</i></p>
 
 |        Model        | # Epoch | # Train Steps | Batch Size | Attention Type | # Dim |   EM   |   F1   |
@@ -39,13 +39,13 @@ Machine reading comprehension (MRC), a task which asks machine to read a given c
 
 <p><i>Table 2: The performance results are reported on SQuAD v1 dataset. Both train & dev sets are processed using Spacy. Invalid samples are removed from train set only. Settings for this BiDAF implementation is selected to be comparable with settings in original paper</i></p>
 
-## R-Net
+### R-Net
 [R-Net](https://www.microsoft.com/en-us/research/publication/mcr/) is a MRC architecture proposed by Microsoft Research Asia (MSRA), which first matches the question and passage with gated attention-based recurrent networks to obtain the question-aware passage representation, then uses a self-matching attention mechanism to refine the representation by matching the passage against itself, and finally employs the pointer networks to locate the positions of answers from the passages.
 
-<p align="center"><img src="R-Net.architecture.png" width=700></p>
+<p align="center">![](R-Net.architecture.png)</p>
 <p align="center"><i>Figure 5: An overview of the R-Net architecture</i></p>
 
-# Reference
+## Reference
 * Adams Wei Yu, David Dohan, Minh-Thang Luong, Rui Zhao, Kai Chen, Mohammad Norouzi, and Quoc V Le. [QANet: Combining local convolution with global self-attention for reading comprehension](https://arxiv.org/abs/1804.09541) [2018]
 * Min Joon Seo, Aniruddha Kembhavi, Ali Farhadi, and Hannaneh Hajishirzi. [Bidirectional attention flow for machine comprehension](https://arxiv.org/abs/1611.01603) [2017]
 * Wenhui Wang, Nan Yang, Furu Wei, Baobao Chang, and Ming Zhou. [Gated self-matching networks for reading comprehension and question answering](https://aclanthology.info/papers/P17-1018/p17-1018) [2017]
