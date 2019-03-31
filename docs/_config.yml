@@ -1,3 +1,3 @@
 theme: jekyll-theme-cayman
 title: Machine Reading Comprehension
-description: Machine reading comprehension (MRC), a task which asks machine to read a given context then answer questions based on its understanding, is considered one of the key problems in artificial intelligence and has significant interest from both academic and industry. Over the past few years, great progress has been made in this field, thanks to various end-to-end trained neural models and high quality datasets with large amount of examples proposed. In this repo, I'll share more details on MRC task by re-implementing a few MRC models and testing them on standard MRC datasets.
+description: This project is a Machine Reading Comprehension (MRC) framework in TensorFlow. It also contains several classic models (e.g. QANet, BiDAF, etc.) re-implementation and their benchmarks on SQuAD dataset.
