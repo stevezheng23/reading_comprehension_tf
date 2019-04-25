@@ -32,7 +32,7 @@
     "data_char_pad": "#",
     "data_answer_type": "span",
     "data_expand_multiple_answer": false,
-    "data_enable_validation": false,
+    "data_enable_validation": true,
     "data_pipeline_mode": "tfrecord",
     "data_num_parallel": 4,
     "data_log_output_dir": "output/bidaf/log",
