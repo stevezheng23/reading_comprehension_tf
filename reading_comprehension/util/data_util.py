@@ -920,7 +920,7 @@ def prepare_data(logger,
             word_embed_data = load_embedding_file(full_word_embed_file,
                 word_embed_dim, word_unk, word_pad, word_sos, word_eos)
         else:
-            raise ValueError("{0} or {1} must be provided".format(word_vocab_file, full_word_embed_file))
+            raise ValueError("{0} or {1} must be provided".format(word_embed_file, full_word_embed_file))
         
         word_embed_size = len(word_embed_data) if word_embed_data is not None else 0
         logger.log_print("# word embedding table has {0} words".format(word_embed_size))
