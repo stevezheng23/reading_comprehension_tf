@@ -34,7 +34,7 @@ def sample_predict(sess,
     predict_span = []
     while True:
         try:
-            infer_result = model.model.infer(sess, model.word_embedding)
+            infer_result = model.model.infer(sess)
             predict_span.extend(infer_result.predict)
         except  tf.errors.OutOfRangeError:
             break
@@ -244,7 +244,7 @@ def train(logger,
         while True:
             try:
                 start_time = time.time()
-                train_result = train_model.model.train(train_sess, train_model.word_embedding)
+                train_result = train_model.model.train(train_sess)
                 end_time = time.time()
                 
                 global_step = train_result.global_step

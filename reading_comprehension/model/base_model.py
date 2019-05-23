@@ -44,9 +44,8 @@ class BaseModel(object):
         self.infer_answer_end = None
         self.infer_answer_end_mask = None
         self.infer_summary = None
-        self.word_embedding = external_data["word_embedding"] if external_data is not None and "word_embedding" in external_data else None
-        self.word_embedding_placeholder = None
         
+        self.word_embedding = external_data["word_embedding"] if external_data is not None and "word_embedding" in external_data else None
         self.batch_size = tf.size(tf.reduce_max(self.data_pipeline.input_answer_mask, axis=-2))
         
         self.num_gpus = self.hyperparams.device_num_gpus
@@ -230,39 +229,20 @@ class BaseModel(object):
         return update_model, clipped_gradients, gradient_norm
     
     def train(self,
-              sess,
-              word_embedding):
+              sess):
         """train model"""
-        feed_word_embed = (self.hyperparams.model_representation_word_embed_pretrained and
-            word_embedding is not None and self.word_embedding_placeholder is not None)
-        
-        if feed_word_embed == True:
-            (_, loss, learning_rate, global_step, batch_size, summary) = sess.run([self.update_op,
-                self.train_loss, self.decayed_learning_rate, self.global_step, self.batch_size, self.train_summary],
-                feed_dict={self.word_embedding_placeholder: word_embedding})
-        else:
-            _, loss, learning_rate, global_step, batch_size, summary = sess.run([self.update_op,
-                self.train_loss, self.decayed_learning_rate, self.global_step, self.batch_size, self.train_summary])
+        _, loss, learning_rate, global_step, batch_size, summary = sess.run([self.update_op,
+            self.train_loss, self.decayed_learning_rate, self.global_step, self.batch_size, self.train_summary])
         
         return TrainResult(loss=loss, learning_rate=learning_rate,
             global_step=global_step, batch_size=batch_size, summary=summary)
     
     def infer(self,
-              sess,
-              word_embedding):
+              sess):
         """infer model"""
-        feed_word_embed = (self.hyperparams.model_representation_word_embed_pretrained and
-            word_embedding is not None and self.word_embedding_placeholder is not None)
-        
-        if feed_word_embed == True:
-            (answer_start, answer_end, answer_start_mask, answer_end_mask,
-                batch_size, summary) = sess.run([self.infer_answer_start, self.infer_answer_end,
-                    self.infer_answer_start_mask, self.infer_answer_end_mask, self.batch_size, self.infer_summary],
-                    feed_dict={self.word_embedding_placeholder: word_embedding})
-        else:
-            (answer_start, answer_end, answer_start_mask, answer_end_mask,
-                batch_size, summary) = sess.run([self.infer_answer_start, self.infer_answer_end,
-                    self.infer_answer_start_mask, self.infer_answer_end_mask, self.batch_size, self.infer_summary])
+        (answer_start, answer_end, answer_start_mask, answer_end_mask,
+            batch_size, summary) = sess.run([self.infer_answer_start, self.infer_answer_end,
+                self.infer_answer_start_mask, self.infer_answer_end_mask, self.batch_size, self.infer_summary])
         
         max_context_length = self.hyperparams.data_max_context_length
         max_answer_length = self.hyperparams.data_max_answer_length
