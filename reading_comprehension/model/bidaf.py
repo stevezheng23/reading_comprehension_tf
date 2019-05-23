@@ -222,10 +222,8 @@ class BiDAF(BaseModel):
                 input_context_feat_mask_list.append(input_context_word_feat_mask)
                 
                 word_unit_dim = word_embed_dim
-                self.word_embedding_placeholder = word_feat_layer.get_embedding_placeholder()
             else:
                 word_unit_dim = 0
-                self.word_embedding_placeholder = None
             
             if subword_feat_enable == True:
                 self.logger.log_print("# build subword-level representation layer")
@@ -731,10 +729,6 @@ class WordFeat(object):
             input_word_feat = tf.squeeze(self.embedding_layer(input_word), axis=-2)
         
         return input_word_feat, input_word_feat_mask
-    
-    def get_embedding_placeholder(self):
-        """get word-level embedding placeholder"""
-        return self.embedding_layer.get_embedding_placeholder()
 
 class SubwordFeat(object):
     """subword-level featurization layer"""
