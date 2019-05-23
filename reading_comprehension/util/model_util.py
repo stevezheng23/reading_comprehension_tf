@@ -47,6 +47,8 @@ def create_train_model(logger,
              hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
         external_data = {}
+        if word_embed_data is not None:
+            external_data["word_embedding"] = word_embed_data
         
         word_vocab_tensor_index = (tf.contrib.lookup.index_table_from_tensor(mapping=tf.constant(list(word_vocab_index.keys())),
             default_value=0) if hyperparams.model_representation_word_feat_enable else None)
@@ -117,9 +119,6 @@ def create_train_model(logger,
             input_context_subword_placeholder = None
             input_context_char_placeholder = None
             input_answer_placeholder = None
-            
-            if word_embed_data is not None:
-                external_data["word_embedding"] = word_embed_data
         elif hyperparams.data_pipeline_mode == "preprocessing":
             logger.log_print("# create train question dataset")
             (input_question_word_data, input_question_subword_data,
@@ -279,6 +278,8 @@ def create_infer_model(logger,
              hyperparams.data_char_pad, hyperparams.model_representation_char_feat_enable)
         
         external_data = {}
+        if word_embed_data is not None:
+            external_data["word_embedding"] = word_embed_data
         
         word_vocab_tensor_index = (tf.contrib.lookup.index_table_from_tensor(mapping=tf.constant(list(word_vocab_index.keys())),
             default_value=0) if hyperparams.model_representation_word_feat_enable else None)
@@ -349,9 +350,6 @@ def create_infer_model(logger,
             input_context_subword_placeholder = None
             input_context_char_placeholder = None
             input_answer_placeholder = None
-            
-            if word_embed_data is not None:
-                external_data["word_embedding"] = word_embed_data
         elif hyperparams.data_pipeline_mode == "preprocessing":
             logger.log_print("# create infer question dataset")
             (input_question_word_data, input_question_subword_data,
