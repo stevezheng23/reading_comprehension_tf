@@ -1,5 +1,7 @@
 ## Description
 Machine reading comprehension (MRC), a task which asks machine to read a given context then answer questions based on its understanding, is considered one of the key problems in artificial intelligence and has significant interest from both academic and industry. Over the past few years, great progress has been made in this field, thanks to various end-to-end trained neural models and high quality datasets with large amount of examples proposed.
+![squad_example]({{ site.url }}/reading_comprehension_tf/SQuAD.example.png){:width="800px"}
+*Figure 1: MRC example from SQuAD 2.0 dev set*
 
 ## DataSet
 * [SQuAD](https://rajpurkar.github.io/SQuAD-explorer/) is a reading comprehension dataset, consisting of questions posed by crowd-workers on a set of Wikipedia articles, where the answer to every question is a segment of text, or span, from the corresponding reading passage, or the question might be unanswerable.
@@ -11,11 +13,11 @@ Machine reading comprehension (MRC), a task which asks machine to read a given c
 
 ![qanet_arch]({{ site.url }}/reading_comprehension_tf/QANet.architecture.png){:width="700px"}
 
-*Figure 1: An overview of the QANet architecture*
+*Figure 2: An overview of the QANet architecture*
 
 ![qanet_metric]({{ site.url }}/reading_comprehension_tf/QANet.metric.png){:width="1000px"}
 
-*Figure 2: The experiment details are reported on SQuAD v1 dataset. Both train & dev sets are processed using Spacy. Invalid samples are removed from both train & dev sets. EM results for QANet model with/without EMA are shown on left. F1 results for QANet model with/without EMA are shown on right*
+*Figure 3: The experiment details are reported on SQuAD v1 dataset. Both train & dev sets are processed using Spacy. Invalid samples are removed from both train & dev sets. EM results for QANet model with/without EMA are shown on left. F1 results for QANet model with/without EMA are shown on right*
 
 |        Model        | # Epoch | # Train Steps | Batch Size |   Data Size   | # Head | # Dim |   EM   |   F1   |
 |:-------------------:|:-------:|:-------------:|:----------:|:-------------:|:------:|:-----:|:------:|:------:|
@@ -30,11 +32,11 @@ Machine reading comprehension (MRC), a task which asks machine to read a given c
 
 ![bidaf_arch]({{ site.url }}/reading_comprehension_tf/BiDAF.architecture.png){:width="700px"}
 
-*Figure 3: An overview of the BiDAF architecture*
+*Figure 4: An overview of the BiDAF architecture*
 
 ![bidaf_metric]({{ site.url }}/reading_comprehension_tf/BiDAF.metric.png){:width="1000px"}
 
-*Figure 4: The experiment details are reported on SQuAD v1 dataset. Both train & dev sets are processed using Spacy. Invalid samples are removed from both train & dev sets. EM results for BiDAF model with/without EMA are shown on left. F1 results for BiDAF model with/without EMA are shown on right*
+*Figure 5: The experiment details are reported on SQuAD v1 dataset. Both train & dev sets are processed using Spacy. Invalid samples are removed from both train & dev sets. EM results for BiDAF model with/without EMA are shown on left. F1 results for BiDAF model with/without EMA are shown on right*
 
 |        Model        | # Epoch | # Train Steps | Batch Size | Attention Type | # Dim |   EM   |   F1   |
 |:-------------------:|:-------:|:-------------:|:----------:|:--------------:|:-----:|:------:|:------:|
@@ -48,7 +50,7 @@ Machine reading comprehension (MRC), a task which asks machine to read a given c
 
 ![rnet_arch]({{ site.url }}/reading_comprehension_tf/R-Net.architecture.png){:width="700px"}
 
-*Figure 5: An overview of the R-Net architecture</i>*
+*Figure 6: An overview of the R-Net architecture</i>*
 
 ## Reference
 * Adams Wei Yu, David Dohan, Minh-Thang Luong, Rui Zhao, Kai Chen, Mohammad Norouzi, and Quoc V Le. [QANet: Combining local convolution with global self-attention for reading comprehension](https://arxiv.org/abs/1804.09541) [2018]
