@@ -1,5 +1,7 @@
 ## Description
 Machine reading comprehension (MRC), a task which asks machine to read a given context then answer questions based on its understanding, is considered one of the key problems in artificial intelligence and has significant interest from both academic and industry. Over the past few years, great progress has been made in this field, thanks to various end-to-end trained neural models and high quality datasets with large amount of examples proposed.
+<p align="center"><img src="SQuAD.example.png" width=800></p>
+<p align="center"><i>Figure 1: MRC example from SQuAD 2.0 dev set</i></p>
 
 ## DataSet
 * [SQuAD](https://rajpurkar.github.io/SQuAD-explorer/) is a reading comprehension dataset, consisting of questions posed by crowd-workers on a set of Wikipedia articles, where the answer to every question is a segment of text, or span, from the corresponding reading passage, or the question might be unanswerable.
